@@ -50,3 +50,13 @@ Have you ever called your friends or family asking for a recipe? Have you ever s
   * Clean separation between frontend, backend, and worker services
   * Well-defined API boundaries
   * Designed to be easy to extend with additional features or integrations
+
+## Team Members
+- Elinor Clark, 
+- Elaina Hales, 
+- Carley Andelin, 
+- Jordan Brockbank, 
+- Ben Hall, 
+- Nic Samson, 
+- Tyler Chartrand, 
+- Eric Leech
