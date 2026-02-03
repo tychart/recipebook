@@ -1,0 +1,32 @@
+services:
+  # recipiebook-db:
+  #   image: postgres:16
+  #   environment:
+  #     POSTGRES_DB: recipebook
+  #     POSTGRES_USER: recipebook
+  #     POSTGRES_PASSWORD: recipebook
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+  recipiebook-server:
+    build:
+      context: ./server
+    # environment:
+    #   DATABASE_URL: postgresql://recipebook:recipebook@recipiebook-db:5432/recipebook
+    # depends_on:
+    #   - recipiebook-db
+    ports:
+      - "8000:8000"
+
+  recipiebook-web:
+    build:
+      context: ./web
+    depends_on:
+      - recipiebook-server
+    ports:
+      - "8650:80"
+
+# volumes:
+#   pgdata:
