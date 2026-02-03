@@ -1,5 +1,6 @@
 # RecipeBook
 ## Pitch
+
 Have you ever called your friends or family asking for a recipe? Have you ever saved the photo of the recipe to your photos, been unable to find it, and had to ask them for the recipe all over again? This project seeks to solve that issue. This online recipe book allows you and your family and friends to save and share recipes into an joint book. It facilitates easy recipe sharing and access, so you never have to wonder where that recipe is again!
 
 ## Summary of (hopefully future) features
@@ -60,3 +61,61 @@ Have you ever called your friends or family asking for a recipe? Have you ever s
 - Nic Samson, 
 - Tyler Chartrand, 
 - Eric Leech
+
+## Building for Development
+
+Steps to deploy project so far
+
+
+Clone the repo to your local machine:
+
+```bash
+git clone git@github.com:tychart/recipebook.git
+
+or 
+
+git clone https://github.com/tychart/recipebook.git
+```
+
+
+### Backend:
+
+```bash
+cd server/
+python3 -m venv .venv
+pip install "fastapi[standard]"
+```
+
+To run for development:
+
+```bash
+fastapi dev test.py
+```
+
+To run for (semi) production:
+
+```bash
+uvicorn test:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+
+### Frontend:
+
+```bash
+cd web/
+npm install
+```
+
+To run for development:
+
+```bash
+npm run dev
+```
+
+To run for (semi) production:
+
+```bash
+npm run build
+```
+
+Then serve the files in the `web/dist` folder that this command generates with a standard web server (Nginx, Apache, etc)
