@@ -62,9 +62,32 @@ Have you ever called your friends or family asking for a recipe? Have you ever s
 - Tyler Chartrand, 
 - Eric Leech
 
+## Building for Production
+
+Prerequisites: (As far as I know)
+- Docker
+- docker-compose
+- git
+
+```bash
+git clone git@github.com:tychart/recipebook.git
+
+cd recipebook/
+
+docker compose up --build
+```
+
+After this, the webpage will be accessable at [http://localhost:8650](http://localhost:8650)
+
 ## Building for Development
 
 Steps to deploy project so far
+
+Prerequisites: (As far as I know)
+- git
+- python3
+- python3-venv
+- npm
 
 
 Clone the repo to your local machine:
@@ -83,7 +106,7 @@ git clone https://github.com/tychart/recipebook.git
 ```bash
 cd server/
 python3 -m venv .venv
-pip install "fastapi[standard]"
+pip install -r requirements.txt
 ```
 
 To run for development:
