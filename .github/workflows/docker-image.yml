@@ -1,0 +1,21 @@
+name: Build and deploy Docker image stack on self-hosted runner
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and restart
+        run: |
+          docker compose down
+          docker compose up -d --build
+          docker image prune -f
