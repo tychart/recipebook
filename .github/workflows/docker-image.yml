@@ -3,8 +3,6 @@ name: Build and deploy Docker image stack on self-hosted runner
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   deploy:
