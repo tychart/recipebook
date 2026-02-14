@@ -1,37 +1,34 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Layout from './components/Layout';
 import Home from './pages/Home';
+import Cookbooks from './pages/Cookbooks';
+import CookbookNew from './pages/CookbookNew';
 import Cookbook from './pages/Cookbook';
 import Recipe from './pages/Recipe';
+import RecipeNew from './pages/RecipeNew';
+import RecipeEdit from './pages/RecipeEdit';
+import Search from './pages/Search';
 import './App.css';
 
 function App() {
-  const [testApi, setTestApi] = useState<string>('loading...')
-
-  useEffect(() => {
-    fetch('/api/helloworld')
-      .then(res => res.text()) // or res.json() if your API returns JSON
-      .then(data => setTestApi(data))
-      .catch(err => {
-        console.error(err)
-        setTestApi('error')
-      })
-  }, [])
-
   return (
-    <>
-      <BrowserRouter>
-        <Routes>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/cookbooks" element={<Cookbooks />} />
+          <Route path="/cookbooks/new" element={<CookbookNew />} />
           <Route path="/cookbook/:id" element={<Cookbook />} />
+          <Route path="/cookbook/:cookbookId/recipe/new" element={<RecipeNew />} />
+          <Route path="/recipe/new" element={<RecipeNew />} />
           <Route path="/recipe/:id" element={<Recipe />} />
-        </Routes>
-      </BrowserRouter>
-      <div>
-        Message from the API: {testApi}
-      </div>
-    </>
-  )
+          <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
-export default App
+export default App;
