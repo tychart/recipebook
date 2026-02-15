@@ -1,17 +1,11 @@
 from fastapi import APIRouter, UploadFile, Form, File
 from pydantic import BaseModel
 from typing import List
-from enum import Enum
 
 router = APIRouter(
     prefix="/api/cookbooks",
     tags=["cookbooks"],
 )
-
-class RoleEnum(str, Enum):
-    owner = "owner"
-    contributor = "contributor"
-    viewer = "viewer"
 
 class Cookbook(BaseModel):
     book_id: int | None = None
@@ -19,4 +13,13 @@ class Cookbook(BaseModel):
     owner_id: int
     categories: List[str]
 
-
+@router.post("/create")
+async def create_cookbook(
+    cookbookdata: str = Form(...)
+):
+    cookbook_data = Cookbook.model_validate_json(cookbookdata)
+    # TODO: add in server call to send data to server
+    return {
+        "message": "Cookbook uploaded successfully!",
+        "cookbook": cookbook_data.model_dump()
+    }
