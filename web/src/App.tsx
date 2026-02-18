@@ -4,11 +4,11 @@ import Home from './pages/Home';
 import Cookbooks from './pages/Cookbooks';
 import CookbookNew from './pages/CookbookNew';
 import Cookbook from './pages/Cookbook';
-import Recipe from './pages/Recipe';
 import RecipeNew from './pages/RecipeNew';
 import RecipeEdit from './pages/RecipeEdit';
 import Search from './pages/Search';
 import './App.css';
+import RecipePage from './pages/RecipePage';
 
 function App() {
   return (
@@ -21,7 +21,7 @@ function App() {
           <Route path="/cookbook/:id" element={<Cookbook />} />
           <Route path="/cookbook/:cookbookId/recipe/new" element={<RecipeNew />} />
           <Route path="/recipe/new" element={<RecipeNew />} />
-          <Route path="/recipe/:id" element={<Recipe />} />
+          <Route path="/recipe/:id" element={<RecipePage />} />
           <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
           <Route path="/search" element={<Search />} />
           <Route path="*" element={<Navigate to="/" replace />} />
