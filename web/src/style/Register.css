@@ -1,22 +1,43 @@
 /* if button is disabled, gray out the button */
-button:disabled {
+.register-container button:disabled {
   background-color: lightgray;
   cursor: not-allowed;
 }
 
 /* if button not disabled, change cursor to pointer */
-button:not(:disabled) {
+.register-container button:not(:disabled) {
   cursor: pointer;
 }
 
 /* add spacing for form inputs */
-input {
+.register-container input {
   margin: 10px;
   padding: 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
 
-form {
+.register-container form {
   margin: 10px;
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  align-items: center;
+}
+
+.register-form .form-row {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.register-form .form-row input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
 }
