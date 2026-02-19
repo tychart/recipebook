@@ -1,19 +1,29 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../style/Login.css";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const isSubmitDisabled = () => {
     return username.trim() === "" || password.trim() === "";
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // TODO: send register request to backend
+    setIsLoading(true);
+    // TODO: send register request to backend. Remove timeout once implemented
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsLoading(false);
+    setUsername("");
+    setPassword("");
     console.log("Username:", username);
     console.log("Password:", password);
+    // on success, route user to home page
+    navigate("/");
   };
 
   return (
@@ -43,11 +53,17 @@ const Login = () => {
           </div>
         </div>
         <button type="submit" disabled={isSubmitDisabled()}>
-          Login
+          {isLoading ? "Loading..." : "Login"}
         </button>
         <p>
           Don't have an account? <a href="/register">Register Here</a>
         </p>
+        <div
+          className="loading-overlay"
+          style={{ display: isLoading ? "flex" : "none" }}
+        >
+          <div className="spinner"></div>
+        </div>
       </form>
     </div>
   );

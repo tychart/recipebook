@@ -1,23 +1,41 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "../style/Register.css";
 
 const Register = () => {
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const passwordsMatch = password === confirmPassword;
+  const showPasswordError = confirmPassword.length > 0 && !passwordsMatch;
+  const navigate = useNavigate();
 
   const isSubmitDisabled = () => {
     return (
-      username.trim() === "" || email.trim() === "" || password.trim() === ""
+      username.trim() === "" ||
+      email.trim() === "" ||
+      password.trim() === "" ||
+      confirmPassword.trim() === "" ||
+      !passwordsMatch
     );
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (password !== confirmPassword) {
+      return;
+    }
+    setIsLoading(true);
     // TODO: send register request to backend
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsLoading(false);
     console.log("Username:", username);
     console.log("Email:", email);
     console.log("Password:", password);
+    // on success, route user to home page
+    navigate("/");
   };
 
   return (
@@ -57,13 +75,35 @@ const Register = () => {
               onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+          <div className="form-row">
+            <label htmlFor="confirm-password">Confirm Password:</label>
+            <input
+              type="password"
+              id="confirm-password"
+              name="confirm-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+          {showPasswordError && (
+            <div className="error-message">Passwords do not match</div>
+          )}
+          {confirmPassword.length > 0 && passwordsMatch && (
+            <span className="success-text">Passwords match ✓</span>
+          )}
         </div>
         <button type="submit" disabled={isSubmitDisabled()}>
-          Register
+          {isLoading ? "Loading..." : "Register"}
         </button>
         <p>
           Already have an account? <a href="/login">Login Here</a>
         </p>
+        <div
+          className="loading-overlay"
+          style={{ display: isLoading ? "flex" : "none" }}
+        >
+          <div className="spinner"></div>
+        </div>
       </form>
     </div>
   );
