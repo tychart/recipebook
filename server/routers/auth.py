@@ -8,11 +8,13 @@ router = APIRouter(
     tags=["authentication"],
 )
 
+
 class User(BaseModel):
     user_id: int | None = None
     username: str
     email: str
     password: str
+
 
 class AuthToken(BaseModel):
     authtoken_id: int | None = None
@@ -20,10 +22,12 @@ class AuthToken(BaseModel):
     token: str
     timestamp: datetime
 
+
 class LoginRequest(BaseModel):
     username: str | None = None
     email: str | None = None
     password: str
+
 
 class RegisterRequest(BaseModel):
     username: str

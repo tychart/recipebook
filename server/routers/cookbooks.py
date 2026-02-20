@@ -8,10 +8,12 @@ router = APIRouter(
     tags=["cookbooks"],
 )
 
+
 class RoleEnum(str, Enum):
     owner = "owner"
     contributor = "contributor"
     viewer = "viewer"
+
 
 class Cookbook(BaseModel):
     book_id: int | None = None
@@ -76,4 +78,3 @@ async def share_cookbook(body: ShareCookbookRequest):
         "user_id": body.user_id,
         "role": body.role.value,
     }
-

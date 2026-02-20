@@ -20,12 +20,14 @@ class Ingredient(BaseModel):
     amount: int
     name: str
 
+
 class RecipeMetadata(BaseModel):
     recipe_id: int | None = None
     name: str
     ingredients: List[Ingredient]
     instructions: str
     notes: str | None = None
+    description: str | None = None
     author: str
     servings: int
     creator_id: int
@@ -33,27 +35,33 @@ class RecipeMetadata(BaseModel):
     tags: List[str]
     cookbook_id: int
 
+
 @router.post("/create")
 async def create_recipe(
-    metadata: str = Form(...),
-    image: UploadFile = File(...),
+        metadata: str = Form(...),
+        image: UploadFile | None = File(None),
 ):
-    # Form + File: multipart needed for image upload; frontend sends form with metadata=JSON.stringify(recipe) and image=file
+    # Form + optional File: multipart when image included; frontend sends form with metadata=JSON.stringify(recipe) and optionally image=file
     recipe_data = RecipeMetadata.model_validate_json(metadata)
 
-    # Save the image under server/images/
-    os.makedirs(_IMAGES_DIR, exist_ok=True)
-    image_path = os.path.join(_IMAGES_DIR, image.filename)
-    with open(image_path, "wb") as f:
-        f.write(await image.read())
+    image_filename = None
+    if image and image.filename:
+        os.makedirs(_IMAGES_DIR, exist_ok=True)
+        image_path = os.path.join(_IMAGES_DIR, image.filename)
+        with open(image_path, "wb") as f:
+            f.write(await image.read())
+        image_filename = image.filename
 
     # TODO: send recipe data (including ingredients individually) and image url? to server
 
-    return {
+    result = {
         "message": "Recipe uploaded successfully!",
         "recipe": recipe_data.model_dump(),
-        "image_filename": image.filename
     }
+    if image_filename is not None:
+        result["image_filename"] = image_filename
+    return result
+
 
 @router.post("/edit")
 async def edit_recipe(recipe: RecipeMetadata):
@@ -63,14 +71,16 @@ async def edit_recipe(recipe: RecipeMetadata):
         "recipe": recipe.model_dump(),
     }
 
+
 @router.post("/delete/{recipe_id}")
 async def delete_recipe(
-    recipe_id: int
+        recipe_id: int
 ):
     # TODO: delete recipe and it's ingredients from database with recipe_id
     return {
         "message": "Recipe deleted successfully!"
     }
+
 
 @router.get("/get/{recipe_id}")
 async def get_recipe(recipe_id: int):
@@ -78,6 +88,7 @@ async def get_recipe(recipe_id: int):
     # TODO: Note will either need to get ingredients also with recipe_id or call helper function to do that
     recipe_data = ""
     return recipe_data
+
 
 @router.post("/copy/{recipe_id}/{user_id}")
 async def copy_recipe(
@@ -89,4 +100,3 @@ async def copy_recipe(
     return {
         "message": "Recipe copied successfully!"
     }
-
