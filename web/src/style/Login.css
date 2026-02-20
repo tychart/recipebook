@@ -1,6 +1,6 @@
 /* if button is disabled, gray out the button */
 .login-container button:disabled {
-  background-color: lightgrey;
+  background-color: lightgray;
   cursor: not-allowed;
 }
 
