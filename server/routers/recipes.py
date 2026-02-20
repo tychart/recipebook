@@ -3,6 +3,10 @@ from pydantic import BaseModel
 from typing import List
 import os
 
+# Server dir so images/ is always server/images/ regardless of CWD
+_SERVER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_IMAGES_DIR = os.path.join(_SERVER_DIR, "images")
+
 router = APIRouter(
     prefix="/api/recipe",
     tags=["recipes"]
@@ -12,7 +16,8 @@ router = APIRouter(
 class Ingredient(BaseModel):
     ingredient_id: int | None = None
     recipe_id: int | None = None
-    amount: str
+    unit: str | None = None
+    amount: int
     name: str
 
 class RecipeMetadata(BaseModel):
@@ -31,14 +36,14 @@ class RecipeMetadata(BaseModel):
 @router.post("/create")
 async def create_recipe(
     metadata: str = Form(...),
-    image: UploadFile = File(...)
+    image: UploadFile = File(...),
 ):
-    # Parse JSON string into Pydantic model
+    # Form + File: multipart needed for image upload; frontend sends form with metadata=JSON.stringify(recipe) and image=file
     recipe_data = RecipeMetadata.model_validate_json(metadata)
 
-    # Save the image
-    os.makedirs("images", exist_ok=True)
-    image_path = os.path.join("images", image.filename)
+    # Save the image under server/images/
+    os.makedirs(_IMAGES_DIR, exist_ok=True)
+    image_path = os.path.join(_IMAGES_DIR, image.filename)
     with open(image_path, "wb") as f:
         f.write(await image.read())
 
@@ -51,16 +56,11 @@ async def create_recipe(
     }
 
 @router.post("/edit")
-async def edit_recipe(
-    metadata: str = Form(...)
-):
-    # Parse JSON string into Pydantic model
-    recipe_data = RecipeMetadata.model_validate_json(metadata)
+async def edit_recipe(recipe: RecipeMetadata):
     # TODO: send recipe data (including ingredients individually) to server
-
     return {
         "message": "Recipe edited successfully!",
-        "recipe": recipe_data.model_dump()
+        "recipe": recipe.model_dump(),
     }
 
 @router.post("/delete/{recipe_id}")
@@ -79,7 +79,7 @@ async def get_recipe(recipe_id: int):
     recipe_data = ""
     return recipe_data
 
-@router.post("/copy/{recipe_id, user_id}")
+@router.post("/copy/{recipe_id}/{user_id}")
 async def copy_recipe(
         recipe_id: int,
         user_id: int
