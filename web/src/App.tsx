@@ -6,6 +6,7 @@ import Register from "./pages/Register";
 import Cookbook from "./pages/Cookbook";
 import Recipe from "./pages/Recipe";
 import "./App.css";
+import "./style/shared.css";
 
 function App() {
   const [testApi, setTestApi] = useState<string>("loading...");
