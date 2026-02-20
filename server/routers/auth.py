@@ -10,17 +10,17 @@ router = APIRouter(
 
 
 class User(BaseModel):
-    user_id: int | None = None
+    id: int | None = None
     username: str
     email: str
     password: str
 
 
 class AuthToken(BaseModel):
-    authtoken_id: int | None = None
+    id: int | None = None
     user_id: int
     token: str
-    timestamp: datetime
+    created_at: datetime
 
 
 class LoginRequest(BaseModel):

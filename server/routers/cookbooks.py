@@ -16,10 +16,11 @@ class RoleEnum(str, Enum):
 
 
 class Cookbook(BaseModel):
-    book_id: int | None = None
-    book_name: str
+    id: int | None = None
+    name: str
     owner_id: int
     categories: List[str]
+    created_at: datetime
 
 
 class ShareCookbookRequest(BaseModel):

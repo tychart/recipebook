@@ -22,18 +22,19 @@ class Ingredient(BaseModel):
 
 
 class RecipeMetadata(BaseModel):
-    recipe_id: int | None = None
+    id: int | None = None
     name: str
     ingredients: List[Ingredient]
     instructions: str
     notes: str | None = None
     description: str | None = None
-    author: str
     servings: int
     creator_id: int
     category: str
-    tags: List[str]
+    image_url: str | None = None
+    tags: List[str] | None = None
     cookbook_id: int
+    modified_at: datetime
 
 
 @router.post("/create")
