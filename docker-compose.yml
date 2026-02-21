@@ -1,32 +1,38 @@
 services:
-  # recipiebook-db:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_DB: recipebook
-  #     POSTGRES_USER: recipebook
-  #     POSTGRES_PASSWORD: recipebook
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
+  recipebook-db:
+    image: pgvector/pgvector:pg16
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: RecipeAdmin
+      POSTGRES_PASSWORD: R3c1peB00k
+      POSTGRES_DB: recipebook
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
 
-  recipiebook-server:
+  recipebook-server:
     build:
       context: ./server
-    # environment:
-    #   DATABASE_URL: postgresql://recipebook:recipebook@recipiebook-db:5432/recipebook
-    # depends_on:
-    #   - recipiebook-db
+    container_name: recipebook-server
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@recipebook-db:5432/recipebook
+    depends_on:
+      - recipebook-db
     ports:
       - "8000:8000"
 
-  recipiebook-web:
+  recipebook-web:
     build:
       context: ./web
+    container_name: recipebook-web
     depends_on:
-      - recipiebook-server
+      - recipebook-server
     ports:
       - "8650:80"
+    restart: unless-stopped
 
-# volumes:
-#   pgdata:
+volumes:
+  db_data:

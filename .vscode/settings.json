@@ -5,10 +5,11 @@
             "previewLimit": 50,
             "server": "localhost",
             "port": 5432,
+            "askForPassword": true,
             "driver": "PostgreSQL",
-            "database": "RecipeBook",
-            "name": "RecipeBook",
-            "username": "RecipeAdmin"
+            "database": "recipebook",
+            "username": "RecipeAdmin",
+            "name": "RecipeBookNew"
         }
     ]
 }
