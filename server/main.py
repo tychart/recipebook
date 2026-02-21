@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from routers import recipes, users, auth, cookbooks
+from routers import recipes, auth, cookbooks
 
 app = FastAPI()
 
