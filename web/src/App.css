@@ -1,8 +1,15 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
+  box-sizing: border-box;
+  margin: 45px;
+  width: calc(100% - 90px);
+  min-height: calc(100vh - 90px);
   padding: 2rem;
   text-align: center;
+  background-color: #EEE9E0;
+}
+
+#root > * {
+  width: 100%;
 }
 
 .logo {

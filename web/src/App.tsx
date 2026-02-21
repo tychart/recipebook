@@ -13,8 +13,9 @@ import './App.css';
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
+      <div className="w-full">
+        <Routes>
+          <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
           <Route path="/cookbooks" element={<Cookbooks />} />
           <Route path="/cookbooks/new" element={<CookbookNew />} />
@@ -25,8 +26,9 @@ function App() {
           <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
           <Route path="/search" element={<Search />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+          </Route>
+        </Routes>
+      </div>
     </BrowserRouter>
   );
 }

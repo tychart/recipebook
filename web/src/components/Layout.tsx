@@ -7,9 +7,9 @@ import { Link, Outlet } from 'react-router-dom';
  */
 export default function Layout() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-full w-full max-w-4xl mx-auto flex flex-col">
       <nav className="border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-        <div className="max-w-4xl mx-auto flex items-center gap-6">
+        <div className="flex items-center gap-6">
           <Link to="/" className="font-semibold text-lg">
             RecipeBook
           </Link>
@@ -24,7 +24,7 @@ export default function Layout() {
           </Link>
         </div>
       </nav>
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-4">
+      <main className="flex-1 w-full px-4 py-4">
         <Outlet />
       </main>
     </div>
