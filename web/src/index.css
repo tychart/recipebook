@@ -16,14 +16,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
 
 html {
   min-height: 100vh;
@@ -31,10 +23,12 @@ html {
 
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
+
+  padding: 5px; /* ← creates border thickness */
+
+  background-color: #EEE9E0; /* main page color */
   /* Three-color checkerboard (15px squares) on top, bottom, left, and right border */
-  background-color: #fff;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect x='0' y='0' width='15' height='15' fill='%23d21404'/%3E%3Crect x='15' y='0' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='30' y='0' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='0' y='15' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='15' y='15' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='30' y='15' width='15' height='15' fill='%23d21404'/%3E%3Crect x='0' y='30' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='15' y='30' width='15' height='15' fill='%23d21404'/%3E%3Crect x='30' y='30' width='15' height='15' fill='%23fc6b5f'/%3E%3C/svg%3E");
   background-size: 45px 45px;
   background-attachment: fixed;
