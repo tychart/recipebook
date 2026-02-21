@@ -6,39 +6,32 @@ import Notes from "../components/recipe/Notes";
 import { mockRecipe } from "../mocks/mockRecipe";
 import type { Recipe } from "../../../shared/types/recipe";
 
-
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading delay (optional)
     const timer = setTimeout(() => {
-      // TODO: Replace mockRecipe with real API call when backend is ready.
-      // Example:
-      //
-      // const res = await fetch(`/api/recipes/${id}`);
-      // if (!res.ok) throw new Error("Failed to fetch recipe");
-      // const data = await res.json();
-      // setRecipe(data);
-      //
-      // For now, we use mockRecipe to allow frontend development
-      // without depending on the backend.
       setRecipe(mockRecipe);
       setLoading(false);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [id]);
 
   if (loading) return <p>Loading...</p>;
   if (!recipe) return <p>Recipe not found</p>;
 
+  const tags = recipe.recipe_tags
+    ? recipe.recipe_tags.split(",").map(tag => tag.trim())
+    : [];
+
   return (
-    <div className="py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">
+    <div className="py-6 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-semibold">
           {recipe.recipe_name}
         </h1>
 
@@ -50,13 +43,50 @@ export default function RecipePage() {
         </Link>
       </div>
 
-      <p className="mb-6 text-gray-500 dark:text-gray-400">
-        Serves {recipe.servings}
-      </p>
+      {/* Image */}
+      {recipe.recipe_image_url && (
+        <img
+          src={recipe.recipe_image_url}
+          alt={recipe.recipe_name}
+          className="w-full max-h-80 object-cover rounded-xl mb-6"
+        />
+      )}
 
+      {/* Description */}
+      {recipe.description && (
+        <p className="mb-4 text-gray-600 dark:text-gray-300">
+          {recipe.description}
+        </p>
+      )}
+
+      {/* Meta Info */}
+      <div className="mb-6 text-sm text-gray-500 dark:text-gray-400 space-y-1">
+        <p>Serves {recipe.servings}</p>
+        <p>Category: {recipe.category}</p>
+        <p>
+          Last updated:{" "}
+          {new Date(recipe.modified_dttm).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          {tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-200 rounded-full"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Content Sections */}
       <IngredientList ingredients={recipe.ingredients} />
       <Instructions instructions={recipe.instructions} />
-      <Notes notes={recipe.notes} />
+      {recipe.notes && <Notes notes={recipe.notes} />}
     </div>
   );
 }

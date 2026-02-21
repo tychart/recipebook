@@ -1,7 +1,8 @@
-export const mockRecipe = {
+import type { Recipe } from "../../../shared/types/recipe";
+
+export const mockRecipe: Recipe = {
   recipe_id: 1,
   recipe_name: "Classic Pancakes",
-  servings: 4,
   instructions: `
 1. Mix dry ingredients together.
 2. Whisk in milk and eggs.
@@ -9,9 +10,38 @@ export const mockRecipe = {
 4. Pour batter and cook until golden brown.
   `,
   notes: "Add blueberries or chocolate chips.",
+  description: "Fluffy homemade pancakes perfect for breakfast.",
+  servings: 4,
+
+  creator_id: 1,
+  modified_dttm: new Date().toISOString(),
+  category: "Main",
+  recipe_image_url: "https://example.com/images/pancakes.jpg",
+  recipe_tags: "breakfast,sweet,quick",
+
+  book_id: 1,
+
   ingredients: [
-    { ingredient_id: 1, amount: 2, name: "Cups Flour" },
-    { ingredient_id: 2, amount: 2, name: "Eggs" },
-    { ingredient_id: 3, amount: 1.5, name: "Cups Milk" }
+    {
+      ingredient_id: 1,
+      recipe_id: 1,
+      amount: 2,
+      name: "Flour",
+      unit: "cups"
+    },
+    {
+      ingredient_id: 2,
+      recipe_id: 1,
+      amount: 2,
+      name: "Eggs",
+      unit: "whole"
+    },
+    {
+      ingredient_id: 3,
+      recipe_id: 1,
+      amount: 1.5,
+      name: "Milk",
+      unit: "cups"
+    }
   ]
 };
