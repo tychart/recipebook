@@ -100,6 +100,17 @@ or
 git clone https://github.com/tychart/recipebook.git
 ```
 
+Build and instantiate the database and docker files:
+
+``` 
+docker compose --build
+```
+
+If you already have a docker container for this project, run the following commands to reinstantiate the database:
+```
+docker compose down -v
+docker compose up
+```
 
 ### Backend:
 
