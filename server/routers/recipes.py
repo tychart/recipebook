@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, Form, File
 from pydantic import BaseModel
 from typing import List
 import os
-import datetime
+import datetime as dt
 
 # Server dir so images/ is always server/images/ regardless of CWD
 _SERVER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,11 +35,12 @@ class RecipeMetadata(BaseModel):
     image_url: str | None = None
     tags: List[str] | None = None
     cookbook_id: int
-    modified_at: datetime
+    modified_at: dt.datetime
 
-
-@router.post("/create")
+# TODO: add the requirement that create recipe needs a cookbook
+@router.post("/create/{cookbook_id}")
 async def create_recipe(
+        cookbook_id: int,
         metadata: str = Form(...),
         image: UploadFile | None = File(None),
 ):
@@ -92,10 +93,10 @@ async def get_recipe(recipe_id: int):
     return recipe_data
 
 
-@router.post("/copy/{recipe_id}/{user_id}")
+@router.post("/copy/{recipe_id}/{cookbook_id}")
 async def copy_recipe(
         recipe_id: int,
-        user_id: int
+        cookbook_id: int
 ):
     # TODO: get recipe from database using recipe_id and copy it to a new one for a user_id
     # TODO: Note will either need to get ingredients also with recipe_id or call helper function to do that
