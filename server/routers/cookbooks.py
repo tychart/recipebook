@@ -5,7 +5,7 @@ from enum import Enum
 import datetime
 
 router = APIRouter(
-    prefix="/api/cookbooks",
+    prefix="/api/cookbook",
     tags=["cookbooks"],
 )
 
@@ -39,8 +39,8 @@ async def create_cookbook(cookbook: Cookbook):
     }
 
 
-@router.get("/get/{book_id}")
-async def get_cookbook(book_id: int):
+@router.get("/get/{cookbook_id}")
+async def get_cookbook(cookbook_id: int):
     # TODO: get cookbook from database using book_id
     cookbook_data = ""
     return cookbook_data
@@ -61,8 +61,8 @@ async def edit_cookbook(cookbook: Cookbook):
     }
 
 
-@router.post("/delete/{book_id}")
-async def delete_cookbook(book_id: int):
+@router.post("/delete/{cookbook_id}")
+async def delete_cookbook(cookbook_id: int):
     # TODO: delete cookbook from database with book_id
     return {
         "message": "Cookbook deleted successfully!",
