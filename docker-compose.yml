@@ -1,6 +1,6 @@
 services:
   recipebook-db:
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg18
     container_name: postgres-db
     restart: always
     environment:
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
       - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
 
   recipebook-server:
