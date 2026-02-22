@@ -2,7 +2,7 @@ from fastapi import APIRouter, UploadFile, Form, File
 from pydantic import BaseModel
 from typing import List
 import os
-import datetime
+import datetime as dt
 
 # Server dir so images/ is always server/images/ regardless of CWD
 _SERVER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -35,7 +35,7 @@ class RecipeMetadata(BaseModel):
     image_url: str | None = None
     tags: List[str] | None = None
     cookbook_id: int
-    modified_at: datetime
+    modified_at: dt.datetime
 
 # TODO: add the requirement that create recipe needs a cookbook
 @router.post("/create/{cookbook_id}")

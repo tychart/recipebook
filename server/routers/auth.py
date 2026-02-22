@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 from typing import List
@@ -20,7 +20,7 @@ class AuthToken(BaseModel):
     id: int | None = None
     user_id: int
     token: str
-    created_at: datetime
+    created_at: dt.datetime
 
 
 class LoginRequest(BaseModel):

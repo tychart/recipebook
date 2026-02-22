@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import List
 from enum import Enum
-import datetime
+import datetime as dt
 
 router = APIRouter(
     prefix="/api/cookbook",
@@ -21,7 +21,7 @@ class Cookbook(BaseModel):
     name: str
     owner_id: int
     categories: List[str]
-    created_at: datetime
+    created_at: dt.datetime
 
 
 class ShareCookbookRequest(BaseModel):
