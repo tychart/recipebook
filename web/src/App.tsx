@@ -15,17 +15,17 @@ import RecipeEdit from "./pages/RecipeEdit";
 import Search from "./pages/Search";
 
 function App() {
-  const [testApi, setTestApi] = useState<string>("loading...");
+  // const [testApi, setTestApi] = useState<string>("loading...");
 
-  useEffect(() => {
-    fetch("/api/helloworld")
-      .then((res) => res.text()) // or res.json() if your API returns JSON
-      .then((data) => setTestApi(data))
-      .catch((err) => {
-        console.error(err);
-        setTestApi("error");
-      });
-  }, []);
+  // useEffect(() => {
+  //   fetch("/api/helloworld")
+  //     .then((res) => res.text()) // or res.json() if your API returns JSON
+  //     .then((data) => setTestApi(data))
+  //     .catch((err) => {
+  //       console.error(err);
+  //       setTestApi("error");
+  //     });
+  // }, []);
 
   return (
     <BrowserRouter>
