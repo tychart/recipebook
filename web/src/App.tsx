@@ -7,11 +7,12 @@ import Cookbooks from './pages/Cookbooks';
 import CookbookNew from './pages/CookbookNew';
 import Cookbook from "./pages/Cookbook";
 import RecipeNew from './pages/RecipeNew';
-import RecipeEdit from "./pages/RecipeEdit';
-import Search from './pages/Search";
 import "./App.css";
 import "./style/shared.css";
 import RecipePage from './pages/RecipePage';
+import { useEffect, useState } from "react";
+import RecipeEdit from "./pages/RecipeEdit";
+import Search from "./pages/Search";
 
 function App() {
   const [testApi, setTestApi] = useState<string>("loading...");
@@ -45,12 +46,12 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-      <div>
-        Message from the API: {testApi}
       </div>
-    </>
-  )
+          {/* <div>
+      {testApi}
+    </div> */}
+    </BrowserRouter>
+  );
 }
 
 export default App;
