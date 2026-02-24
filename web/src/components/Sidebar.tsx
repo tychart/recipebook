@@ -59,7 +59,7 @@ export default function Sidebar({ currentUser }: SidebarProps) {
 
       {/* Actions */}
       <div className="flex flex-col gap-3">
-        {navItem("/recipe/new", "Input New Recipe")}
+        {navItem("/recipe/new", "Add New Recipe")}
         {navItem("/cookbook/new", "Create a Cookbook")}
         {navItem("/account", "Account Details")}
       </div>
