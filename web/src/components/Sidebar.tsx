@@ -37,7 +37,7 @@ export default function Sidebar({ currentUser }: SidebarProps) {
         backgroundClip: "content-box, border-box",
       }}
     >
-    <div className="flex flex-col h-full p-6">        
+    <div className="flex flex-col h-full p-6 text-center">        
       {/* App Title */}
       <Link
         to="/"
@@ -53,7 +53,7 @@ export default function Sidebar({ currentUser }: SidebarProps) {
 
       {/* Main Navigation */}
       <div className="flex flex-col gap-3 mb-8">
-        {navItem("/cookbooks", "Cookbooks")}
+        {navItem("/cookbooks", "My Cookbooks")}
         {navItem("/search", "Search")}
       </div>
 

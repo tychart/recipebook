@@ -5,6 +5,7 @@ import IngredientList from "../components/recipe/IngredientList";
 import Notes from "../components/recipe/Notes";
 import { mockRecipe } from "../mocks/mockRecipe";
 import type { Recipe } from "../../../shared/types/recipe";
+import RecipeImage from "../components/recipe/RecipeImage";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -24,16 +25,14 @@ export default function RecipePage() {
   if (!recipe) return <p>Recipe not found</p>;
 
   const tags = recipe.recipe_tags
-    ? recipe.recipe_tags.split(",").map(tag => tag.trim())
+    ? recipe.recipe_tags.split(",").map((tag) => tag.trim())
     : [];
 
   return (
     <div className="py-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-semibold">
-          {recipe.recipe_name}
-        </h1>
+        <h1 className="text-3xl font-semibold">{recipe.recipe_name}</h1>
 
         <Link
           to={`/recipe/${id}/edit`}
@@ -44,28 +43,24 @@ export default function RecipePage() {
       </div>
 
       {/* Image */}
-      {recipe.recipe_image_url && (
-        <img
-          src={recipe.recipe_image_url}
-          alt={recipe.recipe_name}
-          className="w-full max-h-80 object-cover rounded-xl mb-6"
-        />
-      )}
+      <RecipeImage
+        imageUrl={recipe.recipe_image_url}
+        alt={recipe.recipe_name}
+      />
 
       {/* Description */}
       {recipe.description && (
-        <p className="mb-4 text-gray-600 dark:text-gray-300">
+        <p className="mb-4 text-gray-600 dark:text-black-300 text-center">
           {recipe.description}
         </p>
       )}
 
       {/* Meta Info */}
-      <div className="mb-6 text-sm text-gray-500 dark:text-gray-400 space-y-1">
+      <div className="mb-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
         <p>Serves {recipe.servings}</p>
         <p>Category: {recipe.category}</p>
         <p>
-          Last updated:{" "}
-          {new Date(recipe.modified_dttm).toLocaleDateString()}
+          Last updated: {new Date(recipe.modified_dttm).toLocaleDateString()}
         </p>
       </div>
 
@@ -75,7 +70,7 @@ export default function RecipePage() {
           {tags.map((tag) => (
             <span
               key={tag}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-200 rounded-full"
+              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-100 rounded-full"
             >
               #{tag}
             </span>
