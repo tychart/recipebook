@@ -1,6 +1,7 @@
 import datetime as dt
 import secrets
 from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 # Token expires after this long; refresh extends from current time
 TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
@@ -9,6 +10,9 @@ from typing import List
 import asyncpg
 
 from database import get_db
+
+# Bearer token security scheme for Swagger UI
+bearer_scheme = HTTPBearer()
 
 router = APIRouter(
     prefix="/api/auth",
@@ -124,23 +128,21 @@ async def register(body: RegisterRequest, db: asyncpg.Connection = Depends(get_d
 
 @router.post("/logout")
 async def logout(
-    authorization: str | None = Header(None),
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
     db: asyncpg.Connection = Depends(get_db),
 ):
-    token = _bearer_token(authorization)
-    if token:
+    if credentials:
+        token = credentials.credentials.strip()
         await db.execute("DELETE FROM AuthToken WHERE Authtoken = $1", token)
     return {"message": "Logged out successfully!"}
 
 
 @router.get("/me")
 async def get_current_user(
-    authorization: str | None = Header(None),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: asyncpg.Connection = Depends(get_db),
 ):
-    token = _bearer_token(authorization)
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+    token = credentials.credentials.strip()
 
     token_row = await db.fetchrow(
         "SELECT User_ID, Created_DtTm FROM AuthToken WHERE Authtoken = $1",
