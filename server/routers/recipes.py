@@ -236,6 +236,29 @@ async def get_recipe(
     return _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
 
 
+@router.get("/list/{cookbook_id}")
+async def list_recipes(
+    cookbook_id: int,
+    db: asyncpg.Connection = Depends(get_db),
+):
+    recipe_rows = await db.fetch(
+        """
+        SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        FROM Recipe WHERE Book_ID = $1
+        ORDER BY Modified_DtTm DESC
+        """,
+        cookbook_id,
+    )
+    out = []
+    for r in recipe_rows:
+        ing_rows = await db.fetch(
+            "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
+            r["recipe_id"],
+        )
+        out.append(_row_to_recipe(r, [_row_to_ingredient(i) for i in ing_rows]))
+    return out
+
+
 @router.post("/copy/{recipe_id}/{cookbook_id}")
 async def copy_recipe(
     recipe_id: int,
