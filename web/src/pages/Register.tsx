@@ -14,8 +14,7 @@ const Register = () => {
   const { isLoading, handleAuth } = useAuthSubmit();
 
   const passwordsMatch = password === confirmPassword;
-  const showPasswordError =
-    confirmPassword.length > 0 && !passwordsMatch;
+  const showPasswordError = confirmPassword.length > 0 && !passwordsMatch;
 
   const isSubmitDisabled =
     username.trim() === "" ||
@@ -24,9 +23,7 @@ const Register = () => {
     confirmPassword.trim() === "" ||
     !passwordsMatch;
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!passwordsMatch) return;
@@ -57,8 +54,7 @@ const Register = () => {
       formClass="register-form"
       footer={
         <p>
-          Already have an account?{" "}
-          <Link to="/login">Login Here</Link>
+          Already have an account? <Link to="/login">Login Here</Link>
         </p>
       }
     >
@@ -90,25 +86,17 @@ const Register = () => {
         id="confirm-password"
         type="password"
         value={confirmPassword}
-        onChange={(e) =>
-          setConfirmPassword(e.target.value)
-        }
+        onChange={(e) => setConfirmPassword(e.target.value)}
       />
 
       {showPasswordError && (
-        <div
-          className="error-message"
-          role="alert"
-          aria-live="polite"
-        >
+        <div className="error-message" role="alert" aria-live="polite">
           Passwords do not match
         </div>
       )}
 
       {confirmPassword.length > 0 && passwordsMatch && (
-        <span className="success-text">
-          Passwords match ✓
-        </span>
+        <span className="success-text">Passwords match ✓</span>
       )}
     </AuthForm>
   );
