@@ -25,7 +25,7 @@ export default function RecipePage() {
   if (!recipe) return <p>Recipe not found</p>;
 
   const tags = recipe.recipe_tags
-    ? recipe.recipe_tags.split(",").map((tag) => tag.trim())
+    ? recipe.recipe_tags.split(",").map((tag: string) => tag.trim())
     : [];
 
   return (
@@ -67,7 +67,7 @@ export default function RecipePage() {
       {/* Tags */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {tags.map((tag) => (
+          {tags.map((tag: string) => (
             <span
               key={tag}
               className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-100 rounded-full"

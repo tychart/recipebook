@@ -20,7 +20,7 @@ export default function RecipeForm({
   ) => {
     const { name, value } = e.target;
 
-    setRecipe((prev) => ({
+    setRecipe((prev: Recipe) => ({
       ...prev,
       [name]: name === "servings" ? Number(value) : value,
     }));
@@ -31,7 +31,7 @@ export default function RecipeForm({
     field: keyof Ingredient,
     value: string | number,
   ) => {
-    setRecipe((prev) => {
+    setRecipe((prev: Recipe) => {
       const updated = [...prev.ingredients];
 
       updated[index] = {
@@ -44,7 +44,7 @@ export default function RecipeForm({
   };
 
   const handleAddIngredient = () => {
-    setRecipe((prev) => ({
+    setRecipe((prev: Recipe) => ({
       ...prev,
       ingredients: [
         ...prev.ingredients,
@@ -59,9 +59,9 @@ export default function RecipeForm({
   };
 
   const handleRemoveIngredient = (index: number) => {
-    setRecipe((prev) => ({
+    setRecipe((prev: Recipe) => ({
       ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index),
+      ingredients: prev.ingredients.filter((_: Ingredient, i: number) => i !== index),
     }));
   };
 
@@ -80,7 +80,7 @@ export default function RecipeForm({
           onEditClick={() => {
           }}
           onRemoveClick={() =>
-            setRecipe((prev) => ({
+            setRecipe((prev: Recipe) => ({
               ...prev,
               recipe_image_url: "",
             }))
@@ -146,7 +146,7 @@ export default function RecipeForm({
           </div>
 
           <div className="space-y-3">
-            {recipe.ingredients.map((ingredient, index) => (
+            {recipe.ingredients.map((ingredient: Ingredient, index: number) => (
               <div
                 key={ingredient.ingredient_id ?? index}
                 className="flex gap-3 items-center"

@@ -26,7 +26,8 @@ services:
 
   recipebook-web:
     build:
-      context: ./web
+      context: .
+      dockerfile: web/Dockerfile
     container_name: recipebook-web
     depends_on:
       - recipebook-server
