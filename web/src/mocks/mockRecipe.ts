@@ -16,7 +16,7 @@ export const mockRecipe: Recipe = {
   creator_id: 1,
   modified_dttm: new Date().toISOString(),
   category: "Main",
-  recipe_image_url: "../../public/pancake.png",
+  recipe_image_url: "../../pancake.png",
   recipe_tags: "breakfast,sweet,quick",
 
   book_id: 1,
