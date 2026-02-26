@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
-import { mockCookbookWithRecipes } from "../mocks/mockCookbook";
+import {
+  mockCookbookWithRecipes,
+  type CookbookWithRecipes,
+} from "../mocks/mockCookbook";
 import { CookbookCard } from "../components/cards/CookbookCard";
 
-
 // multiple mock cookbooks for testing
-const mockCookbooks = [
+const mockCookbooks: CookbookWithRecipes[] = [
   mockCookbookWithRecipes,
   { ...mockCookbookWithRecipes, book_id: 2, book_name: "Desserts Galore", categories: "Dessert" },
   { ...mockCookbookWithRecipes, book_id: 3, book_name: "Savory Dishes", categories: "Main" },
