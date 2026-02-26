@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Recipe, RecipeInput } from "../../../types/types";
-import RecipeForm from "../../components/RecipeForm";
+import RecipeForm from "../../components/recipe/RecipeForm";
 import { getRecipe, updateRecipe } from "../../api/recipes";
 
 export default function RecipeEdit() {
@@ -46,11 +46,12 @@ export default function RecipeEdit() {
       name: ing.name,
     })),
     cookbook_id: recipe.cookbook_id,
+    creator_id: recipe.creator_id,
   };
 
   const handleUpdate = async (
     updated: RecipeInput,
-    imageFile?: File,
+    // imageFile?: File,
   ) => {
     try {
       await updateRecipe(recipe.id, updated);

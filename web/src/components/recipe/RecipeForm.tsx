@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Recipe, Ingredient, RecipeInput } from "../../types/types";
-import RecipeImage from "./recipe/RecipeImage";
+import type { Ingredient, RecipeInput } from "../../../types/types";
+import RecipeImage from "./RecipeImage";
 
 interface RecipeFormProps {
   initialData: RecipeInput;
@@ -16,16 +16,16 @@ export default function RecipeForm({
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value } = e.target;
+const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
 
-    setRecipe((prev) => ({
-      ...prev,
-      [name]: name === "servings" ? Number(value) : value,
-    }));
-  };
+  setRecipe((prev) => ({
+    ...prev,
+    [name]: name === "servings" ? Number(value) : value,
+  }));
+};
 
   const handleIngredientChange = (
     index: number,
@@ -66,6 +66,9 @@ export default function RecipeForm({
   const handleSubmit = () => {
     onSubmit(recipe, selectedImageFile);
   };
+
+  // Category options
+  const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
 
   return (
     <div className="py-10 max-w-4xl mx-auto">
@@ -128,6 +131,51 @@ export default function RecipeForm({
           />
         </div>
 
+        {/* Category */}
+        <div>
+          <label className="block mb-2 font-medium text-stone-700">
+            Category
+          </label>
+          <select
+            name="category"
+            value={recipe.category || ""}
+            onChange={handleChange}
+            className="w-48 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+          >
+            <option value="" disabled>
+              Select a category
+            </option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="block mb-2 font-medium text-stone-700">
+            Tags (comma separated)
+          </label>
+          <input
+            type="text"
+            name="tags"
+            value={recipe.tags?.join(", ") || ""}
+            onChange={(e) =>
+              setRecipe((prev) => ({
+                ...prev,
+                tags: e.target.value
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean),
+              }))
+            }
+            placeholder="e.g. gluten-free, quick"
+            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+          />
+        </div>
+
         {/* Servings */}
         <div>
           <label className="block mb-2 font-medium text-stone-700">
@@ -160,10 +208,7 @@ export default function RecipeForm({
 
           <div className="space-y-3">
             {recipe.ingredients.map((ingredient, index) => (
-              <div
-                key={index}
-                className="flex gap-3 items-center"
-              >
+              <div key={index} className="flex gap-3 items-center">
                 <input
                   type="number"
                   value={ingredient.amount}

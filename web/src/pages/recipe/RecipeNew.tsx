@@ -1,29 +1,37 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { RecipeInput } from "../../../types/types";
-import RecipeForm from "../../components/RecipeForm";
+import RecipeForm from "../../components/recipe/RecipeForm";
 import { createRecipe } from "../../api/recipes";
+import { useAuth } from "../../context/AuthContext";
 
 export default function RecipeNew() {
   const { cookbookId } = useParams<{ cookbookId?: string }>();
   const navigate = useNavigate();
 
-  // Form initial data uses RecipeInput, not full Recipe
-  const emptyRecipeInput: RecipeInput = {
-    name: "",
-    description: "",
-    instructions: "",
-    notes: "",
-    servings: 1,
-    image_url: "",
-    ingredients: [],
-    cookbook_id: cookbookId ? Number(cookbookId) : 0,
-  };
+  const { user } = useAuth();
+  if (!user) {
+    return <p>Please log in to create a recipe.</p>;
+  }
+
+const emptyRecipeInput: RecipeInput = {
+  name: "",
+  description: "",
+  instructions: "",
+  notes: "",
+  servings: 1,
+  image_url: "",
+  ingredients: [],
+  cookbook_id: cookbookId ? Number(cookbookId) : 0,
+  creator_id: user.id,
+  category: "Main", // default category
+  tags: [],
+};
 
 const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
   try {
     const result = await createRecipe(recipeInput, imageFile);
     console.log("Created:", result);
-    navigate(`/recipe/${result.id}`);
+    navigate(`/recipe/${result.recipe.id}`);
   } catch (error) {
     console.error("Failed to create recipe", error);
     alert("Failed to create recipe");

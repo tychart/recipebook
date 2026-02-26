@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
-import "../style/Register.css";
+import "../../style/Register.css";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -26,6 +26,8 @@ const Register = () => {
     !passwordsMatch;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    console.log("Submitting registration...");
+
     event.preventDefault();
 
     if (!passwordsMatch) return;

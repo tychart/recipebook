@@ -12,17 +12,23 @@ export default function Cookbooks() {
 
   const { user } = useAuth();
 
-  //Replace this with actual user ID
-  if (!user) {
-    return <p>Please log in to view your cookbooks.</p>;
-  }
 
   useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
     listCookbooks(user.id)
       .then(setCookbooks)
       .catch(() => setError("Failed to load cookbooks"))
       .finally(() => setLoading(false));
   }, []);
+
+    //Replace this with actual user ID
+  if (!user) {
+    return <p>Please log in to view your cookbooks.</p>;
+  }
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;

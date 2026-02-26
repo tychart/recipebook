@@ -1,38 +1,69 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getCookbook } from "../../api/cookbooks";
-import type { Cookbook as CookbookType } from "../../../types/types";
+import { getCookbook } from "../../api/cookbooks"; // assume listRecipes fetches recipes by cookbook_id
+import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
+import { RecipeCard } from "../../components/cards/RecipeCard";
+import { listRecipes } from "../../api/recipes";
 
 export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loadingCookbook, setLoadingCookbook] = useState(true);
+  const [loadingRecipes, setLoadingRecipes] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-  if (!id) return;
+    if (!id) return;
 
-  const numericId = Number(id);
-  if (isNaN(numericId)) {
-    console.error("Invalid cookbook id:", id);
-    setLoading(false);
-    return;
-  }
+    const cookbookId = Number(id);
+    if (isNaN(cookbookId)) {
+      setError("Invalid cookbook ID");
+      setLoadingCookbook(false);
+      setLoadingRecipes(false);
+      return;
+    }
 
-  getCookbook(numericId)
-    .then(setCookbook)
-    .catch(console.error)
-    .finally(() => setLoading(false));
-}, [id]);
+    // Fetch the cookbook
+    getCookbook(cookbookId)
+      .then((data) => setCookbook(data))
+      .catch((err) => setError("Failed to load cookbook"))
+      .finally(() => setLoadingCookbook(false));
 
-  if (loading) return <p>Loading...</p>;
-  if (!cookbook) return <p>Not found</p>;
+    // Fetch recipes
+    listRecipes(cookbookId)
+      .then((data) => setRecipes(data))
+      .catch((err) => setError("Failed to load recipes"))
+      .finally(() => setLoadingRecipes(false));
+  }, [id]);
+
+  if (loadingCookbook || loadingRecipes) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
+  if (!cookbook) return <p>Cookbook not found</p>;
 
   return (
-    <div>
-      <h1>{cookbook.name}</h1>
-      <Link to={`/cookbook/${id}/recipe/new`}>
-        Add recipe
-      </Link>
+    <div className="py-6">
+      {/* Title + Add Recipe button */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
+        <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
+        <Link
+          to={`/cookbook/${id}/recipe/new`}
+          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white text-gray-900 hover:bg-gray-100 transition"
+        >
+          Add Recipe
+        </Link>
+      </div>
+
+      {/* Recipes list */}
+      {recipes.length === 0 ? (
+        <p className="text-gray-500">No recipes yet.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {recipes.map((recipe) => (
+            <RecipeCard key={recipe.id} recipe={recipe} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

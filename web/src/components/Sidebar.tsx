@@ -1,11 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-interface SidebarProps {
-  currentUser: string;
-}
-
-export default function Sidebar({ currentUser }: SidebarProps) {
+export default function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth();
 
   const navItem = (to: string, label: string) => {
     const isActive = location.pathname === to;
@@ -48,7 +46,7 @@ export default function Sidebar({ currentUser }: SidebarProps) {
 
       {/* User Name */}
       <div className="mb-8">
-        <p className="text-lg font-medium text-black">{currentUser}</p>
+        <p className="text-lg font-medium text-black">{user?.username}</p>
       </div>
 
       {/* Main Navigation */}

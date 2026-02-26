@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
-import "../style/Login.css";
+import "../../style/Login.css";
 
 const Login = () => {
   const [username, setUsername] = useState("");

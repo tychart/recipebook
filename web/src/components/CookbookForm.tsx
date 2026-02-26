@@ -38,9 +38,27 @@ export default function CookbookForm({
         />
       </div>
 
+      <div>
+        <label className="block font-medium">
+          Categories (comma separated)
+        </label>
+        <input
+          type="text"
+          name="categories"
+          value={formData.categories?.join(", ") || ""}
+          onChange={(e) =>
+            setFormData((prev) => ({
+              ...prev,
+              categories: e.target.value.split(",").map((c) => c.trim()),
+            }))
+          }
+          className="w-full border rounded p-2"
+        />
+      </div>
+
       <button
         type="submit"
-        className="px-4 py-2 rounded bg-indigo-600 text-white"
+        className="px-4 py-2 rounded bg-indigo-600 text-black"
       >
         {submitLabel}
       </button>

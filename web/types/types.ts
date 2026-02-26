@@ -1,15 +1,4 @@
 /* ===========================
-   User
-=========================== */
-
-export interface User {
-  user_id: number;
-  username: string;
-  password: string; // hashed
-  email: string;
-}
-
-/* ===========================
    Authtoken
 =========================== */
 
@@ -93,4 +82,13 @@ export interface RecipeInput {
   image_url?: string;
   ingredients: IngredientInput[];
   cookbook_id?: number;
+  creator_id?: number;
+  category?: string;
+  tags?: string[]; // array of tag strings
+}
+
+export interface User {
+  id: number;
+  username: string;
+  email: string;
 }
