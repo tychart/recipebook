@@ -117,18 +117,21 @@ docker compose up
 ```bash
 cd server/
 python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 To run for development:
 
 ```bash
-fastapi dev main.py
+source .venv/bin/activate  # If not already activated
+uvicorn main:app --reload
 ```
 
 To run for (semi) production:
 
 ```bash
+source .venv/bin/activate  # If not already activated
 uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
