@@ -1,34 +1,32 @@
+// src/pages/Login.tsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import FormRow from "../components/FormRow";
-import AuthForm from "../components/AuthForm";
-import useAuthSubmit from "../hooks/useAuthSubmit";
+import { Link, useNavigate } from "react-router-dom";
+import FormRow from "../../components/FormRow";
+import AuthForm from "../../components/AuthForm";
+import { useAuth } from "../../context/AuthContext";
 import "../style/Login.css";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const { isLoading, handleAuth } = useAuthSubmit();
+  const { login, isLoading } = useAuth();
 
-  const isSubmitDisabled =
-    username.trim() === "" || password.trim() === "";
+  const isSubmitDisabled = username.trim() === "" || password.trim() === "";
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    await handleAuth(async () => {
-      // TODO: Replace with real backend call
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      console.log("Username:", username);
-      console.log("Password:", password);
-
+    try {
+      await login(username, password);
       setUsername("");
       setPassword("");
-    });
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Login failed", err);
+      alert("Login failed. Please check your username and password.");
+    }
   };
 
   return (
@@ -54,7 +52,6 @@ const Login = () => {
         value={username}
         onChange={(e) => setUsername(e.target.value)}
       />
-
       <FormRow
         label="Password:"
         id="password"

@@ -1,22 +1,19 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
-const useAuthSubmit = () => {
+export default function useAuthSubmit() {
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleAuth = async (callback: () => Promise<void>) => {
     setIsLoading(true);
-
     try {
       await callback();
-      navigate("/");
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred during authentication");
     } finally {
       setIsLoading(false);
     }
   };
 
   return { isLoading, handleAuth };
-};
-
-export default useAuthSubmit;
+}

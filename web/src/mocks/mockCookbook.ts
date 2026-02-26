@@ -1,4 +1,4 @@
-import type { Cookbook } from "../../types/recipe";
+import type { Cookbook } from "../../types/types";
 import { mockRecipe } from "./mockRecipe";
 
 export const mockCookbook: Cookbook = {

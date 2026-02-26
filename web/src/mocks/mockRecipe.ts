@@ -1,4 +1,4 @@
-import type { Recipe } from "../../types/recipe";
+import type { Recipe } from "../../types/types";
 
 export const mockRecipe: Recipe = {
   recipe_id: 1,

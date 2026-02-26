@@ -1,10 +1,10 @@
 import { useState } from "react";
-import type { Recipe, Ingredient } from "../../types/recipe";
+import type { Recipe, Ingredient, RecipeInput } from "../../types/types";
 import RecipeImage from "./recipe/RecipeImage";
 
 interface RecipeFormProps {
-  initialData: Recipe;
-  onSubmit: (recipe: Recipe) => void;
+  initialData: RecipeInput;
+  onSubmit: (recipe: RecipeInput, imageFile?: File) => void;
   submitLabel?: string;
 }
 
@@ -13,14 +13,15 @@ export default function RecipeForm({
   onSubmit,
   submitLabel = "Save",
 }: RecipeFormProps) {
-  const [recipe, setRecipe] = useState<Recipe>(initialData);
+  const [recipe, setRecipe] = useState<RecipeInput>(initialData);
+  const [selectedImageFile, setSelectedImageFile] = useState<File>();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
 
-    setRecipe((prev: Recipe) => ({
+    setRecipe((prev) => ({
       ...prev,
       [name]: name === "servings" ? Number(value) : value,
     }));
@@ -31,71 +32,83 @@ export default function RecipeForm({
     field: keyof Ingredient,
     value: string | number,
   ) => {
-    setRecipe((prev: Recipe) => {
+    setRecipe((prev) => {
       const updated = [...prev.ingredients];
-
       updated[index] = {
         ...updated[index],
         [field]: value,
       };
-
       return { ...prev, ingredients: updated };
     });
   };
 
   const handleAddIngredient = () => {
-    setRecipe((prev: Recipe) => ({
+    setRecipe((prev) => ({
       ...prev,
       ingredients: [
         ...prev.ingredients,
         {
-          ingredient_id: 1, // temporary ID, replace with real one from backend
           amount: 0,
           unit: "",
           name: "",
-        } as Ingredient,
+        },
       ],
     }));
   };
 
   const handleRemoveIngredient = (index: number) => {
-    setRecipe((prev: Recipe) => ({
+    setRecipe((prev) => ({
       ...prev,
-      ingredients: prev.ingredients.filter((_: Ingredient, i: number) => i !== index),
+      ingredients: prev.ingredients.filter((_, i) => i !== index),
     }));
   };
 
   const handleSubmit = () => {
-    onSubmit(recipe);
+    onSubmit(recipe, selectedImageFile);
   };
 
   return (
     <div className="py-10 max-w-4xl mx-auto">
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-8 border border-stone-200 space-y-8">
-        {/* Recipe Image */}
+        {/* Image */}
         <RecipeImage
-          imageUrl={recipe.recipe_image_url}
+          imageUrl={recipe.image_url}
           editable
-          alt={recipe.recipe_name || "Recipe Image"}
+          alt={recipe.name || "Recipe Image"}
           onEditClick={() => {
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/*";
+            input.onchange = (e: any) => {
+              const file = e.target.files[0];
+              if (file) {
+                setSelectedImageFile(file);
+                setRecipe((prev) => ({
+                  ...prev,
+                  image_url: URL.createObjectURL(file),
+                }));
+              }
+            };
+            input.click();
           }}
-          onRemoveClick={() =>
-            setRecipe((prev: Recipe) => ({
+          onRemoveClick={() => {
+            setSelectedImageFile(undefined);
+            setRecipe((prev) => ({
               ...prev,
-              recipe_image_url: "",
-            }))
-          }
+              image_url: "",
+            }));
+          }}
         />
 
-        {/* Recipe Name */}
+        {/* Name */}
         <div>
           <label className="block mb-2 font-medium text-stone-700">
             Recipe Name
           </label>
           <input
             type="text"
-            name="recipe_name"
-            value={recipe.recipe_name}
+            name="name"
+            value={recipe.name}
             onChange={handleChange}
             className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
           />
@@ -146,9 +159,9 @@ export default function RecipeForm({
           </div>
 
           <div className="space-y-3">
-            {recipe.ingredients.map((ingredient: Ingredient, index: number) => (
+            {recipe.ingredients.map((ingredient, index) => (
               <div
-                key={ingredient.ingredient_id ?? index}
+                key={index}
                 className="flex gap-3 items-center"
               >
                 <input
@@ -229,7 +242,6 @@ export default function RecipeForm({
           />
         </div>
 
-        {/* Submit */}
         <div className="pt-4">
           <button
             type="button"

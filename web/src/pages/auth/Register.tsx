@@ -1,8 +1,9 @@
+// src/pages/Register.tsx
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import FormRow from "../components/FormRow";
-import AuthForm from "../components/AuthForm";
-import useAuthSubmit from "../hooks/useAuthSubmit";
+import { Link, useNavigate } from "react-router-dom";
+import FormRow from "../../components/FormRow";
+import AuthForm from "../../components/AuthForm";
+import { useAuth } from "../../context/AuthContext";
 import "../style/Register.css";
 
 const Register = () => {
@@ -11,11 +12,11 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const { isLoading, handleAuth } = useAuthSubmit();
+  const navigate = useNavigate();
+  const { register, isLoading } = useAuth();
 
   const passwordsMatch = password === confirmPassword;
-  const showPasswordError =
-    confirmPassword.length > 0 && !passwordsMatch;
+  const showPasswordError = confirmPassword.length > 0 && !passwordsMatch;
 
   const isSubmitDisabled =
     username.trim() === "" ||
@@ -24,25 +25,22 @@ const Register = () => {
     confirmPassword.trim() === "" ||
     !passwordsMatch;
 
-  const handleSubmit = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!passwordsMatch) return;
 
-    await handleAuth(async () => {
-      // TODO: Replace with real backend call
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-
-      console.log("Username:", username);
-      console.log("Email:", email);
-
+    try {
+      await register(username, email, password);
       setUsername("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-    });
+      navigate("/dashboard");
+    } catch (err: any) {
+      console.error("Registration failed", err);
+      alert(err?.message || "Registration failed");
+    }
   };
 
   return (
@@ -90,25 +88,17 @@ const Register = () => {
         id="confirm-password"
         type="password"
         value={confirmPassword}
-        onChange={(e) =>
-          setConfirmPassword(e.target.value)
-        }
+        onChange={(e) => setConfirmPassword(e.target.value)}
       />
 
       {showPasswordError && (
-        <div
-          className="error-message"
-          role="alert"
-          aria-live="polite"
-        >
+        <div className="error-message" role="alert" aria-live="polite">
           Passwords do not match
         </div>
       )}
 
       {confirmPassword.length > 0 && passwordsMatch && (
-        <span className="success-text">
-          Passwords match ✓
-        </span>
+        <span className="success-text">Passwords match ✓</span>
       )}
     </AuthForm>
   );

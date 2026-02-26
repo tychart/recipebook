@@ -1,42 +1,37 @@
-import { Link, useParams } from "react-router-dom";
-import type { Recipe } from "../../types/recipe";
-import RecipeForm from "../components/RecipeForm";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import type { RecipeInput } from "../../../types/types";
+import RecipeForm from "../../components/RecipeForm";
+import { createRecipe } from "../../api/recipes";
 
 export default function RecipeNew() {
   const { cookbookId } = useParams<{ cookbookId?: string }>();
+  const navigate = useNavigate();
 
-
-  const emptyRecipe: Recipe = {
-    recipe_id: 0,
-    recipe_name: "",
+  // Form initial data uses RecipeInput, not full Recipe
+  const emptyRecipeInput: RecipeInput = {
+    name: "",
+    description: "",
     instructions: "",
     notes: "",
-    description: "",
     servings: 1,
-    creator_id: 1, // TODO: replace with auth user id
-    modified_dttm: new Date().toISOString(),
-    category: "Main",
-    recipe_image_url: "",
-    recipe_tags: "",
-    book_id: cookbookId ? Number(cookbookId) : 0,
+    image_url: "",
     ingredients: [],
+    cookbook_id: cookbookId ? Number(cookbookId) : 0,
   };
 
-  const handleCreate = (recipe: Recipe) => {
-    const payload: Recipe = {
-      ...recipe,
-      book_id: cookbookId ? Number(cookbookId) : recipe.book_id,
-      modified_dttm: new Date().toISOString(),
-    };
-
-    console.log("POST recipe:", payload);
-
-    // TODO: Replace with real API call
-  };
+const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
+  try {
+    const result = await createRecipe(recipeInput, imageFile);
+    console.log("Created:", result);
+    navigate(`/recipe/${result.id}`);
+  } catch (error) {
+    console.error("Failed to create recipe", error);
+    alert("Failed to create recipe");
+  }
+};
 
   return (
     <>
-      {/* Header (mirrors RecipeEdit layout) */}
       <div className="flex items-center justify-between mb-8 max-w-4xl mx-auto">
         <div>
           <h1 className="text-3xl font-semibold text-stone-800">
@@ -58,9 +53,8 @@ export default function RecipeNew() {
         </Link>
       </div>
 
-      {/* Shared Form */}
       <RecipeForm
-        initialData={emptyRecipe}
+        initialData={emptyRecipeInput}
         onSubmit={handleCreate}
         submitLabel="Create Recipe"
       />
