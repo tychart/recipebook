@@ -4,7 +4,7 @@ import Instructions from "../components/recipe/Instructions";
 import IngredientList from "../components/recipe/IngredientList";
 import Notes from "../components/recipe/Notes";
 import { mockRecipe } from "../mocks/mockRecipe";
-import type { Recipe } from "../../../shared/types/recipe";
+import type { Recipe } from "../../types/recipe";
 import RecipeImage from "../components/recipe/RecipeImage";
 
 export default function RecipePage() {

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { Cookbook } from "../../../../shared/types/recipe";
+import type { Cookbook } from "../../../types/recipe";
 
 interface CookbookCardProps {
   cookbook: Cookbook;

@@ -1,4 +1,4 @@
-import type { Ingredient } from "../../../../shared/types/recipe";
+import type { Ingredient } from "../../../types/recipe";
 
 interface IngredientListProps {
   ingredients: Ingredient[];

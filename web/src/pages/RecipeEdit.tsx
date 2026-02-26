@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { mockRecipe } from "../mocks/mockRecipe";
-import type { Recipe } from "../../../shared/types/recipe";
+import type { Recipe } from "../../types/recipe";
 import RecipeForm from "../components/RecipeForm";
 
 export default function RecipeEdit() {

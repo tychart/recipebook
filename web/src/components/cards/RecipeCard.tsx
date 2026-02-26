@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { Recipe } from "../../../../shared/types/recipe";
+import type { Recipe } from "../../../types/recipe";
 
 const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
   <Link

@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import type { Recipe } from "../../../shared/types/recipe";
+import type { Recipe } from "../../types/recipe";
 import RecipeForm from "../components/RecipeForm";
 
 export default function RecipeNew() {
