@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Recipe, Ingredient } from "../../../shared/types/recipe";
+import type { Recipe, Ingredient } from "../../types/recipe";
 import RecipeImage from "./recipe/RecipeImage";
 
 interface RecipeFormProps {

@@ -1,4 +1,4 @@
-import type { Recipe } from "../../../../shared/types/recipe";
+import type { Recipe } from "../../../types/recipe";
 
 interface InstructionsProps {
   instructions: Recipe["instructions"];
