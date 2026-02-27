@@ -15,5 +15,5 @@ jobs:
       - name: Build and restart
         run: |
           docker compose down
-          docker compose up -d --build
+          docker compose --env-file /home/gh-runner/.secrets/recipebook.env up -d --build
           docker image prune -f
