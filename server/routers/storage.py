@@ -12,7 +12,7 @@ router = APIRouter(
     tags=["storage"],
 )
 
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:8650/s3/")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
 S3_KEY = os.getenv("S3_KEY")
 S3_SECRET = os.getenv("S3_SECRET")
 S3_BUCKET = os.getenv("S3_BUCKET", "recipe-images")
