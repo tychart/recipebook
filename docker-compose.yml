@@ -15,7 +15,7 @@ services:
       context: ./server
     container_name: recipebook-server
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@recipebook-db:5432/recipebook
+      DATABASE_URL: postgresql://RecipeAdmin:R3c1peB00k@recipebook-db:5432/recipebook
     depends_on:
       - recipebook-db
     ports:
