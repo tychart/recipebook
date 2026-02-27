@@ -1,15 +1,87 @@
-/* Shared loading overlay and spinner - used by Login, Register, etc. */
+/* Shared loading overlay and frying pan - used by Login, Register, etc. */
+
 .loading-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.2); /* Semi-transparent background */
+  inset: 0;
+  background: rgba(32, 27, 24, 0.65);
+  backdrop-filter: blur(6px);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  z-index: 9999; /* Ensures it appears above everything */
+  justify-content: center;
+  gap: 14px;
+  z-index: 9999;
+}
+
+.pan-loader {
+  width: 180px;
+  height: 130px;
+}
+
+.pan {
+  transform-origin: 90px 92px;
+  animation: panTilt 1.6s ease-in-out infinite;
+}
+
+.food {
+  transform-origin: center;
+  animation: toss 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  opacity: 0;
+}
+
+.food1 {
+  animation-delay: 0s;
+}
+.food2 {
+  animation-delay: 0.2s;
+}
+.food3 {
+  animation-delay: 0.4s;
+}
+
+.loading-text {
+  color: #f5efea;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+  text-align: center;
+  max-width: 300px;
+}
+
+@keyframes panTilt {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+
+@keyframes toss {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-38px) scale(1);
+  }
+  85% {
+    transform: translateY(-2px) scale(1.08, 0.92);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pan,
+  .food {
+    animation: none;
+  }
 }
 
 .spinner {

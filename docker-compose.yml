@@ -1,11 +1,38 @@
 services:
+
+  recipebook-web:
+    build:
+      context: ./web
+    container_name: recipebook-web
+    environment:
+      BACKEND_URL: http://recipebook-server:8000 # No trailing slash to preserve /api/ calls
+      S3_URL: http://recipebook-rustfs:9000/ # with trailing slash to strip /s3/ prefix
+    depends_on:
+      - recipebook-server
+    ports:
+      - "8650:80"
+    restart: unless-stopped
+
+  recipebook-server:
+    build:
+      context: ./server
+    container_name: recipebook-server
+    environment:
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@recipebook-db:5432/recipebook
+      S3_BUCKET: ${S3_BUCKET:?Env variable S3_BUCKET is required}
+    depends_on:
+      - recipebook-db
+      - recipebook-rustfs
+    ports:
+      - "8000:8000"
+
   recipebook-db:
     image: pgvector/pgvector:pg18
-    container_name: postgres-db
+    container_name: recipebook-db
     restart: always
     environment:
-      POSTGRES_USER: RecipeAdmin
-      POSTGRES_PASSWORD: R3c1peB00k
+      POSTGRES_USER: ${PG_USER:?Env variable PG_USER is required}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?Env variable PG_PASSWORD is required}
       POSTGRES_DB: recipebook
     ports:
       - "5432:5432"
@@ -13,27 +40,33 @@ services:
       - db_data:/var/lib/postgresql
       - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
 
-  recipebook-server:
-    build:
-      context: ./server
-    container_name: recipebook-server
+  recipebook-rustfs:
+    image: rustfs/rustfs:latest
+    container_name: recipebook-rustfs
+    ports:
+      - "9000:9000" # S3 API port
+      - "9001:9001" # Console port
     environment:
-      DATABASE_URL: postgresql://RecipeAdmin:R3c1peB00k@recipebook-db:5432/recipebook
-    depends_on:
-      - recipebook-db
-    ports:
-      - "8000:8000"
+      # - RUSTFS_VOLUMES=/data/rustfs{0...3}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: true
+      RUSTFS_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_ACCESS_KEY: ${S3_KEY:?Env variable S3_KEY is required}
+      RUSTFS_SECRET_KEY: ${S3_SECRET:?Env variable S3_SECRET is required}
+      # - RUSTFS_OBS_LOGGER_LEVEL=info
+      # - RUSTFS_TLS_PATH=/opt/tls
+      # Object Cache
+      # - RUSTFS_OBJECT_CACHE_ENABLE=true
+      # - RUSTFS_OBJECT_CACHE_TTL_SECS=300
 
-  recipebook-web:
-    build:
-      context: .
-      dockerfile: web/Dockerfile
-    container_name: recipebook-web
-    depends_on:
-      - recipebook-server
-    ports:
-      - "8650:80"
+    volumes:
+      - rustfs_data:/data
+      - rustfs_logs:/app/logs
     restart: unless-stopped
 
 volumes:
   db_data:
+  rustfs_data:
+  rustfs_logs:

@@ -1,4 +1,4 @@
-import type { Recipe } from "../../../types/recipe";
+import type { Recipe } from "../../../types/types";
 
 interface NotesProps {
     notes: Recipe["notes"]
