@@ -133,7 +133,7 @@ To run for development:
 
 ```bash
 source .venv/bin/activate  # If not already activated
-uvicorn main:app --reload
+uvicorn main:app --env-file ../.env --reload
 ```
 
 To run for (semi) production:
