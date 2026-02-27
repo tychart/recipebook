@@ -4,6 +4,9 @@ services:
     build:
       context: ./web
     container_name: recipebook-web
+    environment:
+      BACKEND_URL: http://recipebook-server:8000/
+      S3_URL: http://recipebook-rustfs:9000/
     depends_on:
       - recipebook-server
     ports:
@@ -15,9 +18,10 @@ services:
       context: ./server
     container_name: recipebook-server
     environment:
-      DATABASE_URL: postgresql://RecipeAdmin:R3c1peB00k@recipebook-db:5432/recipebook
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@recipebook-db:5432/recipebook
     depends_on:
       - recipebook-db
+      - recipebook-rustfs
     ports:
       - "8000:8000"
 
@@ -26,8 +30,8 @@ services:
     container_name: recipebook-db
     restart: always
     environment:
-      POSTGRES_USER: RecipeAdmin
-      POSTGRES_PASSWORD: R3c1peB00k
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_DB: recipebook
     ports:
       - "5432:5432"
@@ -35,23 +39,21 @@ services:
       - db_data:/var/lib/postgresql
       - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
 
-  rustfs:
+  recipebook-rustfs:
     image: rustfs/rustfs:latest
     container_name: recipebook-rustfs
-    security_opt:
-      - "no-new-privileges:true"
     ports:
       - "9000:9000" # S3 API port
       - "9001:9001" # Console port
     environment:
       # - RUSTFS_VOLUMES=/data/rustfs{0...3}
-      - RUSTFS_ADDRESS=0.0.0.0:9000
-      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
-      - RUSTFS_CONSOLE_ENABLE=true
-      - RUSTFS_CORS_ALLOWED_ORIGINS=*
-      - RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
-      - RUSTFS_ACCESS_KEY=rustfsadmin # CHANGEME
-      - RUSTFS_SECRET_KEY=rustfsadmin # CHANGEME
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: true
+      RUSTFS_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_ACCESS_KEY: ${S3_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET}
       # - RUSTFS_OBS_LOGGER_LEVEL=info
       # - RUSTFS_TLS_PATH=/opt/tls
       # Object Cache
@@ -59,9 +61,11 @@ services:
       # - RUSTFS_OBJECT_CACHE_TTL_SECS=300
 
     volumes:
-      - ./data/rustfs_data:/data
-      - ./data/rustfs_logs:/app/logs
+      - rustfs_data:/data
+      - rustfs_logs:/app/logs
     restart: unless-stopped
 
 volumes:
   db_data:
+  rustfs_data:
+  rustfs_logs:

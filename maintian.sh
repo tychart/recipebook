@@ -2,6 +2,6 @@
 
 git fetch --all
 git stash
-git merge upstream/main
+git merge origin/main
 git stash pop
 git push
