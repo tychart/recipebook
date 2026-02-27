@@ -42,7 +42,9 @@ const Login = () => {
       footer={
         <p>
           Don't have an account?{" "}
-          <Link to="/register">Register Here</Link>
+          <Link to="/register" className="register-link">
+            Register Here
+          </Link>
         </p>
       }
     >

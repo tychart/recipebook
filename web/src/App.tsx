@@ -14,6 +14,7 @@ import RecipePage from "./pages/recipe/RecipePage";
 import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   // const [testApi, setTestApi] = useState<string>("loading...");
@@ -35,20 +36,28 @@ function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
-              <Route path="/cookbooks" element={<Cookbooks />} />
-              <Route path="/cookbooks/new" element={<CookbookNew />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/cookbook/:id" element={<Cookbook />} />
-              <Route
-                path="/cookbook/:cookbookId/recipe/new"
-                element={<RecipeNew />}
-              />
-              <Route path="/recipe/new" element={<RecipeNew />} />
               <Route path="/recipe/:id" element={<RecipePage />} />
-              <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
               <Route path="/search" element={<Search />} />
+              
+
+              // Protected routes
+              <Route element={<ProtectedRoute />}>
+                <Route path="/cookbooks" element={<Cookbooks />} />
+                <Route path="/cookbooks/new" element={<CookbookNew />} />
+                <Route
+                  path="/cookbook/:cookbookId/recipe/new"
+                  element={<RecipeNew />}
+                />
+                <Route path="/recipe/new" element={<RecipeNew />} />
+                <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
+              </Route>
+              
+              // Catch-all route
               <Route path="*" element={<Navigate to="/" replace />} />
+
             </Route>
           </Routes>
         </div>

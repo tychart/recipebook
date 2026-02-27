@@ -27,13 +27,13 @@ export default function Cookbook() {
     // Fetch the cookbook
     getCookbook(cookbookId)
       .then((data) => setCookbook(data))
-      .catch((err) => setError("Failed to load cookbook"))
+      .catch((err) => setError("Failed to load cookbook: " + err.message))
       .finally(() => setLoadingCookbook(false));
 
     // Fetch recipes
     listRecipes(cookbookId)
       .then((data) => setRecipes(data))
-      .catch((err) => setError("Failed to load recipes"))
+      .catch((err) => setError("Failed to load recipes: " + err.message))
       .finally(() => setLoadingRecipes(false));
   }, [id]);
 
@@ -47,11 +47,15 @@ export default function Cookbook() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
         <Link
-          to={`/cookbook/${id}/recipe/new`}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white text-gray-900 hover:bg-gray-100 transition"
-        >
-          Add Recipe
-        </Link>
+  to={`/cookbook/${id}/recipe/new`}
+  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl 
+             bg-red-500 text-white font-medium 
+             shadow-sm hover:bg-red-600 hover:shadow-md 
+             transition-all duration-200"
+>
+  <span className="text-lg leading-none">+</span>
+  Add Recipe
+</Link>
       </div>
 
       {/* Recipes list */}

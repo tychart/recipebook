@@ -11,6 +11,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  isInitializing: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,19 +19,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("authToken"));
-  const [isLoading, setIsLoading] = useState(false);
+const [isLoading, setIsLoading] = useState(false);
+const [isInitializing, setIsInitializing] = useState(true);
 
-  // Fetch current user if token exists
-  useEffect(() => {
+useEffect(() => {
+  const initializeAuth = async () => {
     if (token) {
-      refreshUser().catch(() => {
-        // token invalid, remove
+      try {
+        await refreshUser();
+      } catch {
         localStorage.removeItem("authToken");
         setToken(null);
         setUser(null);
-      });
+      }
     }
-  }, [token]);
+    setIsInitializing(false);
+  };
+
+  initializeAuth();
+}, []);
 
   const login = async (username: string, password: string) => {
     setIsLoading(true);
@@ -69,8 +76,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout, refreshUser }}>
-      {children}
+<AuthContext.Provider
+  value={{
+    user,
+    token,
+    isLoading,
+    isInitializing,
+    login,
+    register,
+    logout,
+    refreshUser
+  }}
+>      {children}
     </AuthContext.Provider>
   );
 };

@@ -18,7 +18,7 @@ export default function Cookbooks() {
       setLoading(false);
       return;
     }
-    
+
     listCookbooks(user.id)
       .then(setCookbooks)
       .catch(() => setError("Failed to load cookbooks"))
@@ -41,7 +41,7 @@ export default function Cookbooks() {
           to="/cookbooks/new"
           className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white text-gray-900 hover:bg-gray-100 transition"
         >
-          New cookbook
+          New Cookbook
         </Link>
       </div>
 

@@ -1,12 +1,30 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
-import type { RecipeInput } from "../../../types/types";
+import type { Cookbook, RecipeInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
 import { createRecipe } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
+import { useEffect, useState } from "react";
+import { getCookbook } from "../../api/cookbooks";
 
 export default function RecipeNew() {
   const { cookbookId } = useParams<{ cookbookId?: string }>();
   const navigate = useNavigate();
+  const [cookbook, setCookbook] = useState<Cookbook | null>(null);
+
+useEffect(() => {
+  if (!cookbookId) return;
+
+  const fetchCookbook = async () => {
+    try {
+      const data = await getCookbook(Number(cookbookId));
+      setCookbook(data);
+    } catch (error) {
+      console.error("Failed to fetch cookbook", error);
+    }
+  };
+
+  fetchCookbook();
+}, [cookbookId]);
 
   const { user } = useAuth();
   if (!user) {
@@ -48,17 +66,20 @@ const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
 
           {cookbookId && (
             <p className="text-sm text-stone-500 mt-1">
-              Adding to cookbook: {cookbookId}
+              Adding to: {cookbook ? cookbook.name : "Loading..."}
             </p>
           )}
         </div>
 
         <Link
-          to={cookbookId ? `/cookbook/${cookbookId}` : "/cookbooks"}
-          className="px-4 py-2 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-800 transition"
-        >
-          Cancel
-        </Link>
+  to={cookbookId ? `/cookbook/${cookbookId}` : "/cookbooks"}
+  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+             border border-stone-300 text-stone-700
+             hover:bg-stone-100 hover:border-stone-400
+             transition-all duration-200"
+>
+  ← Cancel
+</Link>
       </div>
 
       <RecipeForm
