@@ -1,32 +1,71 @@
 services:
-  # recipiebook-db:
-  #   image: postgres:16
-  #   environment:
-  #     POSTGRES_DB: recipebook
-  #     POSTGRES_USER: recipebook
-  #     POSTGRES_PASSWORD: recipebook
-  #   volumes:
-  #     - pgdata:/var/lib/postgresql/data
-  #   ports:
-  #     - "5432:5432"
 
-  recipiebook-server:
+  recipebook-web:
+    build:
+      context: ./web
+    container_name: recipebook-web
+    environment:
+      BACKEND_URL: http://recipebook-server:8000 # No trailing slash to preserve /api/ calls
+      S3_URL: http://recipebook-rustfs:9000/ # with trailing slash to strip /s3/ prefix
+    depends_on:
+      - recipebook-server
+    ports:
+      - "8650:80"
+    restart: unless-stopped
+
+  recipebook-server:
     build:
       context: ./server
-    # environment:
-    #   DATABASE_URL: postgresql://recipebook:recipebook@recipiebook-db:5432/recipebook
-    # depends_on:
-    #   - recipiebook-db
+    container_name: recipebook-server
+    environment:
+      DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@recipebook-db:5432/recipebook
+    depends_on:
+      - recipebook-db
+      - recipebook-rustfs
     ports:
       - "8000:8000"
 
-  recipiebook-web:
-    build:
-      context: ./web
-    depends_on:
-      - recipiebook-server
+  recipebook-db:
+    image: pgvector/pgvector:pg18
+    container_name: recipebook-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: recipebook
     ports:
-      - "8650:80"
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql
+      - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
 
-# volumes:
-#   pgdata:
+  recipebook-rustfs:
+    image: rustfs/rustfs:latest
+    container_name: recipebook-rustfs
+    ports:
+      - "9000:9000" # S3 API port
+      - "9001:9001" # Console port
+    environment:
+      # - RUSTFS_VOLUMES=/data/rustfs{0...3}
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: true
+      RUSTFS_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_ACCESS_KEY: ${S3_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET}
+      # - RUSTFS_OBS_LOGGER_LEVEL=info
+      # - RUSTFS_TLS_PATH=/opt/tls
+      # Object Cache
+      # - RUSTFS_OBJECT_CACHE_ENABLE=true
+      # - RUSTFS_OBJECT_CACHE_TTL_SECS=300
+
+    volumes:
+      - rustfs_data:/data
+      - rustfs_logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  rustfs_data:
+  rustfs_logs:

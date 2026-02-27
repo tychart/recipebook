@@ -6,9 +6,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: #213547;
+  background-color: #EEE9E0;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -16,21 +16,22 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+
+html {
+  min-height: 100vh;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
   min-height: 100vh;
+
+  padding: 5px; /* ← creates border thickness */
+
+  background-color: #EEE9E0; /* main page color */
+  /* Three-color checkerboard (15px squares) on top, bottom, left, and right border */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect x='0' y='0' width='15' height='15' fill='%23d21404'/%3E%3Crect x='15' y='0' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='30' y='0' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='0' y='15' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='15' y='15' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='30' y='15' width='15' height='15' fill='%23d21404'/%3E%3Crect x='0' y='30' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='15' y='30' width='15' height='15' fill='%23d21404'/%3E%3Crect x='30' y='30' width='15' height='15' fill='%23fc6b5f'/%3E%3C/svg%3E");
+  background-size: 45px 45px;
+  background-attachment: fixed;
 }
 
 h1 {
@@ -38,34 +39,33 @@ h1 {
   line-height: 1.1;
 }
 
-button {
+@layer base {
+  button {
+    @apply block w-full px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer;
+  }
+}
+
+/* button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f9f9f9;
   cursor: pointer;
   transition: border-color 0.25s;
 }
+
 button:hover {
-  border-color: #646cff;
+  border-color: #f83434;
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
+} */
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Native search clear button: show pointer on hover */
+input[type="search"]::-webkit-search-cancel-button {
+  cursor: pointer;
 }
