@@ -5,8 +5,8 @@ services:
       context: ./web
     container_name: recipebook-web
     environment:
-      BACKEND_URL: http://recipebook-server:8000/
-      S3_URL: http://recipebook-rustfs:9000/
+      BACKEND_URL: http://recipebook-server:8000 # No trailing slash to preserve /api/ calls
+      S3_URL: http://recipebook-rustfs:9000/ # with trailing slash to strip /s3/ prefix
     depends_on:
       - recipebook-server
     ports:

@@ -1,6 +1,6 @@
 import type { User } from "../../types/types";
 
-const BASE_URL = "http://localhost:8000/api/auth";
+const BASE_URL = "/api/auth";
 
 
 /* =========================

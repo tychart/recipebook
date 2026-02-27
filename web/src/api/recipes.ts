@@ -1,6 +1,6 @@
 import type { Recipe, RecipeInput } from "../../types/types";
 
-const API_BASE = "http://localhost:8000/api/recipe"; // adjust port if needed
+const API_BASE = "/api/recipe";
 
 
 /**

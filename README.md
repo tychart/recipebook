@@ -74,6 +74,14 @@ git clone git@github.com:tychart/recipebook.git
 
 cd recipebook/
 
+cp .env.example .env
+```
+
+I would then recomend changing the secrets in your new `.env` file
+
+Then to start, run:
+
+```bash
 docker compose up --build
 ```
 
