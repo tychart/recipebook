@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Logo from "../components/Logo";
 
 export default function Home() {
   const { user } = useAuth();
@@ -10,9 +11,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center text-center max-w-2xl mx-auto py-20">
-      <h1 className="text-5xl font-bold text-red-500 mb-6">
-        RecipeBook
-      </h1>
+      <Logo size="large" />
 
       <p className="text-lg text-stone-600 mb-10">
         Save and organize your favorite recipes.

@@ -5,6 +5,7 @@ import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
 import "../../style/Register.css";
+import Logo from "../../components/Logo";
 
 const Register = () => {
   const [username, setUsername] = useState("");
@@ -46,62 +47,69 @@ const Register = () => {
   };
 
   return (
-    <AuthForm
-      title="Welcome to RecipeBook! Please Create an Account:"
-      onSubmit={handleSubmit}
-      isLoading={isLoading}
-      isSubmitDisabled={isSubmitDisabled}
-      buttonText="Register"
-      loadingMessage="Registering, please wait"
-      containerClass="register-container"
-      formClass="register-form"
-      footer={
-        <p>
-          Already have an account? <Link to="/login">Login Here</Link>
-        </p>
-      }
-    >
-      <FormRow
-        label="Username:"
-        id="username"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-      />
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6">
+      <Logo size="medium" />
 
-      <FormRow
-        label="Email:"
-        id="email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <AuthForm
+        title="Create your account"
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+        isSubmitDisabled={isSubmitDisabled}
+        buttonText="Register"
+        loadingMessage="Registering, please wait"
+        containerClass="register-container"
+        formClass="register-form"
+        footer={
+          <p>
+            Already have an account?{" "}
+            <Link to="/login" className="login-link">
+              Login Here
+            </Link>
+          </p>
+        }
+      >
+        <FormRow
+          label="Username:"
+          id="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
 
-      <FormRow
-        label="Password:"
-        id="password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <FormRow
+          label="Email:"
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <FormRow
-        label="Confirm Password:"
-        id="confirm-password"
-        type="password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-      />
+        <FormRow
+          label="Password:"
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      {showPasswordError && (
-        <div className="error-message" role="alert" aria-live="polite">
-          Passwords do not match
-        </div>
-      )}
+        <FormRow
+          label="Confirm Password:"
+          id="confirm-password"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+        />
 
-      {confirmPassword.length > 0 && passwordsMatch && (
-        <span className="success-text">Passwords match ✓</span>
-      )}
-    </AuthForm>
+        {showPasswordError && (
+          <div className="text-red-500 text-sm mt-2" role="alert">
+            Passwords do not match
+          </div>
+        )}
+
+        {confirmPassword.length > 0 && passwordsMatch && (
+          <div className="text-green-600 text-sm mt-2">Passwords match ✓</div>
+        )}
+      </AuthForm>
+    </div>
   );
 };
 
