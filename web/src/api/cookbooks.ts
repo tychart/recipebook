@@ -1,6 +1,6 @@
 import type { Cookbook } from "../../types/types";
 
-const BASE_URL = "http://localhost:8000/api/cookbook";
+const BASE_URL = "/api/cookbook";
 
 /* =========================
    Get Single Cookbook
