@@ -1,18 +1,20 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Cookbooks from './pages/Cookbooks';
-import CookbookNew from './pages/CookbookNew';
-import Cookbook from "./pages/Cookbook";
-import RecipeNew from './pages/RecipeNew';
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import Cookbooks from "./pages/cookbook/Cookbooks";
+import CookbookNew from "./pages/cookbook/CookbookNew";
+import Cookbook from "./pages/cookbook/Cookbook";
+import RecipeNew from "./pages/recipe/RecipeNew";
 import "./App.css";
 import "./style/shared.css";
-import RecipePage from './pages/RecipePage';
+import RecipePage from "./pages/recipe/RecipePage";
 // import { useEffect, useState } from "react";
-import RecipeEdit from "./pages/RecipeEdit";
+import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   // const [testApi, setTestApi] = useState<string>("loading...");
@@ -28,29 +30,42 @@ function App() {
   // }, []);
 
   return (
-    <BrowserRouter>
-      <div className="w-full">
-        <Routes>
-          <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/cookbooks" element={<Cookbooks />} />
-          <Route path="/cookbooks/new" element={<CookbookNew />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/cookbook/:id" element={<Cookbook />} />
-          <Route path="/cookbook/:cookbookId/recipe/new" element={<RecipeNew />} />
-          <Route path="/recipe/new" element={<RecipeNew />} />
-          <Route path="/recipe/:id" element={<RecipePage />} />
-          <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </div>
-          {/* <div>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="w-full">
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/cookbook/:id" element={<Cookbook />} />
+              <Route path="/recipe/:id" element={<RecipePage />} />
+              <Route path="/search" element={<Search />} />
+              
+
+              // Protected routes
+              <Route element={<ProtectedRoute />}>
+                <Route path="/cookbooks" element={<Cookbooks />} />
+                <Route path="/cookbooks/new" element={<CookbookNew />} />
+                <Route
+                  path="/cookbook/:cookbookId/recipe/new"
+                  element={<RecipeNew />}
+                />
+                <Route path="/recipe/new" element={<RecipeNew />} />
+                <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
+              </Route>
+              
+              // Catch-all route
+              <Route path="*" element={<Navigate to="/" replace />} />
+
+            </Route>
+          </Routes>
+        </div>
+        {/* <div>
       {testApi}
     </div> */}
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 
