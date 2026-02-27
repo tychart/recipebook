@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import type { Cookbook } from "../../../types/recipe";
+import type { Cookbook } from "../../../types/types";
 
 interface CookbookCardProps {
   cookbook: Cookbook;
@@ -15,16 +15,15 @@ const colors = [
 ];
 
 export const CookbookCard = ({ cookbook }: CookbookCardProps) => {
-  // Randomly pick a background color from the palette
-  const bgColor = colors[cookbook.book_id % colors.length];
+  const bgColor = colors[cookbook.id % colors.length];
 
   return (
     <Link
-      to={`/cookbook/${cookbook.book_id}`}
+      to={`/cookbook/${cookbook.id}`}
       className={`flex items-center justify-center aspect-square rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ${bgColor}`}
     >
       <h2 className="text-center font-semibold text-lg text-red-900 p-2">
-        {cookbook.book_name}
+        {cookbook.name}
       </h2>
     </Link>
   );
