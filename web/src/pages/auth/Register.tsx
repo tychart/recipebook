@@ -57,8 +57,7 @@ const Register = () => {
       formClass="register-form"
       footer={
         <p>
-          Already have an account?{" "}
-          <Link to="/login">Login Here</Link>
+          Already have an account? <Link to="/login">Login Here</Link>
         </p>
       }
     >
