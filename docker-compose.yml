@@ -1,17 +1,14 @@
 services:
-  recipebook-db:
-    image: pgvector/pgvector:pg18
-    container_name: postgres-db
-    restart: always
-    environment:
-      POSTGRES_USER: RecipeAdmin
-      POSTGRES_PASSWORD: R3c1peB00k
-      POSTGRES_DB: recipebook
+
+  recipebook-web:
+    build:
+      context: ./web
+    container_name: recipebook-web
+    depends_on:
+      - recipebook-server
     ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql
-      - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
+      - "8650:80"
+    restart: unless-stopped
 
   recipebook-server:
     build:
@@ -24,14 +21,46 @@ services:
     ports:
       - "8000:8000"
 
-  recipebook-web:
-    build:
-      context: ./web
-    container_name: recipebook-web
-    depends_on:
-      - recipebook-server
+  recipebook-db:
+    image: pgvector/pgvector:pg18
+    container_name: recipebook-db
+    restart: always
+    environment:
+      POSTGRES_USER: RecipeAdmin
+      POSTGRES_PASSWORD: R3c1peB00k
+      POSTGRES_DB: recipebook
     ports:
-      - "8650:80"
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql
+      - ./db/CreateDB.sql:/docker-entrypoint-initdb.d/CreateDB.sql
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: recipebook-rustfs
+    security_opt:
+      - "no-new-privileges:true"
+    ports:
+      - "9000:9000" # S3 API port
+      - "9001:9001" # Console port
+    environment:
+      # - RUSTFS_VOLUMES=/data/rustfs{0...3}
+      - RUSTFS_ADDRESS=0.0.0.0:9000
+      - RUSTFS_CONSOLE_ADDRESS=0.0.0.0:9001
+      - RUSTFS_CONSOLE_ENABLE=true
+      - RUSTFS_CORS_ALLOWED_ORIGINS=*
+      - RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS=*
+      - RUSTFS_ACCESS_KEY=rustfsadmin # CHANGEME
+      - RUSTFS_SECRET_KEY=rustfsadmin # CHANGEME
+      # - RUSTFS_OBS_LOGGER_LEVEL=info
+      # - RUSTFS_TLS_PATH=/opt/tls
+      # Object Cache
+      # - RUSTFS_OBJECT_CACHE_ENABLE=true
+      # - RUSTFS_OBJECT_CACHE_TTL_SECS=300
+
+    volumes:
+      - ./data/rustfs_data:/data
+      - ./data/rustfs_logs:/app/logs
     restart: unless-stopped
 
 volumes:
