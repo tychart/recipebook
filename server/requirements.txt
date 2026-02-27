@@ -3,6 +3,3 @@ uvicorn[standard]
 pytesseract
 pillow
 python-multipart
-pydantic
-asyncpg
-python-multipart
