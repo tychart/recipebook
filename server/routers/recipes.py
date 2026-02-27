@@ -4,12 +4,10 @@ from typing import List
 import os
 import datetime as dt
 import asyncpg
+import boto3
+from uuid import uuid4
 
 from database import get_db
-
-# Server dir so images/ is always server/images/ regardless of CWD
-_SERVER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_IMAGES_DIR = os.path.join(_SERVER_DIR, "images")
 
 router = APIRouter(
     prefix="/api/recipe",
@@ -93,13 +91,29 @@ async def create_recipe(
     # Form + optional File: multipart when image included; frontend sends form with metadata=JSON.stringify(recipe) and optionally image=file
     recipe_data = RecipeMetadata.model_validate_json(metadata)
 
-    image_filename = None
+    image_url: str | None = None
     if image and image.filename:
-        os.makedirs(_IMAGES_DIR, exist_ok=True)
-        image_path = os.path.join(_IMAGES_DIR, image.filename)
-        with open(image_path, "wb") as f:
-            f.write(await image.read())
-        image_filename = image.filename
+        # Upload image to S3 instead of local filesystem.
+        # S3_URL is the public base URL (e.g. https://bucket.s3.region.amazonaws.com)
+        s3_base_url = os.getenv("S3_URL")
+        s3_bucket = os.getenv("S3_BUCKET")
+        if not s3_base_url or not s3_bucket:
+            raise HTTPException(
+                status_code=500,
+                detail="Image storage is not configured. S3_URL and S3_BUCKET must be set.",
+            )
+
+        s3_client = boto3.client("s3")
+        key = f"recipes/{uuid4().hex}_{image.filename}"
+        # Ensure we read from the start of the file
+        image.file.seek(0)
+        s3_client.upload_fileobj(
+            image.file,
+            s3_bucket,
+            key,
+            ExtraArgs={"ContentType": image.content_type or "application/octet-stream"},
+        )
+        image_url = f"{s3_base_url.rstrip('/')}/{key}"
 
     tags_str = _tags_to_text(recipe_data.tags)
     recipe_row = await db.fetchrow(
@@ -115,7 +129,7 @@ async def create_recipe(
         recipe_data.servings,
         recipe_data.creator_id,
         recipe_data.category,
-        image_filename,
+        image_url,
         tags_str,
         cookbook_id,
     )
@@ -140,8 +154,8 @@ async def create_recipe(
     )
     created = _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
     result = {"message": "Recipe uploaded successfully!", "recipe": created}
-    if image_filename is not None:
-        result["image_filename"] = image_filename
+    if image_url is not None:
+        result["image_url"] = image_url
     return result
 
 
