@@ -1,15 +1,10 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List
-import os
 import datetime as dt
 import asyncpg
 
 from database import get_db
-
-# Server dir so images/ is always server/images/ regardless of CWD
-_SERVER_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-_IMAGES_DIR = os.path.join(_SERVER_DIR, "images")
 
 router = APIRouter(
     prefix="/api/recipe",
@@ -86,42 +81,31 @@ def _row_to_ingredient(row: asyncpg.Record) -> dict:
 @router.post("/create/{cookbook_id}")
 async def create_recipe(
     cookbook_id: int,
-    metadata: str = Form(...),
-    image: UploadFile | None = File(None),
+    recipe: RecipeMetadata,
     db: asyncpg.Connection = Depends(get_db),
 ):
-    # Form + optional File: multipart when image included; frontend sends form with metadata=JSON.stringify(recipe) and optionally image=file
-    recipe_data = RecipeMetadata.model_validate_json(metadata)
-
-    image_filename = None
-    if image and image.filename:
-        os.makedirs(_IMAGES_DIR, exist_ok=True)
-        image_path = os.path.join(_IMAGES_DIR, image.filename)
-        with open(image_path, "wb") as f:
-            f.write(await image.read())
-        image_filename = image.filename
-
-    tags_str = _tags_to_text(recipe_data.tags)
+    """Create a recipe in the given cookbook. Frontend uploads image via POST /api/uploads/file and passes the returned url in recipe.image_url."""
+    tags_str = _tags_to_text(recipe.tags)
     recipe_row = await db.fetchrow(
         """
         INSERT INTO Recipe (Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         """,
-        recipe_data.name,
-        recipe_data.instructions,
-        recipe_data.description,
-        recipe_data.notes,
-        recipe_data.servings,
-        recipe_data.creator_id,
-        recipe_data.category,
-        image_filename,
+        recipe.name,
+        recipe.instructions,
+        recipe.description,
+        recipe.notes,
+        recipe.servings,
+        recipe.creator_id,
+        recipe.category,
+        recipe.image_url,
         tags_str,
         cookbook_id,
     )
     recipe_id = recipe_row["recipe_id"]
 
-    for ing in recipe_data.ingredients:
+    for ing in recipe.ingredients:
         await db.execute(
             """
             INSERT INTO Ingredients (Recipe_ID, Amount, Unit, Name)
@@ -133,16 +117,12 @@ async def create_recipe(
             ing.name,
         )
 
-    # Load back ingredients for response
     ing_rows = await db.fetch(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
         recipe_id,
     )
     created = _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
-    result = {"message": "Recipe uploaded successfully!", "recipe": created}
-    if image_filename is not None:
-        result["image_filename"] = image_filename
-    return result
+    return {"message": "Recipe created successfully!", "recipe": created}
 
 
 @router.post("/edit")

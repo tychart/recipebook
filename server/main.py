@@ -3,13 +3,20 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from database import close_pool, init_pool
-from routers import recipes, auth, cookbooks, generate
+from routers import recipes, auth, cookbooks, generate, storage
+
+from routers.storage import ensure_bucket_exists
+
 
 # ----------------------
-# Lifespan for DB Pool
+# Startup Initilization
 # ----------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Ensure the S3 bucket exists during startup 
+    # (for if this is the first time the app is run)
+    ensure_bucket_exists()
+
     await init_pool()
     yield
     await close_pool()
@@ -43,3 +50,4 @@ app.include_router(recipes.router)
 app.include_router(auth.router)
 app.include_router(cookbooks.router)
 app.include_router(generate.router)
+app.include_router(storage.router)
