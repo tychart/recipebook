@@ -12,6 +12,9 @@ router = APIRouter(
     tags=["storage"],
 )
 
+# S3_ENDPOINT should point at the RustFS/S3 API.
+# - In docker-compose: use http://recipebook-rustfs:9000
+# - In local dev (uvicorn on host): use http://localhost:9000
 S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
 S3_KEY = os.getenv("S3_KEY")
 S3_SECRET = os.getenv("S3_SECRET")
