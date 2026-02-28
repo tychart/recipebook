@@ -3,14 +3,25 @@ PostgreSQL connection pool and dependency for FastAPI.
 Read DATABASE_URL from environment (set in docker-compose or .env).
 """
 import os
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import asyncpg
 
+# Initialize logging
+logger = logging.getLogger("recipebook.database")
+
 # Default for local dev when DB runs in Docker (recipebook-db on host port 5432)
 _DEFAULT_URL = "postgresql://RecipeAdmin:R3c1peB00k@localhost:5432/recipebook"
 DATABASE_URL = os.getenv("DATABASE_URL", _DEFAULT_URL)
+
+# Check if the environment variable was successfully loaded
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL not found in environment. Falling back to localhost default.")
+    DATABASE_URL = _DEFAULT_URL
+else:
+    logger.info("DATABASE_URL loaded successfully from environment.")
 
 # Global pool, set in lifespan
 _pool: asyncpg.Pool | None = None

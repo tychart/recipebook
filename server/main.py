@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from database import close_pool, init_pool
-from routers import recipes, auth, cookbooks, generate
+from routers import recipes, auth, cookbooks, generate, ocr
 
 # ----------------------
 # Lifespan for DB Pool
@@ -43,3 +43,4 @@ app.include_router(recipes.router)
 app.include_router(auth.router)
 app.include_router(cookbooks.router)
 app.include_router(generate.router)
+app.include_router(ocr.router)
