@@ -1,11 +1,8 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List
-import os
 import datetime as dt
 import asyncpg
-import boto3
-from uuid import uuid4
 
 from database import get_db
 
@@ -84,58 +81,31 @@ def _row_to_ingredient(row: asyncpg.Record) -> dict:
 @router.post("/create/{cookbook_id}")
 async def create_recipe(
     cookbook_id: int,
-    metadata: str = Form(...),
-    image: UploadFile | None = File(None),
+    recipe: RecipeMetadata,
     db: asyncpg.Connection = Depends(get_db),
 ):
-    # Form + optional File: multipart when image included; frontend sends form with metadata=JSON.stringify(recipe) and optionally image=file
-    recipe_data = RecipeMetadata.model_validate_json(metadata)
-
-    image_url: str | None = None
-    if image and image.filename:
-        # Upload image to S3 instead of local filesystem.
-        # S3_URL is the public base URL (e.g. https://bucket.s3.region.amazonaws.com)
-        s3_base_url = os.getenv("S3_URL")
-        s3_bucket = os.getenv("S3_BUCKET")
-        if not s3_base_url or not s3_bucket:
-            raise HTTPException(
-                status_code=500,
-                detail="Image storage is not configured. S3_URL and S3_BUCKET must be set.",
-            )
-
-        s3_client = boto3.client("s3")
-        key = f"recipes/{uuid4().hex}_{image.filename}"
-        # Ensure we read from the start of the file
-        image.file.seek(0)
-        s3_client.upload_fileobj(
-            image.file,
-            s3_bucket,
-            key,
-            ExtraArgs={"ContentType": image.content_type or "application/octet-stream"},
-        )
-        image_url = f"{s3_base_url.rstrip('/')}/{key}"
-
-    tags_str = _tags_to_text(recipe_data.tags)
+    """Create a recipe in the given cookbook. Frontend uploads image via POST /api/uploads/file and passes the returned url in recipe.image_url."""
+    tags_str = _tags_to_text(recipe.tags)
     recipe_row = await db.fetchrow(
         """
         INSERT INTO Recipe (Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         """,
-        recipe_data.name,
-        recipe_data.instructions,
-        recipe_data.description,
-        recipe_data.notes,
-        recipe_data.servings,
-        recipe_data.creator_id,
-        recipe_data.category,
-        image_url,
+        recipe.name,
+        recipe.instructions,
+        recipe.description,
+        recipe.notes,
+        recipe.servings,
+        recipe.creator_id,
+        recipe.category,
+        recipe.image_url,
         tags_str,
         cookbook_id,
     )
     recipe_id = recipe_row["recipe_id"]
 
-    for ing in recipe_data.ingredients:
+    for ing in recipe.ingredients:
         await db.execute(
             """
             INSERT INTO Ingredients (Recipe_ID, Amount, Unit, Name)
@@ -147,16 +117,12 @@ async def create_recipe(
             ing.name,
         )
 
-    # Load back ingredients for response
     ing_rows = await db.fetch(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
         recipe_id,
     )
     created = _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
-    result = {"message": "Recipe uploaded successfully!", "recipe": created}
-    if image_url is not None:
-        result["image_url"] = image_url
-    return result
+    return {"message": "Recipe created successfully!", "recipe": created}
 
 
 @router.post("/edit")
