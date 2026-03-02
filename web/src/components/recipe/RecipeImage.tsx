@@ -23,7 +23,6 @@ export default function RecipeImage({
 
   return (
     <div className="space-y-4 mb-6">
-      {/* Image Container */}
       <div className="relative w-full min-h-48 max-h-80 overflow-hidden rounded-xl border border-stone-300 bg-stone-100 flex items-center justify-center">
         {preview ? (
           <img
@@ -32,10 +31,11 @@ export default function RecipeImage({
             className="w-full max-h-80 object-cover rounded-xl"
           />
         ) : (
-          <span className="text-stone-400 text-center">No image selected</span>
+          <span className="text-stone-400 text-center">
+            No image selected
+          </span>
         )}
 
-        {/* Overlay Buttons (edit mode only) */}
         {editable && (
           <div className="absolute bottom-3 right-3 flex gap-2">
             <button
