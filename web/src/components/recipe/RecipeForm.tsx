@@ -15,6 +15,9 @@ export default function RecipeForm({
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
+  const [tagInput, setTagInput] = useState(
+  initialData.tags?.join(", ") ?? ""
+);
 
 const handleChange = (
   e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -64,8 +67,13 @@ const handleChange = (
   };
 
   const handleSubmit = () => {
-    onSubmit(recipe, selectedImageFile);
-  };
+  const parsedTags = tagInput
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
+};
 
   // Category options
   const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
@@ -159,21 +167,12 @@ const handleChange = (
             Tags (comma separated)
           </label>
           <input
-            type="text"
-            name="tags"
-            value={recipe.tags?.join(", ") || ""}
-            onChange={(e) =>
-              setRecipe((prev) => ({
-                ...prev,
-                tags: e.target.value
-                  .split(",")
-                  .map((t) => t.trim())
-                  .filter(Boolean),
-              }))
-            }
-            placeholder="e.g. gluten-free, quick"
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-          />
+  type="text"
+  value={tagInput}
+  onChange={(e) => setTagInput(e.target.value)}
+  placeholder="e.g. gluten-free, quick"
+  className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+/>
         </div>
 
         {/* Servings */}

@@ -45,9 +45,39 @@ const emptyRecipeInput: RecipeInput = {
   tags: [],
 };
 
-const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
+const handleCreate = async (
+  recipeInput: RecipeInput,
+  imageFile?: File
+) => {
   try {
-    const result = await createRecipe(recipeInput, imageFile);
+    let imageUrl = recipeInput.image_url;
+
+    // 1️⃣ Upload image if selected
+    if (imageFile) {
+      const formData = new FormData();
+      formData.append("file", imageFile);
+
+      const uploadRes = await fetch("/api/uploads/file", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const text = await uploadRes.text();
+        console.error("Upload failed:", text);
+        throw new Error("Image upload failed");
+      }
+
+      const uploadData = await uploadRes.json();
+      imageUrl = uploadData.url; // returned from backend
+    }
+
+    // 2️⃣ Send recipe JSON with image_url included
+    const result = await createRecipe({
+      ...recipeInput,
+      image_url: imageUrl,
+    });
+
     console.log("Created:", result);
     navigate(`/recipe/${result.recipe.id}`);
   } catch (error) {
