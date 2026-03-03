@@ -32,14 +32,13 @@ export const getRecipe = async (id: number): Promise<Recipe> => {
  * @param recipe RecipeInput object
  * @param imageFile Optional image file
  */
-export async function createRecipe(recipe: RecipeInput, imageFile?: File) {
-  const formData = new FormData();
-  formData.append("metadata", JSON.stringify(recipe)); // backend expects `metadata` field
-  if (imageFile) formData.append("image", imageFile); // optional image
-
+export async function createRecipe(recipe: RecipeInput) {
   const res = await fetch(`${API_BASE}/create/${recipe.cookbook_id}`, {
     method: "POST",
-    body: formData, // multipart/form-data
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(recipe),
   });
 
   if (!res.ok) {
@@ -48,7 +47,7 @@ export async function createRecipe(recipe: RecipeInput, imageFile?: File) {
     throw new Error("Failed to create recipe");
   }
 
-  return res.json(); // returns { message, recipe, image_filename? }
+  return res.json();
 }
 
 
