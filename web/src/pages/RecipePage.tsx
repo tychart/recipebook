@@ -6,11 +6,13 @@ import Notes from "../components/recipe/Notes";
 import { mockRecipe } from "../mocks/mockRecipe";
 import type { Recipe } from "../../types/recipe";
 import RecipeImage from "../components/recipe/RecipeImage";
+import ShareModal from "../components/ShareModal";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -34,12 +36,15 @@ export default function RecipePage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-3xl font-semibold">{recipe.recipe_name}</h1>
 
-        <Link
-          to={`/recipe/${id}/edit`}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100"
-        >
-          Edit
-        </Link>
+        <div className="flex items-center gap-10">
+          <button>
+            <Link to={`/recipe/${id}/edit`}>Edit</Link>
+          </button>
+
+          <button onClick={() => setShowShare(true)} className="share-button">
+            Share
+          </button>
+        </div>
       </div>
 
       {/* Image */}
@@ -82,6 +87,9 @@ export default function RecipePage() {
       <IngredientList ingredients={recipe.ingredients} />
       <Instructions instructions={recipe.instructions} />
       {recipe.notes && <Notes notes={recipe.notes} />}
+      {showShare && id && (
+        <ShareModal recipeId={id} onClose={() => setShowShare(false)} />
+      )}
     </div>
   );
 }
