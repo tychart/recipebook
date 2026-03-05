@@ -24,6 +24,11 @@ export default function ShareModal({ recipeId, onClose }: ShareModalProps) {
     }
   };
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -70,10 +75,11 @@ export default function ShareModal({ recipeId, onClose }: ShareModalProps) {
             className="flex flex-col space-x-2 align-center justify-center"
           >
             <div className="w-full">
+              <p className="mb-2 pl-1 text-lg">Users with access:</p>
               {addedEmails.map((email) => (
                 <div
                   key={email}
-                  className="flex items-center justify-between p-2 border-b"
+                  className="flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-100 mb-2 rounded-lg border-b"
                 >
                   <span>{email}</span>
                   <button
@@ -86,26 +92,34 @@ export default function ShareModal({ recipeId, onClose }: ShareModalProps) {
               ))}
             </div>
 
-            <input
-              type="email"
-              placeholder="Add email addresses"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="w-100 h-11 rounded-lg px-4 py-2 bg-gray-50"
-            />
+            <div className="flex flex-row space-x-4">
+              <input
+                type="email"
+                placeholder="Add email addresses"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                className="w-75 h-11 rounded-lg px-4 py-2 bg-gray-50"
+              />
 
-            <div className="flex">
               <button
                 onClick={addEmail}
                 className="px-4 py-2 bg-blue-500 rounded-lg"
+                disabled={
+                  !emailInput ||
+                  addedEmails.includes(emailInput) ||
+                  !validateEmail(emailInput)
+                }
               >
                 Add User
               </button>
             </div>
           </div>
 
-          <button onClick={onClose} className="px-4 py-2 border rounded-lg">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border rounded-lg mt-4"
+          >
             Close
           </button>
         </div>
