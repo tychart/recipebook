@@ -5,6 +5,8 @@ import datetime as dt
 import asyncpg
 
 from database import get_db
+from routers.auth import CurrentUser, get_current_user_dep
+from routers.cookbooks import RoleEnum, require_cookbook_role
 
 router = APIRouter(
     prefix="/api/recipe",
@@ -78,13 +80,34 @@ def _row_to_ingredient(row: asyncpg.Record) -> dict:
         "name": row["name"],
     }
 
+
+async def _get_recipe_cookbook_id(db: asyncpg.Connection, recipe_id: int) -> int:
+    """
+    Helper to fetch the cookbook (Book_ID) for a given recipe, or raise 404 if not found.
+    """
+    row = await db.fetchrow(
+        "SELECT Book_ID FROM Recipe WHERE Recipe_ID = $1",
+        recipe_id,
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+    return row["book_id"]
+
 @router.post("/create/{cookbook_id}")
 async def create_recipe(
     cookbook_id: int,
     recipe: RecipeMetadata,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
     """Create a recipe in the given cookbook. Frontend uploads image via POST /api/uploads/file and passes the returned url in recipe.image_url."""
+    # Require contributor or owner rights on the target cookbook
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner, RoleEnum.contributor],
+    )
     tags_str = _tags_to_text(recipe.tags)
     recipe_row = await db.fetchrow(
         """
@@ -129,9 +152,18 @@ async def create_recipe(
 async def edit_recipe(
     recipe: RecipeMetadata,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
     if recipe.id is None:
         raise HTTPException(status_code=400, detail="Recipe id is required for edit")
+    # Look up cookbook from DB to avoid trusting client-provided cookbook_id
+    cookbook_id = await _get_recipe_cookbook_id(db, recipe.id)
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner, RoleEnum.contributor],
+    )
     tags_str = _tags_to_text(recipe.tags)
     recipe_row = await db.fetchrow(
         """
@@ -151,7 +183,7 @@ async def edit_recipe(
         recipe.category,
         recipe.image_url,
         tags_str,
-        recipe.cookbook_id,
+        cookbook_id,
         recipe.id,
     )
     if recipe_row is None:
@@ -184,7 +216,15 @@ async def edit_recipe(
 async def delete_recipe(
     recipe_id: int,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    cookbook_id = await _get_recipe_cookbook_id(db, recipe_id)
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner],
+    )
     await db.execute("DELETE FROM Ingredients WHERE Recipe_ID = $1", recipe_id)
     row = await db.fetchrow(
         "DELETE FROM Recipe WHERE Recipe_ID = $1 RETURNING Recipe_ID",
@@ -220,7 +260,14 @@ async def get_recipe(
 async def list_recipes(
     cookbook_id: int,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner, RoleEnum.contributor, RoleEnum.viewer],
+    )
     recipe_rows = await db.fetch(
         """
         SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
@@ -244,7 +291,15 @@ async def copy_recipe(
     recipe_id: int,
     cookbook_id: int,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    # Target cookbook: user needs contributor or owner rights
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner, RoleEnum.contributor],
+    )
     recipe_row = await db.fetchrow(
         """
         SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
