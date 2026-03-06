@@ -1,11 +1,14 @@
 import { useState } from "react";
 
-type ShareModalProps = {
+type AdminShareModalProps = {
   recipeId: string;
   onClose: () => void;
 };
 
-export default function ShareModal({ recipeId, onClose }: ShareModalProps) {
+export default function AdminShareModal({
+  recipeId,
+  onClose,
+}: AdminShareModalProps) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [addedEmails, setAddedEmails] = useState<string[]>([]);
   const [emailInput, setEmailInput] = useState("");

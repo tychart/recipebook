@@ -6,7 +6,8 @@ import Notes from "../components/recipe/Notes";
 import { mockRecipe } from "../mocks/mockRecipe";
 import type { Recipe } from "../../types/recipe";
 import RecipeImage from "../components/recipe/RecipeImage";
-import ShareModal from "../components/ShareModal";
+import AdminShareModal from "../components/AdminShareModal";
+import ViewerShareModal from "../components/ViewerShareModal";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -87,9 +88,24 @@ export default function RecipePage() {
       <IngredientList ingredients={recipe.ingredients} />
       <Instructions instructions={recipe.instructions} />
       {recipe.notes && <Notes notes={recipe.notes} />}
-      {showShare && id && (
-        <ShareModal recipeId={id} onClose={() => setShowShare(false)} />
-      )}
+
+      {/* Default Share Modal is Admin, Logic for deciding admin/viewer sharing modal later*/}
+      {showShare &&
+        id &&
+        (() => {
+          const isAdmin = /* determine admin status, e.g. from auth context */ true; // Placeholder, replace with actual logic
+          return isAdmin ? (
+            <AdminShareModal
+              recipeId={id}
+              onClose={() => setShowShare(false)}
+            />
+          ) : (
+            <ViewerShareModal
+              recipeId={id}
+              onClose={() => setShowShare(false)}
+            />
+          );
+        })()}
     </div>
   );
 }
