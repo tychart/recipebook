@@ -8,25 +8,32 @@ from database import get_db
 from routers.auth import CurrentUser, get_current_user_dep
 from routers.cookbooks import RoleEnum, require_cookbook_role
 
+# test: localhost:8000
+# copy the authtoken
+
 router = APIRouter(
     prefix="/api/recipe",
     tags=["recipes"],
 )
 
-
 class Ingredient(BaseModel):
     ingredient_id: int | None = None
     recipe_id: int | None = None
     unit: str | None = None
-    amount: int
+    amount: float
     name: str
 
+class Instruction(BaseModel):
+    instruction_id: int | None = None
+    recipe_id: int | None = None
+    instruction_number: int
+    instruction_text: str
 
 class RecipeMetadata(BaseModel):
     id: int | None = None
     name: str
     ingredients: List[Ingredient]
-    instructions: str
+    instructions: List[Instruction]
     notes: str | None = None
     description: str | None = None
     servings: int
@@ -50,12 +57,11 @@ def _text_to_tags(text: str | None) -> List[str]:
     return [t.strip() for t in text.split(",") if t.strip()]
 
 
-def _row_to_recipe(row: asyncpg.Record, ingredients: List[dict] | None = None) -> dict:
+def _row_to_recipe(row: asyncpg.Record, ingredients: List[dict] | None = None, instructions: List[dict] | None = None) -> dict:
     """Map DB Recipe row (+ optional ingredients) to API shape."""
     out = {
         "id": row["recipe_id"],
         "name": row["recipe_name"],
-        "instructions": row["instructions"],
         "notes": row.get("notes"),
         "description": row.get("description"),
         "servings": row["servings"],
@@ -68,6 +74,8 @@ def _row_to_recipe(row: asyncpg.Record, ingredients: List[dict] | None = None) -
     }
     if ingredients is not None:
         out["ingredients"] = ingredients
+    if instructions is not None:
+        out["instructions"] = instructions
     return out
 
 
@@ -78,6 +86,14 @@ def _row_to_ingredient(row: asyncpg.Record) -> dict:
         "unit": row.get("unit") or "",
         "amount": row["amount"],
         "name": row["name"],
+    }
+
+def _row_to_instruction(row: asyncpg.Record) -> dict:
+    return {
+        "instruction_id": row["instruction_id"],
+        "recipe_id": row["recipe_id"],
+        "instruction_number": row["instruction_number"],
+        "instruction_text": row["instruction_text"],
     }
 
 
@@ -111,12 +127,11 @@ async def create_recipe(
     tags_str = _tags_to_text(recipe.tags)
     recipe_row = await db.fetchrow(
         """
-        INSERT INTO Recipe (Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        INSERT INTO Recipe (Recipe_name, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         """,
         recipe.name,
-        recipe.instructions,
         recipe.description,
         recipe.notes,
         recipe.servings,
@@ -144,7 +159,24 @@ async def create_recipe(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
         recipe_id,
     )
-    created = _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
+
+    for ins in recipe.instructions:
+        await db.execute(
+            """
+            INSERT INTO Instructions (Recipe_ID, Instruction_Number, Instruction_Text)
+            VALUES ($1, $2, $3)
+            """,
+            recipe_id,
+            ins.instruction_number,
+            ins.instruction_text,
+        )
+
+    ins_rows = await db.fetch(
+        "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+        recipe_id,
+    )
+
+    created = _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows],[_row_to_instruction(r) for r in ins_rows] )
     return {"message": "Recipe created successfully!", "recipe": created}
 
 
@@ -168,14 +200,13 @@ async def edit_recipe(
     recipe_row = await db.fetchrow(
         """
         UPDATE Recipe
-        SET Recipe_name = $1, Instructions = $2, Description = $3, Notes = $4, Servings = $5,
-            Creator_ID = $6, Category = $7, Recipe_Image_URL = $8, Recipe_Tags = $9, Book_ID = $10,
+        SET Recipe_name = $1, Description = $2, Notes = $3, Servings = $4,
+            Creator_ID = $5, Category = $6, Recipe_Image_URL = $7, Recipe_Tags = $8, Book_ID = $9,
             Modified_DtTm = CURRENT_TIMESTAMP
-        WHERE Recipe_ID = $11
-        RETURNING Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        WHERE Recipe_ID = $10
+        RETURNING Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         """,
         recipe.name,
-        recipe.instructions,
         recipe.description,
         recipe.notes,
         recipe.servings,
@@ -206,9 +237,27 @@ async def edit_recipe(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
         recipe.id,
     )
+    
+    await db.execute("DELETE FROM Instructions WHERE Recipe_ID = $1", recipe.id)
+    for ins in recipe.instructions:
+        await db.execute(
+            """
+            INSERT INTO Instructions (Recipe_ID, Instruction_Number, Instruction_Text)
+            VALUES ($1, $2, $3)
+            """,
+            recipe.id,
+            ins.instruction_number,
+            ins.instruction_text,
+        )
+
+    ins_rows = await db.fetch(
+        "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+        recipe.id,
+    )
+
     return {
         "message": "Recipe edited successfully!",
-        "recipe": _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows]),
+        "recipe": _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows], [_row_to_instruction(r) for r in ins_rows]),
     }
 
 
@@ -226,6 +275,7 @@ async def delete_recipe(
         [RoleEnum.owner],
     )
     await db.execute("DELETE FROM Ingredients WHERE Recipe_ID = $1", recipe_id)
+    await db.execute("DELETE FROM Instructions WHERE Recipe_ID = $1", recipe_id)
     row = await db.fetchrow(
         "DELETE FROM Recipe WHERE Recipe_ID = $1 RETURNING Recipe_ID",
         recipe_id,
@@ -238,22 +288,30 @@ async def delete_recipe(
 @router.get("/get/{recipe_id}")
 async def get_recipe(
     recipe_id: int,
-    db: asyncpg.Connection = Depends(get_db),
+    db: asyncpg.Connection = Depends(get_db)
 ):
     recipe_row = await db.fetchrow(
         """
-        SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        SELECT Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         FROM Recipe WHERE Recipe_ID = $1
         """,
-        recipe_id,
+        recipe_id
     )
+
     if recipe_row is None:
         raise HTTPException(status_code=404, detail="Recipe not found")
+    
     ing_rows = await db.fetch(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
-        recipe_id,
+        recipe_id
     )
-    return _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows])
+
+    ins_rows = await db.fetch(
+        "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+        recipe_id
+    )
+
+    return _row_to_recipe(recipe_row, [_row_to_ingredient(r) for r in ing_rows], [_row_to_instruction(r) for r in ins_rows])
 
 
 @router.get("/list/{cookbook_id}")
@@ -270,7 +328,7 @@ async def list_recipes(
     )
     recipe_rows = await db.fetch(
         """
-        SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        SELECT Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         FROM Recipe WHERE Book_ID = $1
         ORDER BY Modified_DtTm DESC
         """,
@@ -282,7 +340,11 @@ async def list_recipes(
             "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
             r["recipe_id"],
         )
-        out.append(_row_to_recipe(r, [_row_to_ingredient(i) for i in ing_rows]))
+        ins_rows = await db.fetch(
+            "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+            r["recipe_id"],
+        )
+        out.append(_row_to_recipe(r, [_row_to_ingredient(i) for i in ing_rows], [_row_to_instruction(i) for i in ins_rows]))
     return out
 
 
@@ -302,7 +364,7 @@ async def copy_recipe(
     )
     recipe_row = await db.fetchrow(
         """
-        SELECT Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        SELECT Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         FROM Recipe WHERE Recipe_ID = $1
         """,
         recipe_id,
@@ -314,14 +376,18 @@ async def copy_recipe(
         recipe_id,
     )
 
+    ins_rows = await db.fetch(
+        "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+        recipe_id,
+    )
+
     new_recipe_row = await db.fetchrow(
         """
-        INSERT INTO Recipe (Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING Recipe_ID, Recipe_name, Instructions, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+        INSERT INTO Recipe (Recipe_name, Description, Notes, Servings, Creator_ID, Category, Recipe_Image_URL, Recipe_Tags, Book_ID)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        RETURNING Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID, Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
         """,
         recipe_row["recipe_name"],
-        recipe_row["instructions"],
         recipe_row["description"],
         recipe_row["notes"],
         recipe_row["servings"],
@@ -345,5 +411,22 @@ async def copy_recipe(
         "SELECT Ingredient_ID, Recipe_ID, Amount, Unit, Name FROM Ingredients WHERE Recipe_ID = $1",
         new_recipe_id,
     )
-    created = _row_to_recipe(new_recipe_row, [_row_to_ingredient(r) for r in new_ing_rows])
+
+    for ins in ins_rows:
+        await db.execute(
+            """
+            INSERT INTO Instructions (Recipe_ID, Instruction_Number, Instruction_Text)
+            VALUES ($1, $2, $3)
+            """,
+            new_recipe_id,
+            ins["instruction_number"],
+            ins["instruction_text"],
+        )
+
+    new_ins_rows = await db.fetch(
+        "SELECT * FROM Instructions WHERE Recipe_ID = $1",
+        new_recipe_id
+    )
+    
+    created = _row_to_recipe(new_recipe_row, [_row_to_ingredient(r) for r in new_ing_rows], [_row_to_instruction(r) for r in new_ins_rows])
     return {"message": "Recipe copied successfully!", "recipe": created}
