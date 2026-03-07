@@ -27,13 +27,6 @@ class User(BaseModel):
     password: str
 
 
-class AuthToken(BaseModel):
-    id: int | None = None
-    user_id: int
-    token: str
-    created_at: dt.datetime
-
-
 class LoginRequest(BaseModel):
     username: str | None = None
     email: str | None = None
@@ -44,6 +37,12 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
+
+
+class CurrentUser(BaseModel):
+    id: int
+    username: str
+    email: str
 
 
 def _row_to_user(row: asyncpg.Record) -> dict:
@@ -176,3 +175,51 @@ async def get_current_user(
     if user_row is None:
         raise HTTPException(status_code=401, detail="User not found")
     return {"user": _row_to_user(user_row)}
+
+
+async def get_current_user_dep(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: asyncpg.Connection = Depends(get_db),
+) -> CurrentUser:
+    """
+    Dependency for other routers: returns the authenticated user based on the Bearer token.
+    Reuses the same logic as /me (token lookup, expiry, refresh).
+    """
+    token = credentials.credentials.strip()
+
+    token_row = await db.fetchrow(
+        "SELECT User_ID, Created_DtTm FROM AuthToken WHERE Authtoken = $1",
+        token,
+    )
+    if token_row is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    created = token_row["created_dttm"]
+    now = dt.datetime.now(dt.timezone.utc)
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=dt.timezone.utc)
+    age_seconds = (now - created).total_seconds()
+    if age_seconds > TOKEN_TTL_SECONDS:
+        await db.execute("DELETE FROM AuthToken WHERE Authtoken = $1", token)
+        raise HTTPException(
+            status_code=401,
+            detail="Token expired, please reauthenticate",
+        )
+
+    await db.execute(
+        "UPDATE AuthToken SET Created_DtTm = CURRENT_TIMESTAMP WHERE Authtoken = $1",
+        token,
+    )
+
+    user_row = await db.fetchrow(
+        "SELECT User_ID, Username, Email FROM Users WHERE User_ID = $1",
+        token_row["user_id"],
+    )
+    if user_row is None:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    return CurrentUser(
+        id=user_row["user_id"],
+        username=user_row["username"],
+        email=user_row["email"],
+    )
