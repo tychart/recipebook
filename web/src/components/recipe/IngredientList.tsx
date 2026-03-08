@@ -11,7 +11,7 @@ export default function IngredientList({ ingredients }: IngredientListProps) {
       <ul className="list-disc pl-6">
         {ingredients.map((ing) => (
           <li key={ing.ingredient_id}>
-            {ing.amount} {ing.name}
+            {ing.amount} {ing.unit ? `${ing.unit} ` : ""}{ing.name}
           </li>
         ))}
       </ul>

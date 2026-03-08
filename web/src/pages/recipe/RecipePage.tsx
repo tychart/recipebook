@@ -65,18 +65,6 @@ export default function RecipePage() {
         </p>
       )}
 
-      {/* Meta Info */}
-      <div className="mb-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
-        <p>Serves {recipe.servings}</p>
-        <p>Category: {recipe.category}</p>
-        <p>
-          Last updated:{" "}
-          {recipe.modified_at
-            ? new Date(recipe.modified_at).toLocaleDateString()
-            : "N/A"}
-        </p>
-      </div>
-
       {/* Tags */}
       {recipe.tags && recipe.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
@@ -91,10 +79,29 @@ export default function RecipePage() {
         </div>
       )}
 
-      {/* Content Sections */}
-      <IngredientList ingredients={recipe.ingredients} />
-      <Instructions instructions={recipe.instructions} />
+      {/* Content Sections - ingredients and instructions side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="bg-white border border-amber-200 rounded-[10px] p-4">
+          <IngredientList ingredients={recipe.ingredients} />
+        </div>
+        <div className="bg-white border border-amber-200 rounded-[10px] p-4">
+          <Instructions instructions={recipe.instructions} />
+        </div>
+      </div>
+
       {recipe.notes && <Notes notes={recipe.notes} />}
+
+      {/* Meta Info - at bottom */}
+      <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
+        <p>Serves {recipe.servings}</p>
+        <p>Category: {recipe.category}</p>
+        <p>
+          Last updated:{" "}
+          {recipe.modified_at
+            ? new Date(recipe.modified_at).toLocaleDateString()
+            : "N/A"}
+        </p>
+      </div>
     </div>
   );
 }
