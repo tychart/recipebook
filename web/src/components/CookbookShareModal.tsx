@@ -15,6 +15,9 @@ export default function CookbookShareModal({
   const [contributorsInput, setContributorsInput] = useState("");
   const [viewersInput, setViewersInput] = useState("");
 
+  // TODO: Populate viewers and contributors with actual database values
+  // TODO: Make API calls to add users as either contributors or viewers, and to remove them as well
+
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
 
   const copyLink = () => {
@@ -81,15 +84,11 @@ export default function CookbookShareModal({
 
           <div
             id="add-contributors-container"
-            className="flex flex-col space-x-2 align-center justify-center"
+            className="flex flex-col space-x-2 align-center justify-center mb-4"
           >
             <div className="w-full">
               <p className="mb-2 pl-1 text-lg">
                 Users with Contributor Access:
-              </p>
-              <p className="mb-2 pl-1 text-sm">
-                Users with contributor access can add and edit their own recipes
-                to the cookbook.
               </p>
               {addedContributors.map((email) => (
                 <div
@@ -125,7 +124,7 @@ export default function CookbookShareModal({
                   !validateEmail(contributorsInput)
                 }
               >
-                Add User as Contributor
+                Add User
               </button>
             </div>
           </div>
@@ -136,10 +135,6 @@ export default function CookbookShareModal({
           >
             <div className="w-full">
               <p className="mb-2 pl-1 text-lg">Users with Viewer Access:</p>
-              <p className="mb-2 pl-1 text-sm">
-                Users with viewer access can only view the recipes in the
-                cookbook.
-              </p>
               {addedViewers.map((email) => (
                 <div
                   key={email}
@@ -174,7 +169,7 @@ export default function CookbookShareModal({
                   !validateEmail(viewersInput)
                 }
               >
-                Add User as Viewer
+                Add User
               </button>
             </div>
           </div>

@@ -37,7 +37,8 @@ export default function RecipePage() {
         <h1 className="text-3xl font-semibold">{recipe.recipe_name}</h1>
 
         <div className="flex items-center gap-10">
-          <button>
+          {/* TODO: Disable editing button if user is not the creator of the recipe */}
+          <button disabled={false}>
             <Link to={`/recipe/${id}/edit`}>Edit</Link>
           </button>
 
