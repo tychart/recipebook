@@ -1,14 +1,14 @@
 import { useState } from "react";
 
-type ViewShareModalProps = {
+type RecipeShareModalProps = {
   recipeId: string;
   onClose: () => void;
 };
 
-export default function ViewerShareModal({
+export default function RecipeShareModal({
   recipeId,
   onClose,
-}: ViewShareModalProps) {
+}: RecipeShareModalProps) {
   const [linkCopied, setLinkCopied] = useState(false);
 
   const shareUrl = `${window.location.origin}/recipe/${recipeId}`;
