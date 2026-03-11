@@ -68,7 +68,7 @@ export default function Sidebar() {
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
-          {navItem("/cookbook/new", "Create a Cookbook")}
+          {navItem("/cookbooks/new", "Create a Cookbook")}
           {navItem("/account", "Account Details")}
 
           {/* Logout Button (styled same as nav items) */}

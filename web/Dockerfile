@@ -13,9 +13,9 @@ FROM nginx:alpine
 # Vite outputs to 'dist'
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy custom entrypoint and make it executable
+# Copy custom entrypoint and make it executable (strip CRLF for people using Windows to do their checkouts)
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Copy the template to a known path that entrypoint will read
 COPY nginx.conf.template /etc/nginx/templates/nginx.conf.template

@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException
 import boto3, os
 
-from botocore.exceptions import ClientError
+from botocore.exceptions import ClientError, EndpointConnectionError
 
 router = APIRouter(
     prefix="/api/uploads",
@@ -49,6 +49,11 @@ def ensure_bucket_exists():
         print(f"S3 bucket '{S3_BUCKET}' does not exist. Creating...")
         s3.create_bucket(Bucket=S3_BUCKET)
         print(f"S3 bucket '{S3_BUCKET}' created.")
+    except EndpointConnectionError as e:
+        print(
+            f"WARNING: Could not reach S3 at {S3_ENDPOINT} (e.g. RustFS not running). "
+            "App will start but image uploads will fail. For local dev, use S3_ENDPOINT=http://localhost:9000 if RustFS is running, or run via docker-compose."
+        )
 
 @router.post("/file")
 async def upload_file(file: UploadFile = File(...)):
