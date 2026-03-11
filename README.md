@@ -77,7 +77,7 @@ cd recipebook/
 cp .env.example .env
 ```
 
-I would then recomend changing the secrets in your new `.env` file
+I would then recommend changing the secrets in your new `.env` file
 
 Then to start, run:
 
