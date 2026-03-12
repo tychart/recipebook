@@ -1,15 +1,4 @@
 /* ===========================
-   User
-=========================== */
-
-export interface User {
-  user_id: number;
-  username: string;
-  password: string; // hashed
-  email: string;
-}
-
-/* ===========================
    Authtoken
 =========================== */
 
@@ -25,11 +14,11 @@ export interface AuthToken {
 =========================== */
 
 export interface Cookbook {
-  book_id: number;
-  book_name: string;
+  id: number;
+  name: string;
   owner_id: number;
-  created_dttm: string;
-  categories: string; // comma-separated list (default: "Main")
+  categories: string[];
+  created_at: string | null;
 }
 
 /* ===========================
@@ -52,9 +41,15 @@ export interface CookbookUser {
 export interface Ingredient {
   ingredient_id: number;
   recipe_id: number;
+  unit?: string;
   amount: number;
   name: string;
-  unit: string; // cups, tbsp, tsp, etc.
+}
+
+export interface IngredientInput {
+  amount: number;
+  unit?: string;
+  name: string;
 }
 
 /* ===========================
@@ -62,21 +57,38 @@ export interface Ingredient {
 =========================== */
 
 export interface Recipe {
-  recipe_id: number;
-  recipe_name: string;
+  id: number;
+  name: string;
+  ingredients: Ingredient[];
   instructions: string;
   notes?: string;
   description?: string;
-  servings: number; // default: 1
-
+  servings: number;
   creator_id: number;
-  modified_dttm: string;
-  category: string; // default: "Main"
+  category: string;
+  image_url?: string;
+  tags?: string[];
+  cookbook_id: number;
+  modified_at?: string;
+}
 
-  recipe_image_url?: string;
-  recipe_tags?: string; // comma-separated string
 
-  book_id: number;
+export interface RecipeInput {
+  name: string;
+  description?: string;
+  servings: number;
+  instructions: string;
+  notes?: string;
+  image_url?: string;
+  ingredients: IngredientInput[];
+  cookbook_id?: number;
+  creator_id?: number;
+  category?: string;
+  tags?: string[]; // array of tag strings
+}
 
-  ingredients: Ingredient[];
+export interface User {
+  id: number;
+  username: string;
+  email: string;
 }

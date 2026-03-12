@@ -1,34 +1,37 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Logo from "../components/Logo";
 
-/**
- * Landing page for RecipeBook. Shows the app title, tagline, and links to
- * cookbooks, search, and add recipe.
- */
 export default function Home() {
+  const { user } = useAuth();
+
+  if (user) {
+    return <Navigate to="/cookbooks" replace />;
+  }
+
   return (
-    <div className="py-6">
-      <h1 className="text-3xl font-semibold mb-2">RecipeBook</h1>
-      <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-xl">
-        Save and share recipes with family and friends. Never lose a recipe again.
+    <div className="flex flex-col items-center text-center max-w-2xl mx-auto py-20">
+      <Logo size="large" />
+
+      <p className="text-lg text-stone-600 mb-10">
+        Save and organize your favorite recipes.
+        Share them with the people you love.
+        Never lose a family recipe again.
       </p>
-      <div className="flex flex-wrap gap-4">
+
+      <div className="flex gap-4">
         <Link
-          to="/cookbooks"
-          className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white text-gray-900 border border-gray-300 hover:bg-gray-100"
+          to="/register"
+          className="px-6 py-3 rounded-md bg-red-500 text-white hover:bg-red-600 transition"
         >
-          My cookbooks
+          Get Started
         </Link>
+
         <Link
-          to="/search"
-          className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 hover:bg-gray-100"
+          to="/login"
+          className="px-6 py-3 rounded-md border border-black hover:bg-stone-100 transition"
         >
-          Search recipes
-        </Link>
-        <Link
-          to="/recipe/new"
-          className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 hover:bg-gray-100"
-        >
-          Add recipe
+          Log In
         </Link>
       </div>
     </div>

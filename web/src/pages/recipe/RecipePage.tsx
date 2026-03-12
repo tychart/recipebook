@@ -1,40 +1,53 @@
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import Instructions from "../components/recipe/Instructions";
-import IngredientList from "../components/recipe/IngredientList";
-import Notes from "../components/recipe/Notes";
-import { mockRecipe } from "../mocks/mockRecipe";
-import type { Recipe } from "../../types/recipe";
-import RecipeImage from "../components/recipe/RecipeImage";
-import RecipeShareModal from "../components/RecipeShareModal";
+import Instructions from "../../components/recipe/Instructions";
+import IngredientList from "../../components/recipe/IngredientList";
+import Notes from "../../components/recipe/Notes";
+import type { Recipe } from "../../../types/types";
+import RecipeImage from "../../components/recipe/RecipeImage";
+import { getRecipe } from "../../api/recipes";
+import RecipeShareModal from "../../components/RecipeShareModal";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShare, setShowShare] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setRecipe(mockRecipe);
-      setLoading(false);
-    }, 500);
+    if (!id) {
+      return;
+    }
 
-    return () => clearTimeout(timer);
+    const fetchRecipe = async () => {
+      try {
+        const data = await getRecipe(Number(id));
+        setRecipe(data);
+      } catch (err) {
+        console.error("Error fetching recipe:", err);
+        setError("Failed to load recipe. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecipe();
   }, [id]);
 
   if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
   if (!recipe) return <p>Recipe not found</p>;
 
-  const tags = recipe.recipe_tags
-    ? recipe.recipe_tags.split(",").map((tag: string) => tag.trim())
-    : [];
+  // const tags = recipe.recipe_tags
+  //   ? recipe.recipe_tags.split(",").map((tag: string) => tag.trim())
+  //   : [];
 
   return (
     <div className="py-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-semibold">{recipe.recipe_name}</h1>
+        <h1 className="text-3xl font-semibold">{recipe.name}</h1>
 
         <div className="flex items-center gap-10">
           {/* TODO: Disable editing button if user is not the creator of the recipe */}
@@ -49,10 +62,7 @@ export default function RecipePage() {
       </div>
 
       {/* Image */}
-      <RecipeImage
-        imageUrl={recipe.recipe_image_url}
-        alt={recipe.recipe_name}
-      />
+      <RecipeImage imageUrl={recipe.image_url} alt={recipe.name} />
 
       {/* Description */}
       {recipe.description && (
@@ -66,14 +76,17 @@ export default function RecipePage() {
         <p>Serves {recipe.servings}</p>
         <p>Category: {recipe.category}</p>
         <p>
-          Last updated: {new Date(recipe.modified_dttm).toLocaleDateString()}
+          Last updated:{" "}
+          {recipe.modified_at
+            ? new Date(recipe.modified_at).toLocaleDateString()
+            : "N/A"}
         </p>
       </div>
 
       {/* Tags */}
-      {tags.length > 0 && (
+      {recipe.tags && recipe.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6">
-          {tags.map((tag: string) => (
+          {recipe.tags.map((tag: string) => (
             <span
               key={tag}
               className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-100 rounded-full"
