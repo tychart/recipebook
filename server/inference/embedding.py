@@ -1,25 +1,6 @@
-from routers.recipes import RecipeMetadata
-from openai import OpenAI
-import asyncpg
+from schemas.recipe import RecipeMetadata
+from services.generate_service import format_recipe_for_embedding
 
 
-MODEL = "all-minilm"
-
-client = OpenAI(
-    base_url="http://localhost:11434/v1",
-    api_key="ollama",  # required but unused by Ollama
-)
-
-
-async def embed_recipe(
-    # db: asyncpg.Connection = Depends(get_db),
-    recipe: RecipeMetadata
-):
-    print("starting embed_recipe")
-
-    response = client.embeddings.create(
-        input="Your text string goes here",
-        model=MODEL
-    )
-    # print(response)
-    print(response.data[0].embedding)
+async def embed_recipe(recipe: RecipeMetadata) -> str:
+    return format_recipe_for_embedding(recipe)
