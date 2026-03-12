@@ -40,10 +40,7 @@ export default function RecipeShareModal({
               className="w-75 h-11 rounded-lg px-4 py-2 bg-gray-50"
             />
 
-            <button
-              onClick={copyLink}
-              className="px-4 py-2 bg-blue-500 rounded-lg"
-            >
+            <button onClick={copyLink} className="px-4 py-2 rounded-lg w-30">
               {linkCopied ? "Link Copied!" : "Copy Link"}
             </button>
           </div>
