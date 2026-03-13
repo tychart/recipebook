@@ -74,6 +74,8 @@ services:
         - "11434:11434"
       volumes:
         - ollama_data:/root/.ollama
+      entrypoint: /bin/sh
+      command: ["-c", "ollama serve & sleep 5; ollama pull lfm2.5-thinking; wait"]
 
 volumes:
   db_data:

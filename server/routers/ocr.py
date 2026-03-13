@@ -10,7 +10,7 @@ import os
 
 class Ingredient(BaseModel):
     name: str = Field(description="The name of the ingredient, e.g., 'all-purpose flour'")
-    quantity: float = Field(description="The numeric value only, e.g., 2.5")
+    amount: float = Field(description="The numeric value only, e.g., 2.5")
     unit: str = Field(description="The measurement unit, e.g., 'cups', 'grams', or 'tsp'")
 
 class RecipeExtraction(BaseModel):
@@ -33,7 +33,8 @@ router = APIRouter(
 def parse_recipe_with_llm(ocr_text: str) -> RecipeExtraction:
     """Helper function to query Ollama for structured data."""
     response = client.beta.chat.completions.parse(
-        model="llama3.1:8b",
+        #model="llama3.1:8b",
+        model="llama3.2",
         messages=[
             {
                 "role": "system",
