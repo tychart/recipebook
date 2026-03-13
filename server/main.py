@@ -3,14 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from database import close_pool, init_pool
-<<<<<<< HEAD
-from routers import recipes, auth, cookbooks, generate, ocr
-=======
-from routers import recipes, auth, cookbooks, generate, storage
+from routers import recipes, auth, cookbooks, generate, ocr, storage
 
 from routers.storage import ensure_bucket_exists
 
->>>>>>> 075605fe8addbf5b404e161f5fb6e7ac672362c8
 
 # ----------------------
 # Startup Initilization
