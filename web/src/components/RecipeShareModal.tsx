@@ -47,7 +47,7 @@ export default function RecipeShareModal({
 
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg mt-4"
+            className="px-4 py-2 border rounded-lg mt-4 w-25"
           >
             Close
           </button>

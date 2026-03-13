@@ -74,10 +74,7 @@ export default function CookbookShareModal({
               className="w-75 h-11 rounded-lg px-4 py-2 bg-gray-50"
             />
 
-            <button
-              onClick={copyLink}
-              className="px-4 py-2 bg-blue-500 rounded-lg"
-            >
+            <button onClick={copyLink} className="px-4 py-2 w-30 rounded-lg">
               {linkCopied ? "Link Copied!" : "Copy Link"}
             </button>
           </div>
@@ -98,7 +95,7 @@ export default function CookbookShareModal({
                   <span>{email}</span>
                   <button
                     onClick={() => removeContributor(email)}
-                    className="text-red-500"
+                    className="text-red-500 w-30"
                   >
                     Remove
                   </button>
@@ -117,7 +114,7 @@ export default function CookbookShareModal({
 
               <button
                 onClick={addContributor}
-                className="px-4 py-2 bg-blue-500 rounded-lg"
+                className="px-4 py-2 w-30 rounded-lg"
                 disabled={
                   !contributorsInput ||
                   addedContributors.includes(contributorsInput) ||
@@ -143,7 +140,7 @@ export default function CookbookShareModal({
                   <span>{email}</span>
                   <button
                     onClick={() => removeViewer(email)}
-                    className="text-red-500"
+                    className="text-red-500 w-30"
                   >
                     Remove
                   </button>
@@ -162,7 +159,7 @@ export default function CookbookShareModal({
 
               <button
                 onClick={addViewer}
-                className="px-4 py-2 bg-blue-500 rounded-lg"
+                className="px-4 py-2 w-30 rounded-lg"
                 disabled={
                   !viewersInput ||
                   addedViewers.includes(viewersInput) ||
