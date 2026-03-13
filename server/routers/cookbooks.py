@@ -6,6 +6,7 @@ import datetime as dt
 import asyncpg
 
 from database import get_db
+from routers.auth import CurrentUser, get_current_user_dep
 
 router = APIRouter(
     prefix="/api/cookbook",
@@ -46,8 +47,51 @@ def _row_to_cookbook(row: asyncpg.Record) -> dict:
     }
 
 
+async def get_cookbook_role(
+    db: asyncpg.Connection,
+    cookbook_id: int,
+    user_id: int,
+) -> RoleEnum | None:
+    """
+    Determine the user's role for a given cookbook, considering both ownership and Cookbook_Users.
+    """
+    row = await db.fetchrow(
+        """
+        SELECT
+          CASE
+            WHEN c.Owner_ID = $2 THEN 'owner'
+            ELSE cu.Role
+          END AS role
+        FROM Cookbook c
+        LEFT JOIN Cookbook_Users cu
+          ON cu.Book_ID = c.Book_ID AND cu.User_ID = $2
+        WHERE c.Book_ID = $1
+        """,
+        cookbook_id,
+        user_id,
+    )
+    if row is None or row["role"] is None:
+        return None
+    return RoleEnum(row["role"])
+
+
+async def require_cookbook_role(
+    db: asyncpg.Connection,
+    cookbook_id: int,
+    user_id: int,
+    allowed_roles: list[RoleEnum],
+) -> None:
+    role = await get_cookbook_role(db, cookbook_id, user_id)
+    if role is None or role not in allowed_roles:
+        raise HTTPException(status_code=403, detail="Not allowed for this cookbook")
+
+
 @router.post("/create")
-async def create_cookbook(cookbook: Cookbook, db: asyncpg.Connection = Depends(get_db)):
+async def create_cookbook(
+    cookbook: Cookbook,
+    db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
+):
     categories_str = ",".join(cookbook.categories) if cookbook.categories else "Main"
     row = await db.fetchrow(
         """
@@ -56,7 +100,7 @@ async def create_cookbook(cookbook: Cookbook, db: asyncpg.Connection = Depends(g
         RETURNING Book_ID, Book_Name, Owner_ID, Created_DtTm, Categories
         """,
         cookbook.name,
-        cookbook.owner_id,
+        current_user.id,
         categories_str,
     )
     created = _row_to_cookbook(row)
@@ -70,7 +114,14 @@ async def create_cookbook(cookbook: Cookbook, db: asyncpg.Connection = Depends(g
 async def get_cookbook(
     cookbook_id: int,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner, RoleEnum.contributor, RoleEnum.viewer],
+    )
     row = await db.fetchrow(
         """
         SELECT Book_ID, Book_Name, Owner_ID, Created_DtTm, Categories
@@ -85,8 +136,8 @@ async def get_cookbook(
 
 @router.get("/list")
 async def list_cookbooks(
-    owner_id: int = Query(..., description="Filter cookbooks by owner"),
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
     rows = await db.fetch(
         """
@@ -99,7 +150,7 @@ async def list_cookbooks(
         ) sub
         ORDER BY Created_DtTm DESC
         """,
-        owner_id,
+        current_user.id,
     )
     return [_row_to_cookbook(r) for r in rows]
 
@@ -108,9 +159,16 @@ async def list_cookbooks(
 async def edit_cookbook(
     cookbook: Cookbook,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
     if cookbook.id is None:
         raise HTTPException(status_code=400, detail="Cookbook id is required for edit")
+    await require_cookbook_role(
+        db,
+        cookbook.id,
+        current_user.id,
+        [RoleEnum.owner],
+    )
     categories_str = ",".join(cookbook.categories) if cookbook.categories else "Main"
     row = await db.fetchrow(
         """
@@ -136,7 +194,14 @@ async def edit_cookbook(
 async def delete_cookbook(
     cookbook_id: int,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    await require_cookbook_role(
+        db,
+        cookbook_id,
+        current_user.id,
+        [RoleEnum.owner],
+    )
     # Delete in dependency order: ingredients -> recipes -> cookbook_users -> cookbook
     await db.execute(
         """
@@ -160,7 +225,14 @@ async def delete_cookbook(
 async def share_cookbook(
     body: ShareCookbookRequest,
     db: asyncpg.Connection = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
+    await require_cookbook_role(
+        db,
+        body.book_id,
+        current_user.id,
+        [RoleEnum.owner],
+    )
     if body.role == RoleEnum.owner:
         raise HTTPException(status_code=400, detail="Cannot share as owner; use transfer instead.")
     await db.execute(

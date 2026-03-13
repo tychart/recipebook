@@ -20,7 +20,7 @@ export const CookbookCard = ({ cookbook }: CookbookCardProps) => {
   return (
     <Link
       to={`/cookbook/${cookbook.id}`}
-      className={`flex items-center justify-center aspect-square rounded-xl shadow-lg hover:shadow-2xl transform hover:-translate-y-1 transition-all ${bgColor}`}
+      className={`flex items-center justify-center aspect-[4/5] rounded-xl border border-black shadow-lg hover:shadow-2xl transition-all hover:-translate-y-1 hover:-rotate-[5deg] ${bgColor}`}
     >
       <h2 className="text-center font-semibold text-lg text-red-900 p-2">
         {cookbook.name}
