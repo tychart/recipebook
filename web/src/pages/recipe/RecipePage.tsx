@@ -17,7 +17,7 @@ export default function RecipePage() {
     if (!id) {
       return;
     }
-    
+
     const fetchRecipe = async () => {
       try {
         const data = await getRecipe(Number(id));
@@ -40,6 +40,10 @@ export default function RecipePage() {
   // const tags = recipe.recipe_tags
   //   ? recipe.recipe_tags.split(",").map((tag: string) => tag.trim())
   //   : [];
+
+  const sortedInstructions = [...recipe.instructions].sort(
+    (a, b) => a.instruction_number - b.instruction_number,
+  );
 
   return (
     <div className="py-6 max-w-4xl mx-auto">
@@ -79,19 +83,17 @@ export default function RecipePage() {
         </div>
       )}
 
-      {/* Content Sections - ingredients and instructions side by side */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
           <IngredientList ingredients={recipe.ingredients} />
         </div>
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
-          <Instructions instructions={recipe.instructions} />
+          <Instructions instructions={sortedInstructions} />
         </div>
       </div>
 
       {recipe.notes && <Notes notes={recipe.notes} />}
 
-      {/* Meta Info - at bottom */}
       <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
         <p>Serves {recipe.servings}</p>
         <p>Category: {recipe.category}</p>

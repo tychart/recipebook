@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { Recipe, RecipeInput } from "../../../types/types";
+import type { Recipe, RecipeInput, InstructionInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
 import { getRecipe, updateRecipe } from "../../api/recipes";
 
@@ -33,18 +33,18 @@ export default function RecipeEdit() {
   if (error) return <p>{error}</p>;
   if (!recipe) return <p>Recipe not found</p>;
 
-  // Backend returns instructions as array of { instruction_number, instruction_text }; form expects string
-  const instructionsStr = Array.isArray(recipe.instructions)
-    ? (recipe.instructions as { instruction_text?: string }[])
-        .map((i) => i.instruction_text ?? "")
-        .join("\n")
-    : String(recipe.instructions ?? "");
+  // Convert backend instructions to InstructionInput[]
+  const instructions: InstructionInput[] =
+    recipe.instructions?.map((i) => ({
+      instruction_number: i.instruction_number,
+      instruction_text: i.instruction_text ?? "",
+    })) ?? [{ instruction_number: 1, instruction_text: "" }];
 
   const recipeInput: RecipeInput = {
     name: recipe.name,
     description: recipe.description,
     servings: recipe.servings,
-    instructions: instructionsStr,
+    instructions,
     notes: recipe.notes,
     image_url: recipe.image_url,
     ingredients: recipe.ingredients.map((ing) => ({
@@ -58,12 +58,15 @@ export default function RecipeEdit() {
     tags: recipe.tags,
   };
 
-  const handleUpdate = async (
-    updated: RecipeInput,
-    // imageFile?: File,
-  ) => {
+  const handleUpdate = async (updated: RecipeInput, imageFile?: File) => {
     try {
-      await updateRecipe(recipe.id, updated);
+      await updateRecipe(recipe.id, {
+        ...updated,
+        instructions: updated.instructions.map((i, index) => ({
+          instruction_number: index + 1,
+          instruction_text: i.instruction_text,
+        })),
+      });
       navigate(`/recipe/${recipe.id}`);
     } catch (err) {
       console.error(err);

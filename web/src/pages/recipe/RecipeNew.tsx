@@ -1,5 +1,5 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
-import type { Cookbook, RecipeInput } from "../../../types/types";
+import type { Cookbook, RecipeInput, InstructionInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
 import { createRecipe } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
@@ -11,88 +11,93 @@ export default function RecipeNew() {
   const navigate = useNavigate();
   const [cookbook, setCookbook] = useState<Cookbook | null>(null);
 
-useEffect(() => {
-  if (!cookbookId) return;
+  useEffect(() => {
+    if (!cookbookId) return;
 
-  const fetchCookbook = async () => {
-    try {
-      const data = await getCookbook(Number(cookbookId));
-      setCookbook(data);
-    } catch (error) {
-      console.error("Failed to fetch cookbook", error);
-    }
-  };
+    const fetchCookbook = async () => {
+      try {
+        const data = await getCookbook(Number(cookbookId));
+        setCookbook(data);
+      } catch (error) {
+        console.error("Failed to fetch cookbook", error);
+      }
+    };
 
-  fetchCookbook();
-}, [cookbookId]);
+    fetchCookbook();
+  }, [cookbookId]);
 
   const { user } = useAuth();
   if (!user) {
     return <p>Please log in to create a recipe.</p>;
   }
 
-const emptyRecipeInput: RecipeInput = {
-  name: "",
-  description: "",
-  instructions: "",
-  notes: "",
-  servings: 1,
-  image_url: "",
-  ingredients: [],
-  cookbook_id: cookbookId ? Number(cookbookId) : 0,
-  creator_id: user.id,
-  category: "Main", // default category
-  tags: [],
-};
+  const emptyRecipeInput: RecipeInput = {
+    name: "",
+    description: "",
+    instructions: [{ instruction_number: 1, instruction_text: "" }],
+    notes: "",
+    servings: 1,
+    image_url: "",
+    ingredients: [
+      {
+        amount: 0,
+        unit: "",
+        name: "",
+      },
+    ],
+    cookbook_id: cookbookId ? Number(cookbookId) : 0,
+    creator_id: user.id,
+    category: "Main", // default category
+    tags: [],
+  };
 
-const handleCreate = async (
-  recipeInput: RecipeInput,
-  imageFile?: File
-) => {
-  try {
-    let imageUrl = recipeInput.image_url;
+  const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
+    try {
+      let imageUrl = recipeInput.image_url;
 
-    // 1️⃣ Upload image if selected
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append("file", imageFile);
+      // 1️⃣ Upload image if selected
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
 
-      const uploadRes = await fetch("/api/uploads/file", {
-        method: "POST",
-        body: formData,
-      });
+        const uploadRes = await fetch("/api/uploads/file", {
+          method: "POST",
+          body: formData,
+        });
 
-      if (!uploadRes.ok) {
-        const text = await uploadRes.text();
-        console.error("Upload failed:", text);
-        throw new Error("Image upload failed");
+        if (!uploadRes.ok) {
+          const text = await uploadRes.text();
+          console.error("Upload failed:", text);
+          throw new Error("Image upload failed");
+        }
+
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.url; // returned from backend
       }
 
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url; // returned from backend
+      // 2️⃣ Send recipe JSON with image_url included
+      const result = await createRecipe({
+        ...recipeInput,
+        image_url: imageUrl,
+        instructions: recipeInput.instructions.map((i, index) => ({
+          instruction_number: index + 1,
+          instruction_text: i.instruction_text,
+        })),
+      });
+
+      console.log("Created:", result);
+      navigate(`/recipe/${result.recipe.id}`);
+    } catch (error) {
+      console.error("Failed to create recipe", error);
+      alert("Failed to create recipe");
     }
-
-    // 2️⃣ Send recipe JSON with image_url included
-    const result = await createRecipe({
-      ...recipeInput,
-      image_url: imageUrl,
-    });
-
-    console.log("Created:", result);
-    navigate(`/recipe/${result.recipe.id}`);
-  } catch (error) {
-    console.error("Failed to create recipe", error);
-    alert("Failed to create recipe");
-  }
-};
+  };
 
   return (
     <>
       <div className="flex items-center justify-between mb-8 max-w-4xl mx-auto">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-800">
-            New Recipe
-          </h1>
+          <h1 className="text-3xl font-semibold text-stone-800">New Recipe</h1>
 
           {cookbookId && (
             <p className="text-sm text-stone-500 mt-1">
@@ -102,14 +107,14 @@ const handleCreate = async (
         </div>
 
         <Link
-  to={cookbookId ? `/cookbook/${cookbookId}` : "/cookbooks"}
-  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+          to={cookbookId ? `/cookbook/${cookbookId}` : "/cookbooks"}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
              border border-stone-300 text-stone-700
              hover:bg-stone-100 hover:border-stone-400
              transition-all duration-200"
->
-  ← Cancel
-</Link>
+        >
+          ← Cancel
+        </Link>
       </div>
 
       <RecipeForm
