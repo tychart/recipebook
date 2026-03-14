@@ -43,9 +43,9 @@ def format_recipe_for_embedding(recipe: RecipeMetadata) -> str:
             )
         )
 
-    if recipe.creator_id is not None:
-        parts.append(f"CreatorID: {recipe.creator_id}")
-    parts.append(f"CookbookID: {recipe.cookbook_id}")
+    # if recipe.creator_id is not None:
+    #     parts.append(f"CreatorID: {recipe.creator_id}")
+    # parts.append(f"CookbookID: {recipe.cookbook_id}")
     return "\n\n".join(parts)
 
 
@@ -224,7 +224,15 @@ class GenerateService:
     async def get_debug_recipe(self, recipe_id: int = 1):
         if self.recipe_service is None:
             raise HTTPException(status_code=500, detail="Recipe service is not available")
-        return await self.recipe_service.get_recipe(recipe_id)
+
+        recipe = await self.recipe_service.get_recipe(recipe_id)
+        
+        print(recipe)
+
+        print("Formatted recipe: ==============")
+        print(format_recipe_for_embedding(recipe))
+
+        return recipe
 
     async def process_job(self, source: JobSource, payload: dict[str, Any]) -> dict[str, Any]:
         if source == JobSource.text:
