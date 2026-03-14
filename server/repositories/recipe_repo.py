@@ -1,3 +1,4 @@
+import math
 from typing import Any
 
 import asyncpg
@@ -15,6 +16,22 @@ def _text_to_tags(text: str | None) -> list[str]:
     if not text or not text.strip():
         return []
     return [part.strip() for part in text.split(",") if part.strip()]
+
+
+def _embedding_to_vector(embedding: list[float] | None) -> str | None:
+    if embedding is None:
+        return None
+    if not embedding:
+        raise ValueError("Embedding must not be empty")
+
+    values: list[str] = []
+    for value in embedding:
+        numeric_value = float(value)
+        if not math.isfinite(numeric_value):
+            raise ValueError("Embedding values must be finite numbers")
+        values.append(str(numeric_value))
+
+    return f"[{','.join(values)}]"
 
 
 def _row_to_ingredient(row: asyncpg.Record) -> Ingredient:
@@ -128,6 +145,20 @@ class RecipeRepository:
             image_url,
             _tags_to_text(tags),
             cookbook_id,
+            recipe_id,
+        )
+
+    async def update_recipe_embedding(self, recipe_id: int, embedding: list[float] | None):
+        return await self.conn.fetchrow(
+            """
+            UPDATE Recipe
+            SET embedding = $1::vector, Modified_DtTm = CURRENT_TIMESTAMP
+            WHERE Recipe_ID = $2
+            RETURNING
+                Recipe_ID, Recipe_name, Description, Notes, Servings, Creator_ID,
+                Modified_DtTm, Category, Recipe_Image_URL, Recipe_Tags, Book_ID
+            """,
+            _embedding_to_vector(embedding),
             recipe_id,
         )
 
