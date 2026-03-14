@@ -2,6 +2,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 
+# This file is for reading in the env variables and acting on them
 
 _DEFAULT_DATABASE_URL = "postgresql://RecipeAdmin:R3c1peB00k@localhost:5432/recipebook"
 _DEFAULT_CORS_ORIGINS = (
