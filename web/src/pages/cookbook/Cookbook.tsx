@@ -4,9 +4,11 @@ import { getCookbook } from "../../api/cookbooks"; // assume listRecipes fetches
 import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
 import { listRecipes } from "../../api/recipes";
+import { useAuth } from "../../context/AuthContext";
 
 export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loadingCookbook, setLoadingCookbook] = useState(true);
@@ -15,6 +17,11 @@ export default function Cookbook() {
 
   useEffect(() => {
     if (!id) return;
+    if (!user) {
+      setLoadingCookbook(false);
+      setLoadingRecipes(false);
+      return;
+    }
 
     const cookbookId = Number(id);
     if (isNaN(cookbookId)) {
@@ -24,7 +31,7 @@ export default function Cookbook() {
       return;
     }
 
-    // Fetch the cookbook
+    // Fetch the cookbook (authFetch sends Bearer token from localStorage)
     getCookbook(cookbookId)
       .then((data) => setCookbook(data))
       .catch((err) => setError("Failed to load cookbook: " + err.message))
@@ -35,7 +42,11 @@ export default function Cookbook() {
       .then((data) => setRecipes(data))
       .catch((err) => setError("Failed to load recipes: " + err.message))
       .finally(() => setLoadingRecipes(false));
-  }, [id]);
+  }, [id, user]);
+
+  if (!user) {
+    return <p>Please log in to view this cookbook.</p>;
+  }
 
   if (loadingCookbook || loadingRecipes) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;

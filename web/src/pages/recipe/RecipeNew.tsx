@@ -34,7 +34,7 @@ useEffect(() => {
 const emptyRecipeInput: RecipeInput = {
   name: "",
   description: "",
-  instructions: "",
+  instructions: [],
   notes: "",
   servings: 1,
   image_url: "",

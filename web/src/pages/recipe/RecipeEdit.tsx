@@ -33,18 +33,21 @@ export default function RecipeEdit() {
   if (error) return <p>{error}</p>;
   if (!recipe) return <p>Recipe not found</p>;
 
-  // Backend returns instructions as array of { instruction_number, instruction_text }; form expects string
-  const instructionsStr = Array.isArray(recipe.instructions)
-    ? (recipe.instructions as { instruction_text?: string }[])
-        .map((i) => i.instruction_text ?? "")
-        .join("\n")
-    : String(recipe.instructions ?? "");
+  // Backend returns instructions as array of { instruction_number, instruction_text }; form expects string[]
+  const instructionsArr = Array.isArray(recipe.instructions)
+    ? (recipe.instructions as { instruction_text?: string }[]).map(
+        (i) => i.instruction_text ?? ""
+      )
+    : String(recipe.instructions ?? "")
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
   const recipeInput: RecipeInput = {
     name: recipe.name,
     description: recipe.description,
     servings: recipe.servings,
-    instructions: instructionsStr,
+    instructions: instructionsArr,
     notes: recipe.notes,
     image_url: recipe.image_url,
     ingredients: recipe.ingredients.map((ing) => ({

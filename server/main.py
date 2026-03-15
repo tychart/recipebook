@@ -2,9 +2,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from database import close_pool, init_pool
+from database import close_pool, get_pool, init_pool
 from routers import recipes, auth, cookbooks, generate, storage
-
+from run_migrations import run_migrations
 from routers.storage import ensure_bucket_exists
 
 
@@ -18,6 +18,7 @@ async def lifespan(app: FastAPI):
     ensure_bucket_exists()
 
     await init_pool()
+    await run_migrations(get_pool())
     yield
     await close_pool()
 

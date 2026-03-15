@@ -45,27 +45,44 @@ export const getRecipe = async (id: number): Promise<Recipe> => {
 type InstructionBackend = { instruction_number: number; instruction_text: string };
 
 /**
- * Convert instructions string (frontend) to array of { instruction_number, instruction_text } (backend).
+ * Convert instructions (string or string[]) to backend format.
  */
-function instructionsToBackendFormat(instructions: string): InstructionBackend[] {
-  if (!instructions || !instructions.trim()) return [];
-  return instructions
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
-}
-
-/** Normalize instructions from form (string or array from API) to backend format. */
-function normalizeInstructionsForBackend(
-  instructions: string | InstructionBackend[] | undefined
+function instructionsToBackendFormat(
+  instructions: string | string[] | undefined
 ): InstructionBackend[] {
   if (Array.isArray(instructions)) {
-    return instructions.map((ins, i) =>
-      typeof ins === "object" && "instruction_text" in ins
-        ? { instruction_number: ins.instruction_number ?? i + 1, instruction_text: ins.instruction_text }
-        : { instruction_number: i + 1, instruction_text: String(ins) }
-    );
+    return instructions
+      .map((text) => (typeof text === "string" ? text : "").trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  if (typeof instructions === "string" && instructions.trim()) {
+    return instructions
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  return [];
+}
+
+/** Normalize instructions from form (string[] or legacy formats) to backend format. */
+function normalizeInstructionsForBackend(
+  instructions: string[] | string | InstructionBackend[] | undefined
+): InstructionBackend[] {
+  if (Array.isArray(instructions)) {
+    const first = instructions[0];
+    if (
+      typeof first === "object" &&
+      first !== null &&
+      "instruction_text" in first
+    ) {
+      return (instructions as InstructionBackend[]).map((ins, i) => ({
+        instruction_number: ins.instruction_number ?? i + 1,
+        instruction_text: ins.instruction_text,
+      }));
+    }
+    return instructionsToBackendFormat(instructions as string[]);
   }
   return instructionsToBackendFormat(instructions ?? "");
 }
@@ -92,7 +109,7 @@ export async function createRecipe(recipe: RecipeInput) {
       unit: ing.unit ?? "",
       name: ing.name,
     })),
-    instructions: instructionsToBackendFormat(recipe.instructions ?? ""),
+    instructions: instructionsToBackendFormat(recipe.instructions),
   };
   const res = await authFetch(`${API_BASE}/create/${cookbookId}`, {
     method: "POST",
