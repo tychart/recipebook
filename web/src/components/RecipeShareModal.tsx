@@ -24,7 +24,7 @@ export default function RecipeShareModal({
       onClick={onClose}
     >
       <div
-        className="bg-[#EEE9E0] dark:bg-gray-800 rounded-xl p-6 w-125 shadow-lg"
+        className="bg-[#EEE9E0] dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-xl font-semibold mb-4">Share Recipe</h2>
@@ -37,17 +37,20 @@ export default function RecipeShareModal({
             <input
               readOnly
               value={shareUrl}
-              className="w-75 h-11 rounded-lg px-4 py-2 bg-gray-50"
+              className="flex-1 h-11 rounded-lg px-4 py-2 bg-gray-50"
             />
 
-            <button onClick={copyLink} className="px-4 py-2 rounded-lg w-30">
+            <button
+              onClick={copyLink}
+              className="px-4 py-2 rounded-lg w-32 flex-shrink-0"
+            >
               {linkCopied ? "Link Copied!" : "Copy Link"}
             </button>
           </div>
 
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg mt-4 w-25"
+            className="px-4 py-2 border rounded-lg mt-4"
           >
             Close
           </button>
