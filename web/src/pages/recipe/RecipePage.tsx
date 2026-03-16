@@ -51,9 +51,9 @@ export default function RecipePage() {
 
         <div className="flex items-center gap-10">
           {/* TODO: Disable editing button if user is not the creator of the recipe */}
-          <button disabled={false}>
-            <Link to={`/recipe/${id}/edit`}>Edit</Link>
-          </button>
+          <Link to={`/recipe/${id}/edit`}>Edit</Link>
+
+
 
           <button onClick={() => setShowShare(true)} className="share-button">
             Share
