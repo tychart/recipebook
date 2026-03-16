@@ -50,14 +50,17 @@ export default function Cookbook() {
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
         <div className="flex items-center gap-10">
           {/* TODO: Disable adding recipe button if user is not a contributor or admin */}
-          <button disabled={false} className="w-30">
-            <Link to={`/cookbook/${id}/recipe/new`}>Add recipe</Link>
-          </button>
+          <Link
+            to={`/cookbook/${id}/recipe/new`}
+            className="w-auto"
+          >
+            Add recipe
+          </Link>
 
           {/* TODO: Disable Manage Access button if user is not admin */}
           <button
             onClick={() => setShowShare(true)}
-            className="w-35"
+            className="w-auto"
             disabled={false}
           >
             Manage Access
