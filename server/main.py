@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from database import close_pool, get_pool, init_pool
-from routers import recipes, auth, cookbooks, generate, storage
+from routers import recipes, auth, cookbooks, generate, ocr, storage
 from run_migrations import run_migrations
 from routers.storage import ensure_bucket_exists
 
@@ -51,4 +51,5 @@ app.include_router(recipes.router)
 app.include_router(auth.router)
 app.include_router(cookbooks.router)
 app.include_router(generate.router)
+app.include_router(ocr.router)
 app.include_router(storage.router)
