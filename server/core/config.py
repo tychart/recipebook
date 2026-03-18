@@ -16,6 +16,7 @@ class Settings:
     database_url: str
     cors_origins: tuple[str, ...]
     s3_endpoint: str
+    s3_public_endpoint: str
     s3_key: str | None
     s3_secret: str | None
     s3_bucket: str
@@ -64,6 +65,7 @@ def get_settings() -> Settings:
         database_url=os.getenv("DATABASE_URL", _DEFAULT_DATABASE_URL),
         cors_origins=_parse_csv_env("CORS_ALLOW_ORIGINS", _DEFAULT_CORS_ORIGINS),
         s3_endpoint=os.getenv("S3_ENDPOINT", "http://localhost:9000"),
+        s3_public_endpoint=os.getenv("S3_PUBLIC_ENDPOINT", "http://localhost:9000"),
         s3_key=os.getenv("S3_KEY"),
         s3_secret=os.getenv("S3_SECRET"),
         s3_bucket=os.getenv("S3_BUCKET", "recipe-images"),

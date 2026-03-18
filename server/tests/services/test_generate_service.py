@@ -20,6 +20,7 @@ def make_settings() -> Settings:
         database_url="postgresql://localhost/test",
         cors_origins=("http://localhost:5173",),
         s3_endpoint="http://localhost:9000",
+        s3_public_endpoint="http://localhost:9000",
         s3_key=None,
         s3_secret=None,
         s3_bucket="recipe-images",

@@ -26,6 +26,7 @@ async def get_recipe_service(db=Depends(get_db)) -> RecipeService:
         db,
         RecipeRepository(db),
         CookbookRepository(db),
+        get_storage_service(),
     )
 
 

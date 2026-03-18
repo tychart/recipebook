@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 import uuid
 
 import boto3
@@ -10,6 +11,8 @@ from core.config import Settings, get_settings
 
 
 class StorageService:
+    PRESIGNED_URL_TTL_SECONDS = 15 * 60
+
     def __init__(self, settings: Settings):
         self.settings = settings
         self.client = boto3.client(
@@ -47,15 +50,75 @@ class StorageService:
             raise HTTPException(status_code=400, detail="Unsupported file type")
         return f"{uuid.uuid4().hex}{ext}"
 
-    async def upload_file(self, file: UploadFile) -> dict:
-        unique_name = self.generate_filename(file.filename)
-        key = f"uploads/{unique_name}"
+    def generate_recipe_image_key(self, original_name: str | None, cookbook_id: int | None = None) -> str:
+        unique_name = self.generate_filename(original_name)
+        if cookbook_id is None:
+            return f"recipes/{unique_name}"
+        return f"recipes/{cookbook_id}/{unique_name}"
+
+    def build_presigned_get_url(self, key: str) -> str:
         try:
-            self.client.upload_fileobj(file.file, self.settings.s3_bucket, key)
+            signed_url = self.client.generate_presigned_url(
+                "get_object",
+                Params={"Bucket": self.settings.s3_bucket, "Key": key},
+                ExpiresIn=self.PRESIGNED_URL_TTL_SECONDS,
+            )
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc))
-        proxied_url = f"/s3/{self.settings.s3_bucket}/{key}"
-        return {"key": key, "url": proxied_url}
+        return self._rewrite_public_url(signed_url)
+
+    def _rewrite_public_url(self, signed_url: str) -> str:
+        signed_parts = urlparse(signed_url)
+        public_parts = urlparse(self.settings.s3_public_endpoint)
+        scheme = public_parts.scheme or signed_parts.scheme
+        netloc = public_parts.netloc or signed_parts.netloc
+        path_prefix = public_parts.path.rstrip("/")
+        path = signed_parts.path
+        if path_prefix:
+            path = f"{path_prefix}{path}"
+        return urlunparse(
+            (
+                scheme,
+                netloc,
+                path,
+                signed_parts.params,
+                signed_parts.query,
+                signed_parts.fragment,
+            )
+        )
+
+    async def upload_recipe_image(self, file: UploadFile, cookbook_id: int | None = None) -> str:
+        key = self.generate_recipe_image_key(file.filename, cookbook_id)
+        try:
+            self.client.upload_fileobj(
+                file.file,
+                self.settings.s3_bucket,
+                key,
+                ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+        return key
+
+    def delete_object(self, key: str) -> None:
+        try:
+            self.client.delete_object(Bucket=self.settings.s3_bucket, Key=key)
+        except Exception:
+            # Best-effort cleanup only; callers should not fail the primary request on deletion issues.
+            return
+
+    async def upload_file(self, file: UploadFile) -> dict:
+        key = f"uploads/{self.generate_filename(file.filename)}"
+        try:
+            self.client.upload_fileobj(
+                file.file,
+                self.settings.s3_bucket,
+                key,
+                ExtraArgs={"ContentType": file.content_type or "application/octet-stream"},
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+        return {"key": key, "url": self.build_presigned_get_url(key)}
 
 
 @lru_cache(maxsize=1)

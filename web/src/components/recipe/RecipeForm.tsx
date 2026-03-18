@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Ingredient, RecipeInput } from "../../../types/types";
 import RecipeImage from "./RecipeImage";
 
@@ -15,20 +15,26 @@ export default function RecipeForm({
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
-  const [tagInput, setTagInput] = useState(
-  initialData.tags?.join(", ") ?? ""
-);
+  const [originalImageUrl, setOriginalImageUrl] = useState(initialData.image_url ?? "");
+  const [tagInput, setTagInput] = useState(initialData.tags?.join(", ") ?? "");
 
-const handleChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-) => {
-  const { name, value } = e.target;
+  useEffect(() => {
+    setRecipe(initialData);
+    setOriginalImageUrl(initialData.image_url ?? "");
+    setTagInput(initialData.tags?.join(", ") ?? "");
+    setSelectedImageFile(undefined);
+  }, [initialData]);
 
-  setRecipe((prev) => ({
-    ...prev,
-    [name]: name === "servings" ? Number(value) : value,
-  }));
-};
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    setRecipe((prev) => ({
+      ...prev,
+      [name]: name === "servings" ? Number(value) : value,
+    }));
+  };
 
   const handleIngredientChange = (
     index: number,
@@ -67,13 +73,13 @@ const handleChange = (
   };
 
   const handleSubmit = () => {
-  const parsedTags = tagInput
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+    const parsedTags = tagInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
 
-  onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
-};
+    onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
+  };
 
   // Category options
   const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
@@ -90,8 +96,9 @@ const handleChange = (
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/*";
-            input.onchange = (e: any) => {
-              const file = e.target.files[0];
+            input.onchange = (e: Event) => {
+              const target = e.target as HTMLInputElement;
+              const file = target.files?.[0];
               if (file) {
                 setSelectedImageFile(file);
                 setRecipe((prev) => ({
@@ -106,7 +113,7 @@ const handleChange = (
             setSelectedImageFile(undefined);
             setRecipe((prev) => ({
               ...prev,
-              image_url: "",
+              image_url: originalImageUrl,
             }));
           }}
         />
@@ -167,12 +174,12 @@ const handleChange = (
             Tags (comma separated)
           </label>
           <input
-  type="text"
-  value={tagInput}
-  onChange={(e) => setTagInput(e.target.value)}
-  placeholder="e.g. gluten-free, quick"
-  className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-/>
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            placeholder="e.g. gluten-free, quick"
+            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+          />
         </div>
 
         {/* Servings */}
