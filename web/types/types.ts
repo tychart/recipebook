@@ -77,7 +77,7 @@ export interface RecipeInput {
   name: string;
   description?: string;
   servings: number;
-  instructions: string;
+  instructions: string[];
   notes?: string;
   image_url?: string;
   ingredients: IngredientInput[];

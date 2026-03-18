@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import get_settings
 from db.connection import close_pool, init_pool
-from routers import recipes, auth, cookbooks, generate, storage
+from routers import recipes, auth, cookbooks, generate, storage, ocr
 from services.generate_service import GenerateService, create_llm_provider
 from services.job_service import JobManager, JobService
 from services.storage_service import get_storage_service
@@ -68,4 +68,5 @@ app.include_router(recipes.router)
 app.include_router(auth.router)
 app.include_router(cookbooks.router)
 app.include_router(generate.router)
+app.include_router(ocr.router)
 app.include_router(storage.router)

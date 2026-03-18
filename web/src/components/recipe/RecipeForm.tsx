@@ -72,6 +72,28 @@ export default function RecipeForm({
     }));
   };
 
+  const handleInstructionChange = (index: number, value: string) => {
+    setRecipe((prev) => {
+      const updated = [...(prev.instructions ?? [])];
+      updated[index] = value;
+      return { ...prev, instructions: updated };
+    });
+  };
+
+  const handleAddInstruction = () => {
+    setRecipe((prev) => ({
+      ...prev,
+      instructions: [...(prev.instructions ?? []), ""],
+    }));
+  };
+
+  const handleRemoveInstruction = (index: number) => {
+    setRecipe((prev) => ({
+      ...prev,
+      instructions: (prev.instructions ?? []).filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = () => {
     const parsedTags = tagInput
       .split(",")
@@ -269,16 +291,52 @@ export default function RecipeForm({
 
         {/* Instructions */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Instructions
-          </label>
-          <textarea
-            name="instructions"
-            value={recipe.instructions}
-            onChange={handleChange}
-            rows={6}
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-          />
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-stone-800">
+              Instructions
+            </h2>
+
+            <button
+              type="button"
+              onClick={handleAddInstruction}
+              className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold hover:bg-amber-600 transition"
+            >
+              +
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {(recipe.instructions ?? []).map((step, index) => (
+              <div key={index} className="flex gap-3 items-center">
+                <span className="text-stone-500 font-medium w-8 shrink-0">
+                  {index + 1}.
+                </span>
+                <input
+                  type="text"
+                  value={step}
+                  onChange={(e) =>
+                    handleInstructionChange(index, e.target.value)
+                  }
+                  placeholder={`Step ${index + 1}`}
+                  className="flex-[3] min-w-0 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => handleRemoveInstruction(index)}
+                  className="flex-1 text-red-500 hover:text-red-700 text-xl min-w-0 flex items-center justify-center"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            {(recipe.instructions ?? []).length === 0 && (
+              <p className="text-stone-400 text-sm">
+                Click + to add your first instruction
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Notes */}

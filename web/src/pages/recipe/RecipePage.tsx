@@ -6,18 +6,20 @@ import Notes from "../../components/recipe/Notes";
 import type { Recipe } from "../../../types/types";
 import RecipeImage from "../../components/recipe/RecipeImage";
 import { getRecipe } from "../../api/recipes";
+import RecipeShareModal from "../../components/RecipeShareModal";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showShare, setShowShare] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
       return;
     }
-    
+
     const fetchRecipe = async () => {
       try {
         const data = await getRecipe(Number(id));
@@ -47,12 +49,16 @@ export default function RecipePage() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-3xl font-semibold">{recipe.name}</h1>
 
-        <Link
-          to={`/recipe/${id}/edit`}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100"
-        >
-          Edit
-        </Link>
+        <div className="flex items-center gap-10">
+          {/* TODO: Disable editing button if user is not the creator of the recipe */}
+          <Link to={`/recipe/${id}/edit`}>Edit</Link>
+
+
+
+          <button onClick={() => setShowShare(true)} className="share-button">
+            Share
+          </button>
+        </div>
       </div>
 
       {/* Image */}
@@ -91,6 +97,9 @@ export default function RecipePage() {
 
       {recipe.notes && <Notes notes={recipe.notes} />}
 
+      {showShare && id && (
+        <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
+      )}
       {/* Meta Info - at bottom */}
       <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
         <p>Serves {recipe.servings}</p>

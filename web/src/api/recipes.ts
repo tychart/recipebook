@@ -45,15 +45,25 @@ export const getRecipe = async (id: number): Promise<Recipe> => {
 type InstructionBackend = { instruction_number: number; instruction_text: string };
 
 /**
- * Convert instructions string (frontend) to array of { instruction_number, instruction_text } (backend).
+ * Convert instructions (string or string[]) to backend format.
  */
-function instructionsToBackendFormat(instructions: string): InstructionBackend[] {
-  if (!instructions || !instructions.trim()) return [];
-  return instructions
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+function instructionsToBackendFormat(
+  instructions: string | string[] | undefined
+): InstructionBackend[] {
+  if (Array.isArray(instructions)) {
+    return instructions
+      .map((text) => (typeof text === "string" ? text : "").trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  if (typeof instructions === "string" && instructions.trim()) {
+    return instructions
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  return [];
 }
 
 /**
