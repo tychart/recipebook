@@ -22,10 +22,10 @@ class RecipeService:
         return recipe
 
     async def _get_recipe_cookbook_id_or_404(self, recipe_id: int) -> int:
-        row = await self.recipe_repo.get_recipe_cookbook_id(recipe_id)
-        if row is None:
+        cookbook_id = await self.recipe_repo.get_recipe_cookbook_id(recipe_id)
+        if cookbook_id is None:
             raise HTTPException(status_code=404, detail="Recipe not found")
-        return row["book_id"]
+        return cookbook_id
 
     async def create_recipe(self, cookbook_id: int, recipe: RecipeMetadata, current_user: CurrentUser) -> dict:
         await self.cookbook_service.require_cookbook_role(
@@ -34,7 +34,7 @@ class RecipeService:
             [RoleEnum.owner, RoleEnum.contributor],
         )
         async with self.conn.transaction():
-            recipe_row = await self.recipe_repo.create_recipe(
+            created_recipe = await self.recipe_repo.create_recipe(
                 name=recipe.name,
                 description=recipe.description,
                 notes=recipe.notes,
@@ -45,7 +45,7 @@ class RecipeService:
                 tags=recipe.tags,
                 cookbook_id=cookbook_id,
             )
-            recipe_id = recipe_row["recipe_id"]
+            recipe_id = created_recipe.id
             await self.recipe_repo.insert_ingredients(recipe_id, recipe.ingredients)
             await self.recipe_repo.insert_instructions(recipe_id, recipe.instructions)
 
@@ -66,7 +66,7 @@ class RecipeService:
 
         existing = await self._get_recipe_or_404(recipe.id)
         async with self.conn.transaction():
-            recipe_row = await self.recipe_repo.update_recipe(
+            updated_recipe = await self.recipe_repo.update_recipe(
                 recipe_id=recipe.id,
                 name=recipe.name,
                 description=recipe.description,
@@ -78,7 +78,7 @@ class RecipeService:
                 tags=recipe.tags,
                 cookbook_id=cookbook_id,
             )
-            if recipe_row is None:
+            if updated_recipe is None:
                 raise HTTPException(status_code=404, detail="Recipe not found")
             await self.recipe_repo.replace_ingredients(recipe.id, recipe.ingredients)
             await self.recipe_repo.replace_instructions(recipe.id, recipe.instructions)
@@ -98,8 +98,8 @@ class RecipeService:
         async with self.conn.transaction():
             await self.recipe_repo.delete_ingredients(recipe_id)
             await self.recipe_repo.delete_instructions(recipe_id)
-            row = await self.recipe_repo.delete_recipe(recipe_id)
-        if row is None:
+            deleted_id = await self.recipe_repo.delete_recipe(recipe_id)
+        if deleted_id is None:
             raise HTTPException(status_code=404, detail="Recipe not found")
         return {"message": "Recipe deleted successfully!"}
 
@@ -127,7 +127,7 @@ class RecipeService:
         payload = self.recipe_repo.clone_recipe_payload(source, cookbook_id)
 
         async with self.conn.transaction():
-            recipe_row = await self.recipe_repo.create_recipe(
+            created_recipe = await self.recipe_repo.create_recipe(
                 name=payload["name"],
                 description=payload["description"],
                 notes=payload["notes"],
@@ -138,7 +138,7 @@ class RecipeService:
                 tags=payload["tags"],
                 cookbook_id=payload["cookbook_id"],
             )
-            new_recipe_id = recipe_row["recipe_id"]
+            new_recipe_id = created_recipe.id
             await self.recipe_repo.insert_ingredients(new_recipe_id, payload["ingredients"])
             await self.recipe_repo.insert_instructions(new_recipe_id, payload["instructions"])
 

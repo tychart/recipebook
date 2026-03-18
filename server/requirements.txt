@@ -5,3 +5,4 @@ asyncpg
 python-multipart
 boto3
 openai
+argon2-cffi

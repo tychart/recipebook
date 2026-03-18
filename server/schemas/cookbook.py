@@ -18,6 +18,10 @@ class Cookbook(BaseModel):
     created_at: dt.datetime | None = None
 
 
+class CookbookRoleRecord(BaseModel):
+    role: RoleEnum
+
+
 class ShareCookbookRequest(BaseModel):
     book_id: int
     user_id: int

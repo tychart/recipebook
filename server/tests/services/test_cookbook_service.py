@@ -4,7 +4,7 @@ import pytest
 from fastapi import HTTPException
 
 from schemas.auth import CurrentUser
-from schemas.cookbook import Cookbook, RoleEnum
+from schemas.cookbook import Cookbook, CookbookRoleRecord, RoleEnum
 from services.cookbook_service import CookbookService
 
 
@@ -16,17 +16,17 @@ class FakeCookbookRepo:
     async def get_user_role(self, cookbook_id: int, user_id: int):
         if self.role is None:
             return None
-        return {"role": self.role}
+        return CookbookRoleRecord(role=RoleEnum(self.role))
 
     async def create_cookbook(self, name: str, owner_id: int, categories: str):
         self.created_with_owner_id = owner_id
-        return {
-            "book_id": 4,
-            "book_name": name,
-            "owner_id": owner_id,
-            "created_dttm": None,
-            "categories": categories,
-        }
+        return Cookbook(
+            id=4,
+            name=name,
+            owner_id=owner_id,
+            created_at=None,
+            categories=[part.strip() for part in categories.split(",") if part.strip()],
+        )
 
 
 def test_require_cookbook_role_rejects_disallowed_role():

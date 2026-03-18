@@ -1,6 +1,7 @@
 import asyncio
 
 from schemas.auth import CurrentUser
+from schemas.cookbook import CookbookRoleRecord, RoleEnum
 from schemas.recipe import Ingredient, Instruction, RecipeMetadata
 from services.recipe_service import RecipeService
 
@@ -25,7 +26,21 @@ class FakeRecipeRepo:
 
     async def create_recipe(self, **kwargs):
         self.create_creator_id = kwargs["creator_id"]
-        return {"recipe_id": self.created_recipe_id}
+        return RecipeMetadata(
+            id=self.created_recipe_id,
+            name=kwargs["name"],
+            ingredients=[],
+            instructions=[],
+            notes=kwargs["notes"],
+            description=kwargs["description"],
+            servings=kwargs["servings"],
+            creator_id=kwargs["creator_id"],
+            category=kwargs["category"],
+            image_url=kwargs["image_url"],
+            tags=kwargs["tags"],
+            cookbook_id=kwargs["cookbook_id"],
+            modified_at=None,
+        )
 
     async def insert_ingredients(self, recipe_id: int, ingredients):
         self.ingredient_count = len(ingredients)
@@ -53,7 +68,7 @@ class FakeRecipeRepo:
 
 class FakeCookbookRepo:
     async def get_user_role(self, cookbook_id: int, user_id: int):
-        return {"role": "owner"}
+        return CookbookRoleRecord(role=RoleEnum.owner)
 
 
 def test_create_recipe_uses_authenticated_user_as_creator():

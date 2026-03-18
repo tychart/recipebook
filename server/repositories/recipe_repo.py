@@ -89,8 +89,8 @@ class RecipeRepository:
         image_url: str | None,
         tags: list[str] | None,
         cookbook_id: int,
-    ):
-        return await self.conn.fetchrow(
+    ) -> RecipeMetadata:
+        row = await self.conn.fetchrow(
             """
             INSERT INTO Recipe (
                 Recipe_name, Description, Notes, Servings, Creator_ID,
@@ -111,6 +111,7 @@ class RecipeRepository:
             _tags_to_text(tags),
             cookbook_id,
         )
+        return _row_to_recipe(row, [], [])
 
     async def update_recipe(
         self,
@@ -124,8 +125,8 @@ class RecipeRepository:
         image_url: str | None,
         tags: list[str] | None,
         cookbook_id: int,
-    ):
-        return await self.conn.fetchrow(
+    ) -> RecipeMetadata | None:
+        row = await self.conn.fetchrow(
             """
             UPDATE Recipe
             SET Recipe_name = $1, Description = $2, Notes = $3, Servings = $4,
@@ -147,9 +148,12 @@ class RecipeRepository:
             cookbook_id,
             recipe_id,
         )
+        if row is None:
+            return None
+        return _row_to_recipe(row, [], [])
 
-    async def update_recipe_embedding(self, recipe_id: int, embedding: list[float] | None):
-        return await self.conn.fetchrow(
+    async def update_recipe_embedding(self, recipe_id: int, embedding: list[float] | None) -> RecipeMetadata | None:
+        row = await self.conn.fetchrow(
             """
             UPDATE Recipe
             SET embedding = $1::vector, Modified_DtTm = CURRENT_TIMESTAMP
@@ -161,6 +165,9 @@ class RecipeRepository:
             _embedding_to_vector(embedding),
             recipe_id,
         )
+        if row is None:
+            return None
+        return _row_to_recipe(row, [], [])
 
     async def get_recipe_row(self, recipe_id: int):
         return await self.conn.fetchrow(
@@ -187,11 +194,14 @@ class RecipeRepository:
             cookbook_id,
         )
 
-    async def get_recipe_cookbook_id(self, recipe_id: int):
-        return await self.conn.fetchrow(
+    async def get_recipe_cookbook_id(self, recipe_id: int) -> int | None:
+        row = await self.conn.fetchrow(
             "SELECT Book_ID FROM Recipe WHERE Recipe_ID = $1",
             recipe_id,
         )
+        if row is None:
+            return None
+        return row["book_id"]
 
     async def list_ingredients(self, recipe_id: int):
         return await self.conn.fetch(
@@ -254,11 +264,14 @@ class RecipeRepository:
     async def delete_instructions(self, recipe_id: int) -> None:
         await self.conn.execute("DELETE FROM Instructions WHERE Recipe_ID = $1", recipe_id)
 
-    async def delete_recipe(self, recipe_id: int):
-        return await self.conn.fetchrow(
+    async def delete_recipe(self, recipe_id: int) -> int | None:
+        row = await self.conn.fetchrow(
             "DELETE FROM Recipe WHERE Recipe_ID = $1 RETURNING Recipe_ID",
             recipe_id,
         )
+        if row is None:
+            return None
+        return row["recipe_id"]
 
     async def build_recipe(self, recipe_row: asyncpg.Record) -> RecipeMetadata:
         ingredients = [_row_to_ingredient(row) for row in await self.list_ingredients(recipe_row["recipe_id"])]

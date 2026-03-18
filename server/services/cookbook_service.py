@@ -11,28 +11,15 @@ def _categories_to_text(categories: list[str] | None) -> str:
     return ",".join(categories)
 
 
-def _row_to_cookbook(row) -> dict:
-    data = dict(row)
-    categories_str = data["categories"] or "Main"
-    categories = [part.strip() for part in categories_str.split(",") if part.strip()]
-    return {
-        "id": data["book_id"],
-        "name": data["book_name"],
-        "owner_id": data["owner_id"],
-        "categories": categories,
-        "created_at": data.get("created_dttm"),
-    }
-
-
 class CookbookService:
     def __init__(self, repo: CookbookRepository):
         self.repo = repo
 
     async def get_cookbook_role(self, cookbook_id: int, user_id: int) -> RoleEnum | None:
-        row = await self.repo.get_user_role(cookbook_id, user_id)
-        if row is None or row["role"] is None:
+        role_record = await self.repo.get_user_role(cookbook_id, user_id)
+        if role_record is None:
             return None
-        return RoleEnum(row["role"])
+        return role_record.role
 
     async def require_cookbook_role(self, cookbook_id: int, user_id: int, allowed_roles: list[RoleEnum]) -> None:
         role = await self.get_cookbook_role(cookbook_id, user_id)
@@ -40,14 +27,14 @@ class CookbookService:
             raise HTTPException(status_code=403, detail="Not allowed for this cookbook")
 
     async def create_cookbook(self, cookbook: Cookbook, current_user: CurrentUser) -> dict:
-        row = await self.repo.create_cookbook(
+        created = await self.repo.create_cookbook(
             cookbook.name,
             current_user.id,
             _categories_to_text(cookbook.categories),
         )
         return {
             "message": "Cookbook created successfully!",
-            "cookbook": _row_to_cookbook(row),
+            "cookbook": created.model_dump(),
         }
 
     async def get_cookbook(self, cookbook_id: int, current_user: CurrentUser) -> dict:
@@ -56,14 +43,14 @@ class CookbookService:
             current_user.id,
             [RoleEnum.owner, RoleEnum.contributor, RoleEnum.viewer],
         )
-        row = await self.repo.get_cookbook(cookbook_id)
-        if row is None:
+        cookbook = await self.repo.get_cookbook(cookbook_id)
+        if cookbook is None:
             raise HTTPException(status_code=404, detail="Cookbook not found")
-        return _row_to_cookbook(row)
+        return cookbook.model_dump()
 
     async def list_cookbooks(self, current_user: CurrentUser) -> list[dict]:
-        rows = await self.repo.list_cookbooks_for_user(current_user.id)
-        return [_row_to_cookbook(row) for row in rows]
+        cookbooks = await self.repo.list_cookbooks_for_user(current_user.id)
+        return [cookbook.model_dump() for cookbook in cookbooks]
 
     async def edit_cookbook(self, cookbook: Cookbook, current_user: CurrentUser) -> dict:
         if cookbook.id is None:
@@ -74,15 +61,15 @@ class CookbookService:
         if existing is None:
             raise HTTPException(status_code=404, detail="Cookbook not found")
 
-        row = await self.repo.update_cookbook(
+        updated = await self.repo.update_cookbook(
             cookbook.id,
             cookbook.name,
-            existing["owner_id"],
+            existing.owner_id,
             _categories_to_text(cookbook.categories),
         )
         return {
             "message": "Cookbook edited successfully!",
-            "cookbook": _row_to_cookbook(row),
+            "cookbook": updated.model_dump(),
         }
 
     async def delete_cookbook(self, cookbook_id: int, current_user: CurrentUser) -> dict:
@@ -91,8 +78,8 @@ class CookbookService:
         await self.repo.delete_cookbook_instructions(cookbook_id)
         await self.repo.delete_cookbook_recipes(cookbook_id)
         await self.repo.delete_cookbook_users(cookbook_id)
-        row = await self.repo.delete_cookbook(cookbook_id)
-        if row is None:
+        deleted_id = await self.repo.delete_cookbook(cookbook_id)
+        if deleted_id is None:
             raise HTTPException(status_code=404, detail="Cookbook not found")
         return {"message": "Cookbook deleted successfully!"}
 

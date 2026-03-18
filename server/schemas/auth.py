@@ -31,6 +31,16 @@ class CurrentUser(BaseModel):
     email: str
 
 
+class AuthUserRecord(BaseModel):
+    id: int
+    username: str
+    email: str
+
+
+class AuthLoginRecord(AuthUserRecord):
+    password_hash: str
+
+
 class AuthTokenRecord(BaseModel):
     user_id: int
     created_at: dt.datetime
