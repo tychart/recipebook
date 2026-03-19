@@ -1,10 +1,41 @@
 # Running the tests that are available guide
 
-This guide explains how to run the **server API tests** on your local machine (e.g. after cloning the repo or on another developer’s environment). The tests live in `server/tests.py` and hit the real FastAPI app and a real PostgreSQL database.
+This guide explains how to run the **server API tests** on your local machine (e.g. after cloning the repo or on another developer’s environment). The tests live under `server/tests/` and include both API tests (hitting the real FastAPI app and PostgreSQL) and unit tests for services and routers.
 
 ---
 
-## What the tests cover
+## How to run the tests
+
+From the **repository root**:
+
+```bash
+# Run all tests under server/tests (API, services, routers, lifespan, etc.)
+pytest server/tests -v
+
+# Run only the API tests (auth, cookbooks, recipes, helloworld)
+pytest server/tests/api_tests -v
+
+# Run only service or router tests
+pytest server/tests/services -v
+pytest server/tests/routers -v
+```
+
+From the **server** directory:
+
+```bash
+cd server
+pytest tests -v
+pytest tests/api_tests -v
+```
+
+- `-v` is optional and prints each test name.
+- To run a single test: `pytest server/tests/api_tests -v -k test_register`
+
+---
+
+## What the API tests cover
+
+The API tests live in `server/tests/api_tests/` and cover:
 
 - **Public:** `GET /api/helloworld`
 - **Auth:** register, login (username and email), invalid password, `GET /me`, logout
@@ -69,21 +100,7 @@ This installs FastAPI, pytest, and the rest of the server stack.
 
 ## 4. Run the tests
 
-From the **repository root**:
-
-```bash
-pytest server/tests.py -v
-```
-
-Or from the **server** directory:
-
-```bash
-cd server
-pytest tests.py -v
-```
-
-- `-v` is optional and prints each test name.
-- To run a single test: `pytest server/tests.py -v -k test_register`
+See **How to run the tests** at the top of this guide. Summary: from the repository root run `pytest server/tests -v` for all tests, or `pytest server/tests/api_tests -v` for API tests only.
 
 On success you’ll see the test list and “passed” for each. If the database isn’t running or the URL is wrong, you’ll get connection errors; if the schema is missing, you may see relation/table errors.
 
@@ -107,6 +124,6 @@ On success you’ll see the test list and “passed” for each. If the database
 1. Start PostgreSQL (Docker: `docker compose up recipebook-db -d` from repo root).
 2. Install deps: `pip install -r server/requirements.txt`.
 3. Set `DATABASE_URL` only if you’re not using the default local DB.
-4. Run: `pytest server/tests.py -v` from the repo root.
+4. Run: `pytest server/tests -v` (or `pytest server/tests/api_tests -v` for API tests only) from the repo root.
 
 After that, anyone with the repo and a running Postgres can run the same API tests on their local environment.
