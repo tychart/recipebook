@@ -20,11 +20,18 @@ class RecipeExtraction(BaseModel):
     instructions: List[str]
 
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
+LLM_MODEL = os.getenv("LLM_MODEL", "lfm2.5-thinking")
 
-client = OpenAI(
-    base_url=OLLAMA_URL,
-    api_key="ollama", 
-)
+if (OPENAI_API_KEY == "ollama"):
+    client = OpenAI(
+        base_url=OLLAMA_URL,
+        api_key="ollama", 
+    )
+else:
+    client = OpenAI(
+        api_key=OPENAI_API_KEY
+    )
 
 router = APIRouter(
     prefix="/api/ocr",
@@ -33,8 +40,7 @@ router = APIRouter(
 def parse_recipe_with_llm(ocr_text: str) -> RecipeExtraction:
     """Helper function to query Ollama for structured data."""
     response = client.beta.chat.completions.parse(
-        #model="llama3.1:8b",
-        model="llama3.2",
+        model=LLM_MODEL,
         messages=[
             {
                 "role": "system",
