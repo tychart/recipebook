@@ -63,10 +63,10 @@ export default function RecipeEdit() {
 
   const handleUpdate = async (
     updated: RecipeInput,
-    // imageFile?: File,
+    imageFile?: File,
   ) => {
     try {
-      await updateRecipe(recipe.id, updated);
+      await updateRecipe(recipe.id, updated, imageFile);
       navigate(`/recipe/${recipe.id}`);
     } catch (err) {
       console.error(err);

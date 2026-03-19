@@ -66,35 +66,20 @@ function instructionsToBackendFormat(
   return [];
 }
 
-/** Normalize instructions from form (string[] or legacy formats) to backend format. */
-function normalizeInstructionsForBackend(
-  instructions: string[] | string | InstructionBackend[] | undefined
-): InstructionBackend[] {
-  if (Array.isArray(instructions)) {
-    const first = instructions[0];
-    if (
-      typeof first === "object" &&
-      first !== null &&
-      "instruction_text" in first
-    ) {
-      return (instructions as InstructionBackend[]).map((ins, i) => ({
-        instruction_number: ins.instruction_number ?? i + 1,
-        instruction_text: ins.instruction_text,
-      }));
-    }
-    return instructionsToBackendFormat(instructions as string[]);
-  }
-  return instructionsToBackendFormat(instructions ?? "");
-}
-
 /**
  * Create a new recipe in a cookbook
  * @param recipe RecipeInput object
  * @param imageFile Optional image file
  */
-export async function createRecipe(recipe: RecipeInput) {
+export async function createRecipe(recipe: RecipeInput, imageFile?: File) {
+  return createRecipeWithImage(recipe, imageFile);
+}
+
+
+function buildRecipePayload(recipe: RecipeInput, id?: number) {
   const cookbookId = recipe.cookbook_id ?? 0;
-  const body = {
+  return {
+    ...(id !== undefined ? { id } : {}),
     name: recipe.name,
     description: recipe.description ?? "",
     notes: recipe.notes ?? null,
@@ -109,14 +94,26 @@ export async function createRecipe(recipe: RecipeInput) {
       unit: ing.unit ?? "",
       name: ing.name,
     })),
-    instructions: instructionsToBackendFormat(recipe.instructions),
+    instructions: instructionsToBackendFormat(recipe.instructions ?? ""),
   };
+}
+
+
+function buildRecipeFormData(recipe: RecipeInput, imageFile?: File, id?: number): FormData {
+  const formData = new FormData();
+  formData.append("recipe", JSON.stringify(buildRecipePayload(recipe, id)));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+  return formData;
+}
+
+
+export async function createRecipeWithImage(recipe: RecipeInput, imageFile?: File) {
+  const cookbookId = recipe.cookbook_id ?? 0;
   const res = await authFetch(`${API_BASE}/create/${cookbookId}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+    body: buildRecipeFormData(recipe, imageFile),
   });
 
   if (!res.ok) {
@@ -133,31 +130,18 @@ export async function createRecipe(recipe: RecipeInput) {
 export async function updateRecipe(
   id: number,
   data: RecipeInput,
+  imageFile?: File,
 ): Promise<Recipe> {
-  const body = {
-    id,
-    name: data.name,
-    description: data.description ?? "",
-    notes: data.notes ?? null,
-    servings: data.servings,
-    creator_id: data.creator_id,
-    category: data.category ?? "Main",
-    image_url: data.image_url ?? null,
-    tags: data.tags ?? [],
-    cookbook_id: data.cookbook_id ?? 0,
-    ingredients: data.ingredients.map((ing) => ({
-      amount: ing.amount,
-      unit: ing.unit ?? "",
-      name: ing.name,
-    })),
-    instructions: normalizeInstructionsForBackend(data.instructions),
-  };
   const res = await authFetch(`${API_BASE}/edit`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+    body: buildRecipeFormData(
+      {
+        ...data,
+        instructions: data.instructions ?? "",
+      },
+      imageFile,
+      id,
+    ),
   });
 
   if (!res.ok) {

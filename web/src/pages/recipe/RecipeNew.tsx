@@ -1,7 +1,7 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import type { Cookbook, RecipeInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
-import { createRecipe } from "../../api/recipes";
+import { createRecipeWithImage } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { getCookbook } from "../../api/cookbooks";
@@ -85,33 +85,7 @@ export default function RecipeNew() {
   imageFile?: File
 ) => {
   try {
-    let imageUrl = recipeInput.image_url;
-
-    // 1️⃣ Upload image if selected
-    if (imageFile) {
-      const formData = new FormData();
-      formData.append("file", imageFile);
-
-      const uploadRes = await fetch("/api/uploads/file", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        const text = await uploadRes.text();
-        console.error("Upload failed:", text);
-        throw new Error("Image upload failed");
-      }
-
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url; // returned from backend
-    }
-
-    // 2️⃣ Send recipe JSON with image_url included
-    const result = await createRecipe({
-      ...recipeInput,
-      image_url: imageUrl,
-    });
+    const result = await createRecipeWithImage(recipeInput, imageFile);
 
     console.log("Created:", result);
     navigate(`/recipe/${result.recipe.id}`);

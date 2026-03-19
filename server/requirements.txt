@@ -7,4 +7,6 @@ pytesseract
 pillow
 openai
 boto3
+openai
+argon2-cffi
 pytest
