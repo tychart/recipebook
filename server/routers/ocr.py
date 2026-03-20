@@ -1,12 +1,17 @@
-from fastapi import APIRouter, FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import JSONResponse
-import pytesseract
-from PIL import Image
-from io import BytesIO
-from openai import OpenAI
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import logging
 import os
+import time
+from io import BytesIO
+from typing import List, Optional
+
+import pytesseract
+from fastapi import APIRouter, File, UploadFile
+from fastapi.responses import JSONResponse
+from openai import OpenAI
+from PIL import Image
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 class Ingredient(BaseModel):
     name: str = Field(description="The name of the ingredient, e.g., 'all-purpose flour'")
@@ -62,21 +67,66 @@ def parse_recipe_with_llm(ocr_text: str) -> RecipeExtraction:
 
 @router.post("/process-recipe")
 async def process_recipe_image(image: UploadFile = File(...)):
+    request_started = time.perf_counter()
+    file_name = image.filename or "<unknown>"
+    content_type = image.content_type or "<unknown>"
+
     try:
-        # 1. Perform OCR
+        logger.info(
+            "OCR request received filename=%s content_type=%s",
+            file_name,
+            content_type,
+        )
+
         contents = await image.read()
+        logger.info(
+            "OCR upload read filename=%s bytes=%s",
+            file_name,
+            len(contents),
+        )
+
         img = Image.open(BytesIO(contents))
+        logger.info(
+            "OCR image decoded filename=%s format=%s size=%sx%s",
+            file_name,
+            img.format,
+            img.width,
+            img.height,
+        )
+
         raw_text = pytesseract.image_to_string(img)
+        logger.info(
+            "OCR text extracted filename=%s text_length=%s",
+            file_name,
+            len(raw_text),
+        )
+
+        logger.debug(
+            "Parsed text: %s",
+            raw_text
+        )
         
         if not raw_text.strip():
+            logger.warning("OCR produced no text filename=%s", file_name)
             return JSONResponse(content={"error": "No text detected in image"}, status_code=400)
 
-        # 2. Extract structured data using the LLM
+        logger.info("OCR starting LLM parse filename=%s model=%s", file_name, LLM_MODEL)
         structured_recipe = parse_recipe_with_llm(raw_text)
+        logger.info(
+            "OCR LLM parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
+            file_name,
+            len(structured_recipe.ingredients),
+            len(structured_recipe.instructions),
+            (time.perf_counter() - request_started) * 1000,
+        )
         
-        # 3. Return the final recipe as a JSONResponse
-        # model_dump() converts the Pydantic object into a standard Python dict
         return JSONResponse(content=structured_recipe.model_dump(), status_code=200)
 
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+    except Exception:
+        logger.exception(
+            "OCR request failed filename=%s content_type=%s duration_ms=%.2f",
+            file_name,
+            content_type,
+            (time.perf_counter() - request_started) * 1000,
+        )
+        raise
