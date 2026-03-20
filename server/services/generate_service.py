@@ -1,10 +1,20 @@
 import asyncio
 import json
+import logging
+import os
+import time
+from io import BytesIO
 from typing import Any, Protocol
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
+import pytesseract
 from fastapi import HTTPException
+from fastapi import UploadFile
+from fastapi.responses import JSONResponse
+from openai import OpenAI
+from PIL import Image
+from pydantic import BaseModel, Field
 
 from core.config import Settings
 from schemas.auth import CurrentUser
@@ -12,6 +22,33 @@ from schemas.job import GenerateOcrRequest, GenerateTextRequest, JobSource
 from schemas.recipe import RecipeMetadata
 from services.job_service import JobService
 from services.recipe_service import RecipeService
+
+logger = logging.getLogger(__name__)
+
+OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
+LLM_MODEL = os.getenv("LLM_MODEL", "lfm2.5-thinking")
+
+if OPENAI_API_KEY == "ollama":
+    llm_client = OpenAI(
+        base_url=OLLAMA_URL,
+        api_key="ollama",
+    )
+else:
+    llm_client = OpenAI(api_key=OPENAI_API_KEY)
+
+
+class Ingredient(BaseModel):
+    name: str = Field(description="The name of the ingredient, e.g., 'all-purpose flour'")
+    amount: float = Field(description="The numeric value only, e.g., 2.5")
+    unit: str = Field(description="The measurement unit, e.g., 'cups', 'grams', or 'tsp'")
+
+
+class RecipeExtraction(BaseModel):
+    recipe_name: str
+    recipe_author: str | None = Field(default="", description="The author's name, or blank if not found")
+    ingredients: list[Ingredient]
+    instructions: list[str]
 
 
 def format_recipe_for_embedding(recipe: RecipeMetadata) -> str:
@@ -214,6 +251,90 @@ class GenerateService:
             },
             owner_id=current_user.id,
         )
+
+    def parse_ocr_recipe_with_llm(self, ocr_text: str) -> RecipeExtraction:
+        response = llm_client.beta.chat.completions.parse(
+            model=LLM_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert at extracting structured data from messy OCR text. "
+                        "Ignore noise and formatting errors. For ingredients, strictly separate "
+                        "the numeric quantity from the unit of measurement."
+                    ),
+                },
+                {"role": "user", "content": ocr_text},
+            ],
+            response_format=RecipeExtraction,
+        )
+
+        if not response.choices[0].message.parsed:
+            raise ValueError("LLM failed to parse the recipe text.")
+
+        return response.choices[0].message.parsed
+
+    async def process_ocr_upload(self, image: UploadFile):
+        request_started = time.perf_counter()
+        file_name = image.filename or "<unknown>"
+        content_type = image.content_type or "<unknown>"
+
+        try:
+            logger.info(
+                "OCR request received filename=%s content_type=%s",
+                file_name,
+                content_type,
+            )
+
+            contents = await image.read()
+            logger.info(
+                "OCR upload read filename=%s bytes=%s",
+                file_name,
+                len(contents),
+            )
+
+            img = Image.open(BytesIO(contents))
+            logger.info(
+                "OCR image decoded filename=%s format=%s size=%sx%s",
+                file_name,
+                img.format,
+                img.width,
+                img.height,
+            )
+
+            raw_text = pytesseract.image_to_string(img)
+            logger.info(
+                "OCR text extracted filename=%s text_length=%s",
+                file_name,
+                len(raw_text),
+            )
+
+            logger.debug("Parsed text: %s", raw_text)
+
+            if not raw_text.strip():
+                logger.warning("OCR produced no text filename=%s", file_name)
+                return JSONResponse(content={"error": "No text detected in image"}, status_code=400)
+
+            logger.info("OCR starting LLM parse filename=%s model=%s", file_name, LLM_MODEL)
+            structured_recipe = self.parse_ocr_recipe_with_llm(raw_text)
+            logger.info(
+                "OCR LLM parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
+                file_name,
+                len(structured_recipe.ingredients),
+                len(structured_recipe.instructions),
+                (time.perf_counter() - request_started) * 1000,
+            )
+
+            return JSONResponse(content=structured_recipe.model_dump(), status_code=200)
+
+        except Exception:
+            logger.exception(
+                "OCR request failed filename=%s content_type=%s duration_ms=%.2f",
+                file_name,
+                content_type,
+                (time.perf_counter() - request_started) * 1000,
+            )
+            raise
 
     async def list_jobs(self, current_user: CurrentUser):
         return await self.job_service.list_jobs(owner_id=current_user.id)

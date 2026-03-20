@@ -1,4 +1,7 @@
 import asyncio
+from io import BytesIO
+
+from fastapi import UploadFile
 
 from core.config import Settings
 from schemas.job import GenerateTextRequest, JobSource, JobStatus
@@ -66,5 +69,22 @@ def test_worker_marks_job_failed_when_provider_is_missing():
         stored = await job_service.get_job(job.job_id)
         assert stored.status == JobStatus.failed
         assert "not configured" in (stored.error or "").lower()
+
+    asyncio.run(run())
+
+
+def test_process_ocr_upload_returns_400_when_no_text_detected(monkeypatch):
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+
+        monkeypatch.setattr("services.generate_service.Image.open", lambda _: type("ImageStub", (), {"format": "PNG", "width": 1, "height": 1})())
+        monkeypatch.setattr("services.generate_service.pytesseract.image_to_string", lambda _: "   ")
+
+        upload = UploadFile(filename="empty.png", file=BytesIO(b"fake-image"))
+
+        response = await service.process_ocr_upload(upload)
+
+        assert response.status_code == 400
+        assert response.body == b'{"error":"No text detected in image"}'
 
     asyncio.run(run())

@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from dependencies.auth import get_current_user_dep
+from dependencies.services import get_generate_service
 from dependencies.services import get_recipe_service
 from routers import auth as auth_router
+from routers import generate as generate_router
 from routers import recipes as recipe_router
 from schemas.auth import CurrentUser
 
@@ -30,6 +32,15 @@ class FakeRecipeService:
                 "cookbook_id": cookbook_id,
                 "modified_at": None,
             },
+        }
+
+
+class FakeGenerateService:
+    async def process_ocr_upload(self, image):
+        return {
+            "recipe_name": "Brownies",
+            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            "instructions": ["Mix"],
         }
 
     async def edit_recipe(self, recipe, current_user, image=None):
@@ -199,5 +210,36 @@ def test_recipe_edit_route_keeps_existing_path_and_response_shape():
         assert body["recipe"]["id"] == 12
         assert body["recipe"]["creator_id"] == 5
         assert "signed=1" in body["recipe"]["image_url"]
+
+    asyncio.run(run())
+
+
+def test_generate_ocr_route_keeps_direct_upload_shape():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post(
+                "/api/generate/ocr",
+                files={
+                    "image": ("brownies.png", b"png-bytes", "image/png"),
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "recipe_name": "Brownies",
+            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            "instructions": ["Mix"],
+        }
 
     asyncio.run(run())

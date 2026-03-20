@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, UploadFile
 
 from dependencies.auth import get_current_user_dep
 from dependencies.services import get_generate_service
 from schemas.auth import CurrentUser
-from schemas.job import GenerateOcrRequest, GenerateTextRequest
+from schemas.job import GenerateTextRequest
 from services.generate_service import GenerateService
 
 router = APIRouter(
@@ -26,11 +26,10 @@ async def generate_text(
 
 @router.post("/ocr")
 async def generate_ocr(
-    body: GenerateOcrRequest,
+    image: UploadFile = File(...),
     generate_service: GenerateService = Depends(get_generate_service),
-    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
-    return await generate_service.enqueue_ocr_job(body, current_user)
+    return await generate_service.process_ocr_upload(image)
 
 
 @router.get("/jobs")

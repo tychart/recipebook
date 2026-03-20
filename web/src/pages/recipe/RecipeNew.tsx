@@ -52,7 +52,7 @@ export default function RecipeNew() {
     formData.append("image", file);
 
     try {
-      const response = await fetch("/api/ocr/process-recipe", {
+      const response = await fetch("/api/generate/ocr", {
         method: "POST",
         body: formData,
       });
