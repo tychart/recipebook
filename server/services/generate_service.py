@@ -35,6 +35,15 @@ Ignore noise and formatting errors. For ingredients, strictly separate
 the numeric quantity from the unit of measurement.
 """
 
+RAW_TEXT_PARSER_PROMPT = """
+You are an expert at extracting structured recipe data from raw pasted text.
+The input may include a recipe title, author, ingredient list, and instructions.
+Ignore conversational filler and unrelated notes. Extract only the recipe content.
+For ingredients, strictly separate the numeric quantity from the unit of measurement.
+For instructions, return each step as a separate string in the correct order.
+If the author is not present, return an empty string for recipe_author.
+"""
+
 if OPENAI_API_KEY == "ollama":
     llm_client = OpenAI(
         base_url=OLLAMA_URL,
@@ -159,8 +168,7 @@ class OpenAICompatibleLLMProvider:
                     "role": "user",
                     "content": prompt,
                 },
-            ],
-            "temperature": 0.2,
+            ]
         }
         return await asyncio.to_thread(self._post_json, body)
 
@@ -276,6 +284,36 @@ class GenerateService:
 
         return response.choices[0].message.parsed
 
+    async def process_text_input(self, body: GenerateTextRequest):
+        request_started = time.perf_counter()
+        raw_text = body.text.strip()
+
+        logger.info("Text import request received text_length=%s", len(raw_text))
+
+        if not raw_text:
+            raise HTTPException(status_code=400, detail="Text input is required")
+
+        try:
+            logger.info("Text import starting LLM parse model=%s", LLM_MODEL)
+            structured_recipe = self.parse_recipe_with_llm(
+                RAW_TEXT_PARSER_PROMPT,
+                raw_text,
+            )
+            logger.info(
+                "Text import LLM parse complete ingredient_count=%s instruction_count=%s duration_ms=%.2f",
+                len(structured_recipe.ingredients),
+                len(structured_recipe.instructions),
+                (time.perf_counter() - request_started) * 1000,
+            )
+            return JSONResponse(content=structured_recipe.model_dump(), status_code=200)
+        except Exception:
+            logger.exception(
+                "Text import request failed text_length=%s duration_ms=%.2f",
+                len(raw_text),
+                (time.perf_counter() - request_started) * 1000,
+            )
+            raise
+
     async def parse_image_with_ocr(self, image: UploadFile) -> str:
         file_name = image.filename or "<unknown>"
         content_type = image.content_type or "<unknown>"
@@ -310,10 +348,7 @@ class GenerateService:
         content_type = image.content_type or "<unknown>"
 
         try:
-
             ocr_text = await self.parse_image_with_ocr(image)
-
-            print(ocr_text)
 
             if not ocr_text.strip():
                 logger.warning("OCR produced no text filename=%s", file_name)
@@ -356,11 +391,8 @@ class GenerateService:
             raise HTTPException(status_code=500, detail="Recipe service is not available")
 
         recipe = await self.recipe_service.get_recipe(recipe_id)
-        
-        print(recipe)
-
-        print("Formatted recipe: ==============")
-        print(format_recipe_for_embedding(recipe))
+        logger.debug("Debug recipe loaded recipe_id=%s", recipe_id)
+        logger.debug("Formatted recipe: %s", format_recipe_for_embedding(recipe))
 
         return recipe
 

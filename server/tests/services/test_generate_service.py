@@ -1,7 +1,7 @@
 import asyncio
-from io import BytesIO
+from unittest.mock import AsyncMock
 
-from fastapi import UploadFile
+from fastapi import HTTPException
 
 from core.config import Settings
 from schemas.job import GenerateTextRequest, JobSource, JobStatus
@@ -76,15 +76,67 @@ def test_worker_marks_job_failed_when_provider_is_missing():
 def test_process_ocr_upload_returns_400_when_no_text_detected(monkeypatch):
     async def run():
         service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
-
-        monkeypatch.setattr("services.generate_service.Image.open", lambda _: type("ImageStub", (), {"format": "PNG", "width": 1, "height": 1})())
-        monkeypatch.setattr("services.generate_service.pytesseract.image_to_string", lambda _: "   ")
-
-        upload = UploadFile(filename="empty.png", file=BytesIO(b"fake-image"))
+        upload = type(
+            "UploadStub",
+            (),
+            {"filename": "empty.png", "content_type": "image/png"},
+        )()
+        monkeypatch.setattr(service, "parse_image_with_ocr", AsyncMock(return_value="   "))
 
         response = await service.process_ocr_upload(upload)
 
         assert response.status_code == 400
         assert response.body == b'{"error":"No text detected in image"}'
+
+    asyncio.run(run())
+
+
+def test_process_text_input_returns_400_when_text_is_blank():
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+
+        try:
+            await service.process_text_input(GenerateTextRequest(text="   "))
+        except HTTPException as exc:
+            assert exc.status_code == 400
+            assert exc.detail == "Text input is required"
+            return
+
+        raise AssertionError("Expected HTTPException for blank text")
+
+    asyncio.run(run())
+
+
+def test_process_text_input_returns_parsed_recipe(monkeypatch):
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+
+        monkeypatch.setattr(
+            service,
+            "parse_recipe_with_llm",
+            lambda prompt, text: type(
+                "RecipeExtractionStub",
+                (),
+                {
+                    "ingredients": [type("IngredientStub", (), {"name": "sugar", "amount": 1, "unit": "cup"})()],
+                    "instructions": ["Mix"],
+                    "model_dump": lambda self: {
+                        "recipe_name": "Brownies",
+                        "recipe_author": "",
+                        "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+                        "instructions": ["Mix"],
+                    },
+                },
+            )(),
+        )
+
+        response = await service.process_text_input(GenerateTextRequest(text="Brownies\n1 cup sugar\nMix"))
+
+        assert response.status_code == 200
+        assert response.body == (
+            b'{"recipe_name":"Brownies","recipe_author":"",'
+            b'"ingredients":[{"name":"sugar","amount":1,"unit":"cup"}],'
+            b'"instructions":["Mix"]}'
+        )
 
     asyncio.run(run())

@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from dependencies.auth import get_current_user_dep
 from dependencies.services import get_generate_service
-from schemas.auth import CurrentUser
 from schemas.job import GenerateTextRequest
 from services.generate_service import GenerateService
 
@@ -19,9 +18,8 @@ async def do_stuff(generate_service: GenerateService = Depends(get_generate_serv
 async def generate_text(
     body: GenerateTextRequest,
     generate_service: GenerateService = Depends(get_generate_service),
-    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
-    return await generate_service.enqueue_text_job(body, current_user)
+    return await generate_service.process_text_input(body)
 
 
 @router.post("/ocr")
@@ -35,7 +33,7 @@ async def generate_ocr(
 @router.get("/jobs")
 async def list_jobs(
     generate_service: GenerateService = Depends(get_generate_service),
-    current_user: CurrentUser = Depends(get_current_user_dep),
+    current_user=Depends(get_current_user_dep),
 ):
     return await generate_service.list_jobs(current_user)
 
@@ -44,6 +42,6 @@ async def list_jobs(
 async def get_job(
     job_id: str,
     generate_service: GenerateService = Depends(get_generate_service),
-    current_user: CurrentUser = Depends(get_current_user_dep),
+    current_user=Depends(get_current_user_dep),
 ):
     return await generate_service.get_job(job_id, current_user)

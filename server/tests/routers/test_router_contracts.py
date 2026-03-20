@@ -34,15 +34,6 @@ class FakeRecipeService:
             },
         }
 
-
-class FakeGenerateService:
-    async def process_ocr_upload(self, image):
-        return {
-            "recipe_name": "Brownies",
-            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
-            "instructions": ["Mix"],
-        }
-
     async def edit_recipe(self, recipe, current_user, image=None):
         return {
             "message": "Recipe edited successfully!",
@@ -61,6 +52,22 @@ class FakeGenerateService:
                 "cookbook_id": recipe.cookbook_id,
                 "modified_at": None,
             },
+        }
+
+
+class FakeGenerateService:
+    async def process_text_input(self, body):
+        return {
+            "recipe_name": "Brownies",
+            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            "instructions": ["Mix"],
+        }
+
+    async def process_ocr_upload(self, image):
+        return {
+            "recipe_name": "Brownies",
+            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            "instructions": ["Mix"],
         }
 
 
@@ -233,6 +240,35 @@ def test_generate_ocr_route_keeps_direct_upload_shape():
                 files={
                     "image": ("brownies.png", b"png-bytes", "image/png"),
                 },
+            )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "recipe_name": "Brownies",
+            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            "instructions": ["Mix"],
+        }
+
+    asyncio.run(run())
+
+
+def test_generate_text_route_keeps_direct_text_shape():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post(
+                "/api/generate/text",
+                json={"text": "Brownies\n1 cup sugar\nMix"},
             )
 
         assert response.status_code == 200
