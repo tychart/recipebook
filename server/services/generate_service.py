@@ -29,6 +29,12 @@ OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
 LLM_MODEL = os.getenv("LLM_MODEL", "lfm2.5-thinking")
 
+OCR_PARSER_PROMPT = """
+You are an expert at extracting structured data from messy OCR text.
+Ignore noise and formatting errors. For ingredients, strictly separate
+the numeric quantity from the unit of measurement.
+"""
+
 if OPENAI_API_KEY == "ollama":
     llm_client = OpenAI(
         base_url=OLLAMA_URL,
@@ -252,19 +258,15 @@ class GenerateService:
             owner_id=current_user.id,
         )
 
-    def parse_ocr_recipe_with_llm(self, ocr_text: str) -> RecipeExtraction:
+    def parse_recipe_with_llm(self, system_prompt: str, raw_text: str) -> RecipeExtraction:
         response = llm_client.beta.chat.completions.parse(
             model=LLM_MODEL,
             messages=[
                 {
                     "role": "system",
-                    "content": (
-                        "You are an expert at extracting structured data from messy OCR text. "
-                        "Ignore noise and formatting errors. For ingredients, strictly separate "
-                        "the numeric quantity from the unit of measurement."
-                    ),
+                    "content": system_prompt,
                 },
-                {"role": "user", "content": ocr_text},
+                {"role": "user", "content": raw_text},
             ],
             response_format=RecipeExtraction,
         )
@@ -274,49 +276,56 @@ class GenerateService:
 
         return response.choices[0].message.parsed
 
+    async def parse_image_with_ocr(self, image: UploadFile) -> str:
+        file_name = image.filename or "<unknown>"
+        content_type = image.content_type or "<unknown>"
+
+        logger.info(
+            "OCR request received filename=%s content_type=%s",
+            file_name,
+            content_type,
+        )
+
+        contents = await image.read()
+        img = Image.open(BytesIO(contents))
+        
+        raw_text = pytesseract.image_to_string(
+            image=img,
+            output_type=pytesseract.Output.STRING
+        )
+
+        logger.info(
+            "OCR text extracted filename=%s text_length=%s",
+            file_name,
+            len(raw_text),
+        )
+
+        logger.debug("OCR parsed text: %s", raw_text)
+
+        return raw_text
+
     async def process_ocr_upload(self, image: UploadFile):
         request_started = time.perf_counter()
         file_name = image.filename or "<unknown>"
         content_type = image.content_type or "<unknown>"
 
         try:
-            logger.info(
-                "OCR request received filename=%s content_type=%s",
-                file_name,
-                content_type,
-            )
 
-            contents = await image.read()
-            logger.info(
-                "OCR upload read filename=%s bytes=%s",
-                file_name,
-                len(contents),
-            )
+            ocr_text = await self.parse_image_with_ocr(image)
 
-            img = Image.open(BytesIO(contents))
-            logger.info(
-                "OCR image decoded filename=%s format=%s size=%sx%s",
-                file_name,
-                img.format,
-                img.width,
-                img.height,
-            )
+            print(ocr_text)
 
-            raw_text = pytesseract.image_to_string(img)
-            logger.info(
-                "OCR text extracted filename=%s text_length=%s",
-                file_name,
-                len(raw_text),
-            )
-
-            logger.debug("Parsed text: %s", raw_text)
-
-            if not raw_text.strip():
+            if not ocr_text.strip():
                 logger.warning("OCR produced no text filename=%s", file_name)
                 return JSONResponse(content={"error": "No text detected in image"}, status_code=400)
 
             logger.info("OCR starting LLM parse filename=%s model=%s", file_name, LLM_MODEL)
-            structured_recipe = self.parse_ocr_recipe_with_llm(raw_text)
+            
+            structured_recipe = self.parse_recipe_with_llm(
+                OCR_PARSER_PROMPT,
+                ocr_text
+            )
+            
             logger.info(
                 "OCR LLM parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
                 file_name,
