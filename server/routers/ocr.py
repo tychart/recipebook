@@ -6,7 +6,20 @@ from io import BytesIO
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from typing import List, Optional
+import re
 import os
+
+import logging
+import sys
+
+# Configure logging to STDOUT
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    stream=sys.stdout
+)
+logger = logging.getLogger("api-router")
+
 
 class Ingredient(BaseModel):
     name: str = Field(description="The name of the ingredient, e.g., 'all-purpose flour'")
@@ -20,6 +33,7 @@ class RecipeExtraction(BaseModel):
     instructions: List[str]
 
 OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 
 client = OpenAI(
     base_url=OLLAMA_URL,
@@ -30,21 +44,43 @@ router = APIRouter(
     prefix="/api/ocr",
     tags=["ocr"],)
 
+def clean_ocr_text(text: str) -> str:
+    # 1. Separate numbers from units (e.g., '1c' -> '1 c', '150g' -> '150 g')
+    text = re.sub(r'(\d+)([a-zA-Z]+)', r'\1 \2', text)
+    
+    # 2. Normalize common unicode fractions if they exist
+    unicode_fractions = {'½': ' 1/2', '⅓': ' 1/3', '¼': ' 1/4', '¾': ' 3/4'}
+    for char, replacement in unicode_fractions.items():
+        text = text.replace(char, replacement)
+    
+    return text
+
+FEW_SHOT_PROMPT = """You are an expert at extracting structured data from messy OCR text.
+Ignore noise and formatting errors. 
+
+RULES:
+1. QUANTITY: Convert all fractions (e.g., 1 1/2) to decimals (1.5). 
+2. UNITS: Always separate the unit from the quantity. If '1c' is found, unit is 'cup'.
+3. NOISE: Ignore page numbers or stray OCR characters.
+
+EXAMPLES:
+Input: "1 1/2 c all purpose flour"
+Output: {"name": "all-purpose flour", "amount": 1.5, "unit": "cup"}
+
+Input: "2tbsp sugar"
+Output: {"name": "sugar", "amount": 2.0, "unit": "tbsp"}
+
+Input: "salt to taste"
+Output: {"name": "salt", "amount": 0, "unit": "to taste"}
+"""
+
 def parse_recipe_with_llm(ocr_text: str) -> RecipeExtraction:
     """Helper function to query Ollama for structured data."""
     response = client.beta.chat.completions.parse(
-        #model="llama3.1:8b",
-        model="llama3.2",
+        model=OLLAMA_MODEL,
         messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are an expert at extracting structured data from messy OCR text. "
-                    "Ignore noise and formatting errors. For ingredients, strictly separate "
-                    "the numeric quantity from the unit of measurement."
-                ),
-            },
-            {"role": "user", "content": ocr_text},
+            {"role": "system", "content": FEW_SHOT_PROMPT},
+            {"role": "user", "content": f"Extract this recipe: \n{ocr_text}"},
         ],
         response_format=RecipeExtraction,
     )
@@ -64,7 +100,9 @@ async def process_recipe_image(image: UploadFile = File(...)):
         
         if not raw_text.strip():
             return JSONResponse(content={"error": "No text detected in image"}, status_code=400)
-
+        
+        cleaned_text = clean_ocr_text(raw_text)
+        logger.info(f"Cleaned OCR: {cleaned_text}")
         # 2. Extract structured data using the LLM
         structured_recipe = parse_recipe_with_llm(raw_text)
         
