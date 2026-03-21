@@ -12,8 +12,9 @@ def _categories_to_text(categories: list[str] | None) -> str:
 
 
 class CookbookService:
-    def __init__(self, repo: CookbookRepository):
+    def __init__(self, repo: CookbookRepository, auth_repo: AuthRepository):
         self.repo = repo
+        self.auth_repo = auth_repo
 
     async def get_cookbook_role(self, cookbook_id: int, user_id: int) -> RoleEnum | None:
         role_record = await self.repo.get_user_role(cookbook_id, user_id)
@@ -85,12 +86,20 @@ class CookbookService:
 
     async def share_cookbook(self, body: ShareCookbookRequest, current_user: CurrentUser) -> dict:
         await self.require_cookbook_role(body.book_id, current_user.id, [RoleEnum.owner])
+
         if body.role == RoleEnum.owner:
-            raise HTTPException(status_code=400, detail="Cannot share as owner; use transfer instead.")
-        await self.repo.upsert_shared_user(body.book_id, body.user_id, body.role.value)
+            raise HTTPException(status_code=400, detail="Cannot share as owner")
+
+        user = await self.auth_repo.get_user_by_email(body.email)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        await self.repo.upsert_shared_user(body.book_id, user.id, body.role.value)
+
         return {
             "message": "Cookbook shared successfully!",
             "book_id": body.book_id,
-            "user_id": body.user_id,
+            "user_id": user.id,
+            "email": user.email,
             "role": body.role.value,
         }

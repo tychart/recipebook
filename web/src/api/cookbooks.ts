@@ -63,7 +63,7 @@ export type CookbookRole = "viewer" | "contributor";
 
 export interface ShareCookbookRequest {
   book_id: number;
-  user_id: number;
+  email: string;
   role: CookbookRole;
 }
 

@@ -24,5 +24,5 @@ class CookbookRoleRecord(BaseModel):
 
 class ShareCookbookRequest(BaseModel):
     book_id: int
-    user_id: int
+    email: str
     role: RoleEnum = RoleEnum.viewer

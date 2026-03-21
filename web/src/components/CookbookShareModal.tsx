@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { shareCookbook } from "../api/cookbooks";
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -25,17 +26,40 @@ export default function CookbookShareModal({
     setLinkCopied(true);
   };
 
-  const addContributor = () => {
-    if (contributorsInput && !addedContributors.includes(contributorsInput)) {
-      setAddedContributors([...addedContributors, contributorsInput]);
+  const addContributor = async () => {
+    if (!contributorsInput || addedContributors.includes(contributorsInput))
+      return;
+
+    try {
+      await shareCookbook({
+        book_id: Number(cookbookId),
+        email: contributorsInput.trim(),
+        role: "contributor",
+      });
+
+      setAddedContributors([...addedContributors, contributorsInput.trim()]);
       setContributorsInput("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add contributor");
     }
   };
 
-  const addViewer = () => {
-    if (viewersInput && !addedViewers.includes(viewersInput)) {
-      setAddedViewers([...addedViewers, viewersInput]);
+  const addViewer = async () => {
+    if (!viewersInput || addedViewers.includes(viewersInput)) return;
+
+    try {
+      await shareCookbook({
+        book_id: Number(cookbookId),
+        email: viewersInput.trim(),
+        role: "viewer",
+      });
+
+      setAddedViewers([...addedViewers, viewersInput.trim()]);
       setViewersInput("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add viewer");
     }
   };
 
