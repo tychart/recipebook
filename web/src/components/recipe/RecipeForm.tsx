@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import type { Ingredient, RecipeInput, InstructionInput } from "../../../types/types";
+import { useEffect, useState } from "react";
+import type { Ingredient, RecipeInput } from "../../../types/types";
 import RecipeImage from "./RecipeImage";
 
 interface RecipeFormProps {
@@ -8,13 +8,6 @@ interface RecipeFormProps {
   submitLabel?: string;
 }
 
-// Ref type for ingredient row
-type IngredientRowRefs = {
-  amount?: HTMLInputElement | null;
-  unit?: HTMLInputElement | null;
-  name?: HTMLInputElement | null;
-};
-
 export default function RecipeForm({
   initialData,
   onSubmit,
@@ -22,43 +15,54 @@ export default function RecipeForm({
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
+  const [originalImageUrl, setOriginalImageUrl] = useState(initialData.image_url ?? "");
   const [tagInput, setTagInput] = useState(initialData.tags?.join(", ") ?? "");
 
-  // --- Refs for auto-focus ---
-  const ingredientRefs = useRef<IngredientRowRefs[]>([]);
-  const instructionRefs = useRef<HTMLInputElement[]>([]);
+  useEffect(() => {
+    setRecipe(initialData);
+    setOriginalImageUrl(initialData.image_url ?? "");
+    setTagInput(initialData.tags?.join(", ") ?? "");
+    setSelectedImageFile(undefined);
+  }, [initialData]);
 
-  // --- Generic Change Handler ---
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
+
     setRecipe((prev) => ({
       ...prev,
       [name]: name === "servings" ? Number(value) : value,
     }));
   };
 
-  // --- Ingredients Handlers ---
-  const handleIngredientChange = (index: number, field: keyof Ingredient, value: string | number) => {
+  const handleIngredientChange = (
+    index: number,
+    field: keyof Ingredient,
+    value: string | number,
+  ) => {
     setRecipe((prev) => {
       const updated = [...prev.ingredients];
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+      };
       return { ...prev, ingredients: updated };
     });
   };
 
-  const handleAddIngredient = (focusIndex?: number) => {
+  const handleAddIngredient = () => {
     setRecipe((prev) => ({
       ...prev,
-      ingredients: [...prev.ingredients, { amount: 0, unit: "", name: "" }],
+      ingredients: [
+        ...prev.ingredients,
+        {
+          amount: 0,
+          unit: "",
+          name: "",
+        },
+      ],
     }));
-
-    // Focus after render
-    setTimeout(() => {
-      const idx = focusIndex ?? recipe.ingredients.length;
-      ingredientRefs.current[idx]?.amount?.focus();
-    }, 0);
   };
 
   const handleRemoveIngredient = (index: number) => {
@@ -68,54 +72,44 @@ export default function RecipeForm({
     }));
   };
 
-  // --- Instructions Handlers ---
   const handleInstructionChange = (index: number, value: string) => {
     setRecipe((prev) => {
-      const updated = [...(prev.instructions as InstructionInput[])];
-      updated[index] = { ...updated[index], instruction_text: value, instruction_number: index + 1 };
+      const updated = [...(prev.instructions ?? [])];
+      updated[index] = value;
       return { ...prev, instructions: updated };
     });
   };
 
-  const handleAddInstruction = (focusIndex?: number) => {
+  const handleAddInstruction = () => {
     setRecipe((prev) => ({
       ...prev,
-      instructions: [
-        ...(prev.instructions as InstructionInput[]),
-        { instruction_number: (prev.instructions?.length ?? 0) + 1, instruction_text: "" },
-      ],
+      instructions: [...(prev.instructions ?? []), ""],
     }));
-
-    setTimeout(() => {
-      const idx = focusIndex ?? (recipe.instructions?.length ?? 0);
-      instructionRefs.current[idx]?.focus();
-    }, 0);
   };
 
   const handleRemoveInstruction = (index: number) => {
-    setRecipe((prev) => {
-      const updated = [...(prev.instructions as InstructionInput[])];
-      updated.splice(index, 1);
-      return {
-        ...prev,
-        instructions: updated.map((inst, i) => ({ ...inst, instruction_number: i + 1 })),
-      };
-    });
+    setRecipe((prev) => ({
+      ...prev,
+      instructions: (prev.instructions ?? []).filter((_, i) => i !== index),
+    }));
   };
 
-  // --- Submit Handler ---
   const handleSubmit = () => {
-    const parsedTags = tagInput.split(",").map((t) => t.trim()).filter(Boolean);
+    const parsedTags = tagInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
     onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
   };
 
+  // Category options
   const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
 
   return (
     <div className="py-10 max-w-4xl mx-auto">
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-8 border border-stone-200 space-y-8">
-
-        {/* Recipe Image */}
+        {/* Image */}
         <RecipeImage
           imageUrl={recipe.image_url}
           editable
@@ -124,24 +118,33 @@ export default function RecipeForm({
             const input = document.createElement("input");
             input.type = "file";
             input.accept = "image/*";
-            input.onchange = (e: any) => {
-              const file = e.target.files[0];
+            input.onchange = (e: Event) => {
+              const target = e.target as HTMLInputElement;
+              const file = target.files?.[0];
               if (file) {
                 setSelectedImageFile(file);
-                setRecipe((prev) => ({ ...prev, image_url: URL.createObjectURL(file) }));
+                setRecipe((prev) => ({
+                  ...prev,
+                  image_url: URL.createObjectURL(file),
+                }));
               }
             };
             input.click();
           }}
           onRemoveClick={() => {
             setSelectedImageFile(undefined);
-            setRecipe((prev) => ({ ...prev, image_url: "" }));
+            setRecipe((prev) => ({
+              ...prev,
+              image_url: originalImageUrl,
+            }));
           }}
         />
 
-        {/* Name, Description, Category, Tags, Servings */}
+        {/* Name */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">Recipe Name</label>
+          <label className="block mb-2 font-medium text-stone-700">
+            Recipe Name
+          </label>
           <input
             type="text"
             name="name"
@@ -151,8 +154,11 @@ export default function RecipeForm({
           />
         </div>
 
+        {/* Description */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">Description</label>
+          <label className="block mb-2 font-medium text-stone-700">
+            Description
+          </label>
           <textarea
             name="description"
             value={recipe.description ?? ""}
@@ -162,21 +168,33 @@ export default function RecipeForm({
           />
         </div>
 
+        {/* Category */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">Category</label>
+          <label className="block mb-2 font-medium text-stone-700">
+            Category
+          </label>
           <select
             name="category"
             value={recipe.category || ""}
             onChange={handleChange}
             className="w-48 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
           >
-            <option value="" disabled>Select a category</option>
-            {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+            <option value="" disabled>
+              Select a category
+            </option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
           </select>
         </div>
 
+        {/* Tags */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">Tags (comma separated)</label>
+          <label className="block mb-2 font-medium text-stone-700">
+            Tags (comma separated)
+          </label>
           <input
             type="text"
             value={tagInput}
@@ -186,8 +204,11 @@ export default function RecipeForm({
           />
         </div>
 
+        {/* Servings */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">Servings</label>
+          <label className="block mb-2 font-medium text-stone-700">
+            Servings
+          </label>
           <input
             type="number"
             name="servings"
@@ -200,10 +221,13 @@ export default function RecipeForm({
         {/* Ingredients */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-stone-800">Ingredients</h2>
+            <h2 className="text-xl font-semibold text-stone-800">
+              Ingredients
+            </h2>
+
             <button
               type="button"
-              onClick={() => handleAddIngredient()}
+              onClick={handleAddIngredient}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold hover:bg-amber-600 transition"
             >
               +
@@ -212,64 +236,45 @@ export default function RecipeForm({
 
           <div className="space-y-3">
             {recipe.ingredients.map((ingredient, index) => (
-              <div key={index} className="flex gap-3 items-center w-full">
-
-                {/* Amount */}
+              <div key={index} className="flex gap-3 items-center">
                 <input
                   type="number"
                   value={ingredient.amount}
-                  onChange={(e) => handleIngredientChange(index, "amount", Number(e.target.value))}
+                  onChange={(e) =>
+                    handleIngredientChange(
+                      index,
+                      "amount",
+                      Number(e.target.value),
+                    )
+                  }
                   placeholder="Amount"
                   className="w-24 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-                  ref={(el) => { ingredientRefs.current[index] = { ...ingredientRefs.current[index], amount: el }; }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddIngredient(index + 1);
-                      setTimeout(() => ingredientRefs.current[index + 1]?.amount?.focus(), 0);
-                    }
-                  }}
                 />
 
-                {/* Unit */}
                 <input
                   type="text"
                   value={ingredient.unit}
-                  onChange={(e) => handleIngredientChange(index, "unit", e.target.value)}
+                  onChange={(e) =>
+                    handleIngredientChange(index, "unit", e.target.value)
+                  }
                   placeholder="Unit"
                   className="w-28 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-                  ref={(el) => { ingredientRefs.current[index] = { ...ingredientRefs.current[index], unit: el }; }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddIngredient(index + 1);
-                      setTimeout(() => ingredientRefs.current[index + 1]?.amount?.focus(), 0);
-                    }
-                  }}
                 />
 
-                {/* Name */}
                 <input
                   type="text"
                   value={ingredient.name}
-                  onChange={(e) => handleIngredientChange(index, "name", e.target.value)}
+                  onChange={(e) =>
+                    handleIngredientChange(index, "name", e.target.value)
+                  }
                   placeholder="Ingredient"
                   className="flex-1 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-                  ref={(el) => { ingredientRefs.current[index] = { ...ingredientRefs.current[index], name: el }; }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddIngredient(index + 1);
-                      setTimeout(() => ingredientRefs.current[index + 1]?.amount?.focus(), 0);
-                    }
-                  }}
                 />
 
-                {/* Remove */}
                 <button
                   type="button"
                   onClick={() => handleRemoveIngredient(index)}
-                  className="w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-700 text-lg rounded-full"
+                  className="text-red-500 hover:text-red-700 text-xl"
                 >
                   ×
                 </button>
@@ -277,7 +282,9 @@ export default function RecipeForm({
             ))}
 
             {recipe.ingredients.length === 0 && (
-              <p className="text-stone-400 text-sm">Click + to add your first ingredient</p>
+              <p className="text-stone-400 text-sm">
+                Click + to add your first ingredient
+              </p>
             )}
           </div>
         </div>
@@ -285,10 +292,13 @@ export default function RecipeForm({
         {/* Instructions */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-stone-800">Instructions</h2>
+            <h2 className="text-xl font-semibold text-stone-800">
+              Instructions
+            </h2>
+
             <button
               type="button"
-              onClick={() => handleAddInstruction()}
+              onClick={handleAddInstruction}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold hover:bg-amber-600 transition"
             >
               +
@@ -296,33 +306,36 @@ export default function RecipeForm({
           </div>
 
           <div className="space-y-3">
-            {(recipe.instructions as InstructionInput[]).map((inst, index) => (
-              <div key={index} className="flex gap-3 items-center w-full">
-                <span className="w-6 text-right text-stone-700 select-none">{index + 1}.</span>
+            {(recipe.instructions ?? []).map((step, index) => (
+              <div key={index} className="flex gap-3 items-center">
+                <span className="text-stone-500 font-medium w-8 shrink-0">
+                  {index + 1}.
+                </span>
                 <input
                   type="text"
-                  value={inst.instruction_text}
-                  onChange={(e) => handleInstructionChange(index, e.target.value)}
-                  placeholder="Instruction"
-                  className="flex-1 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
-                  ref={(el) => { instructionRefs.current[index] = el!; }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddInstruction(index + 1);
-                      setTimeout(() => instructionRefs.current[index + 1]?.focus(), 0);
-                    }
-                  }}
+                  value={step}
+                  onChange={(e) =>
+                    handleInstructionChange(index, e.target.value)
+                  }
+                  placeholder={`Step ${index + 1}`}
+                  className="flex-[3] min-w-0 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
                 />
+
                 <button
                   type="button"
                   onClick={() => handleRemoveInstruction(index)}
-                  className="w-8 h-8 flex items-center justify-center text-red-500 hover:text-red-700 text-lg rounded-full"
+                  className="flex-1 text-red-500 hover:text-red-700 text-xl min-w-0 flex items-center justify-center"
                 >
                   ×
                 </button>
               </div>
             ))}
+
+            {(recipe.instructions ?? []).length === 0 && (
+              <p className="text-stone-400 text-sm">
+                Click + to add your first instruction
+              </p>
+            )}
           </div>
         </div>
 
@@ -338,7 +351,6 @@ export default function RecipeForm({
           />
         </div>
 
-        {/* Submit */}
         <div className="pt-4">
           <button
             type="button"
@@ -348,7 +360,6 @@ export default function RecipeForm({
             {submitLabel}
           </button>
         </div>
-
       </div>
     </div>
   );

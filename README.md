@@ -87,6 +87,15 @@ docker compose up --build
 
 After this, the webpage will be accessable at [http://localhost:8650](http://localhost:8650)
 
+**Database migrations:** The backend runs schema migrations automatically on startup (e.g. adding the `instructions` table if it was missing). If you prefer to run migrations yourself, use the same Postgres user as in your `.env` (e.g. `RecipeAdmin` from `.env.example`). Either source `.env` first or substitute the username:
+
+```bash
+source .env
+docker compose exec -T recipebook-db psql -U "${PG_USER}" -d recipebook < db/migrations/001_add_instructions_if_missing.sql
+```
+
+If `PG_USER` isn’t set in your shell, use the username from your `.env` literally, e.g. `-U RecipeAdmin`.
+
 ## Building for Development
 
 Steps to deploy project so far

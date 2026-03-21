@@ -1,27 +1,26 @@
-import type { Recipe, RecipeInput, InstructionInput } from "../../types/types";
+import type { Recipe, RecipeInput } from "../../types/types";
 import { authFetch } from "./client";
 
 const API_BASE = "/api/recipe";
 
-/**
- * Normalize recipe from API response to match frontend types.
- * Ensures `instructions` is InstructionInput[]
- */
-function normalizeRecipeFromApi(raw: Record<string, any>): Recipe {
-  const instructions: InstructionInput[] = Array.isArray(raw.instructions)
-    ? raw.instructions.map((i: any, index) => ({
-        instruction_id: i.instruction_id,
-        recipe_id: i.recipe_id,
-        instruction_number: i.instruction_number ?? index + 1,
-        instruction_text: i.instruction_text ?? "",
-      }))
-    : [];
 
-  return { ...raw, instructions } as Recipe;
+/**
+ * Backend returns instructions as array of { instruction_number, instruction_text }.
+ * Normalize to string for frontend display (RecipePage, Instructions component).
+ */
+function normalizeRecipeFromApi(raw: Record<string, unknown>): Recipe {
+  const instructionsStr = Array.isArray(raw.instructions)
+    ? (raw.instructions as { instruction_text?: string }[])
+        .map((i) => (i && typeof i.instruction_text === "string" ? i.instruction_text : ""))
+        .join("\n")
+    : String(raw.instructions ?? "");
+  return { ...raw, instructions: instructionsStr } as Recipe;
 }
 
 /**
- * List recipes for a cookbook
+ * Fetch all recipes for a given cookbook.
+ * @param cookbookId - The ID of the cookbook
+ * @returns Array of Recipe objects
  */
 export async function listRecipes(cookbookId: number): Promise<Recipe[]> {
   const res = await authFetch(`${API_BASE}/list/${cookbookId}`);
@@ -30,33 +29,57 @@ export async function listRecipes(cookbookId: number): Promise<Recipe[]> {
   return Array.isArray(data) ? data.map(normalizeRecipeFromApi) : [];
 }
 
-/**
- * Get a single recipe
- */
+// Get recipe function
 export const getRecipe = async (id: number): Promise<Recipe> => {
-  const res = await authFetch(`${API_BASE}/get/${id}`);
-  if (!res.ok) throw new Error("Failed to fetch recipe");
-  const data = await res.json();
+  const response = await authFetch(`${API_BASE}/get/${id}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recipe");
+  }
+
+  const data = await response.json();
   return normalizeRecipeFromApi(data);
 };
 
+
+type InstructionBackend = { instruction_number: number; instruction_text: string };
+
 /**
- * Convert InstructionInput[] to backend format
+ * Convert instructions (string or string[]) to backend format.
  */
-function instructionsForBackend(instructions: InstructionInput[] = []) {
-  return instructions.map((i, index) => ({
-    instruction_number: i.instruction_number ?? index + 1,
-    instruction_text: i.instruction_text,
-  }));
+function instructionsToBackendFormat(
+  instructions: string | string[] | undefined
+): InstructionBackend[] {
+  if (Array.isArray(instructions)) {
+    return instructions
+      .map((text) => (typeof text === "string" ? text : "").trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  if (typeof instructions === "string" && instructions.trim()) {
+    return instructions
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((instruction_text, i) => ({ instruction_number: i + 1, instruction_text }));
+  }
+  return [];
 }
 
 /**
- * Create a new recipe
+ * Create a new recipe in a cookbook
+ * @param recipe RecipeInput object
+ * @param imageFile Optional image file
  */
-export async function createRecipe(recipe: RecipeInput) {
-  const cookbookId = recipe.cookbook_id ?? 0;
+export async function createRecipe(recipe: RecipeInput, imageFile?: File) {
+  return createRecipeWithImage(recipe, imageFile);
+}
 
-  const body = {
+
+function buildRecipePayload(recipe: RecipeInput, id?: number) {
+  const cookbookId = recipe.cookbook_id ?? 0;
+  return {
+    ...(id !== undefined ? { id } : {}),
     name: recipe.name,
     description: recipe.description ?? "",
     notes: recipe.notes ?? null,
@@ -71,13 +94,26 @@ export async function createRecipe(recipe: RecipeInput) {
       unit: ing.unit ?? "",
       name: ing.name,
     })),
-    instructions: instructionsForBackend(recipe.instructions),
+    instructions: instructionsToBackendFormat(recipe.instructions ?? ""),
   };
+}
 
+
+function buildRecipeFormData(recipe: RecipeInput, imageFile?: File, id?: number): FormData {
+  const formData = new FormData();
+  formData.append("recipe", JSON.stringify(buildRecipePayload(recipe, id)));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+  return formData;
+}
+
+
+export async function createRecipeWithImage(recipe: RecipeInput, imageFile?: File) {
+  const cookbookId = recipe.cookbook_id ?? 0;
   const res = await authFetch(`${API_BASE}/create/${cookbookId}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: buildRecipeFormData(recipe, imageFile),
   });
 
   if (!res.ok) {
@@ -89,33 +125,23 @@ export async function createRecipe(recipe: RecipeInput) {
   return res.json();
 }
 
-/**
- * Update an existing recipe
- */
-export async function updateRecipe(id: number, data: RecipeInput): Promise<Recipe> {
-  const body = {
-    id,
-    name: data.name,
-    description: data.description ?? "",
-    notes: data.notes ?? null,
-    servings: data.servings,
-    creator_id: data.creator_id,
-    category: data.category ?? "Main",
-    image_url: data.image_url ?? null,
-    tags: data.tags ?? [],
-    cookbook_id: data.cookbook_id ?? 0,
-    ingredients: data.ingredients.map((ing) => ({
-      amount: ing.amount,
-      unit: ing.unit ?? "",
-      name: ing.name,
-    })),
-    instructions: instructionsForBackend(data.instructions),
-  };
 
+// Update recipe function
+export async function updateRecipe(
+  id: number,
+  data: RecipeInput,
+  imageFile?: File,
+): Promise<Recipe> {
   const res = await authFetch(`${API_BASE}/edit`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: buildRecipeFormData(
+      {
+        ...data,
+        instructions: data.instructions ?? "",
+      },
+      imageFile,
+      id,
+    ),
   });
 
   if (!res.ok) {
@@ -123,7 +149,5 @@ export async function updateRecipe(id: number, data: RecipeInput): Promise<Recip
     console.error("Server response:", text);
     throw new Error("Failed to update recipe");
   }
-
-  const result = await res.json();
-  return normalizeRecipeFromApi(result);
+  return res.json();
 }

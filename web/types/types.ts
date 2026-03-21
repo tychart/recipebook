@@ -60,7 +60,7 @@ export interface Recipe {
   id: number;
   name: string;
   ingredients: Ingredient[];
-  instructions: Instruction[];
+  instructions: string;
   notes?: string;
   description?: string;
   servings: number;
@@ -77,14 +77,14 @@ export interface RecipeInput {
   name: string;
   description?: string;
   servings: number;
-  instructions: InstructionInput[];
+  instructions: string[];
   notes?: string;
   image_url?: string;
   ingredients: IngredientInput[];
   cookbook_id?: number;
   creator_id?: number;
   category?: string;
-  tags?: string[];
+  tags?: string[]; // array of tag strings
 }
 
 export interface User {
@@ -92,16 +92,3 @@ export interface User {
   username: string;
   email: string;
 }
-
-/* ===========================
-   Instruction
-=========================== */
-
-export interface Instruction {
-  instruction_id?: number;
-  recipe_id?: number;
-  instruction_number: number;
-  instruction_text: string;
-}
-
-export type InstructionInput = Omit<Instruction, "instruction_id" | "recipe_id">;
