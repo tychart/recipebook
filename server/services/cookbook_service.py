@@ -1,8 +1,10 @@
 from fastapi import HTTPException
 
 from repositories.cookbook_repo import CookbookRepository
+from repositories.auth_repo import AuthRepository
 from schemas.auth import CurrentUser
 from schemas.cookbook import Cookbook, RoleEnum, ShareCookbookRequest
+
 
 
 def _categories_to_text(categories: list[str] | None) -> str:

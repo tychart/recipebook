@@ -14,7 +14,7 @@ import RecipePage from "./pages/recipe/RecipePage";
 import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+// import ProtectedRoute from "./components/ProtectedRoute";
 import RecipeOptions from "./pages/recipe/RecipeOptions";
 
 function App() {
