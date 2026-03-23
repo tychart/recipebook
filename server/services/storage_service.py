@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
@@ -8,6 +9,8 @@ from botocore.exceptions import ClientError, EndpointConnectionError
 from fastapi import HTTPException, UploadFile
 
 from core.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class StorageService:
@@ -25,7 +28,7 @@ class StorageService:
 
     def ensure_bucket_exists(self) -> None:
         if self.settings.s3_key is None or self.settings.s3_secret is None:
-            print(
+            logger.warning(
                 "S3 credentials are missing, are you sure that you defined S3_KEY and S3_SECRET? "
                 "Also are you sure that you are importing your .env file properly? "
                 "(uvicorn main:app --env-file ../.env --reload)"
@@ -34,13 +37,41 @@ class StorageService:
 
         try:
             self.client.head_bucket(Bucket=self.settings.s3_bucket)
-        except ClientError:
-            self.client.create_bucket(Bucket=self.settings.s3_bucket)
+        except ClientError as exc:
+            error = exc.response.get("Error", {})
+            error_code = str(error.get("Code", ""))
+            status_code = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+
+            if error_code in {"404", "NoSuchBucket", "NotFound"} or status_code == 404:
+                logger.info("S3 bucket does not exist yet; creating bucket=%s", self.settings.s3_bucket)
+                self.client.create_bucket(Bucket=self.settings.s3_bucket)
+                return
+
+            if error_code in {"403", "AccessDenied"} or status_code == 403:
+                logger.warning(
+                    "S3 bucket check was forbidden bucket=%s endpoint=%s. "
+                    "The bucket may already exist, but the configured credentials or signature style "
+                    "do not permit HeadBucket. Skipping auto-create.",
+                    self.settings.s3_bucket,
+                    self.settings.s3_endpoint,
+                )
+                return
+
+            raise RuntimeError(
+                f"Failed to verify S3 bucket '{self.settings.s3_bucket}' at "
+                f"{self.settings.s3_endpoint}: {error_code or 'unknown client error'}"
+            ) from exc
         except EndpointConnectionError:
-            print(
-                f"WARNING: Could not reach S3 at {self.settings.s3_endpoint}. "
-                "App will start but image uploads will fail."
+            logger.warning(
+                "Could not reach S3 at %s. App will start but image uploads will fail.",
+                self.settings.s3_endpoint,
             )
+            return
+        except Exception as exc:
+            raise RuntimeError(
+                f"Unexpected error while verifying S3 bucket '{self.settings.s3_bucket}' "
+                f"at {self.settings.s3_endpoint}"
+            ) from exc
 
     def generate_filename(self, original_name: str | None) -> str:
         name = original_name or "upload"
