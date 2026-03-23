@@ -22,6 +22,12 @@ class CookbookRoleRecord(BaseModel):
     role: RoleEnum
 
 
+class CookbookMember(BaseModel):
+    user_id: int
+    username: str
+    email: str
+
+
 class ShareCookbookRequest(BaseModel):
     book_id: int
     user_id: int

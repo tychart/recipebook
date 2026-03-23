@@ -148,3 +148,26 @@ class CookbookRepository:
         if row is None or row["role"] is None:
             return None
         return CookbookRoleRecord(role=RoleEnum(row["role"]))
+
+    async def list_cookbook_contributors_and_viewers(
+        self, cookbook_id: int
+    ) -> tuple[list[tuple[int, str, str]], list[tuple[int, str, str]]]:
+        rows = await self.conn.fetch(
+            """
+            SELECT cu.User_ID AS user_id, u.Username AS username, u.Email AS email, cu.Role::text AS role
+            FROM Cookbook_Users cu
+            INNER JOIN Users u ON u.User_ID = cu.User_ID
+            WHERE cu.Book_ID = $1 AND cu.Role IN ('contributor', 'viewer')
+            ORDER BY LOWER(u.Username)
+            """,
+            cookbook_id,
+        )
+        contributors: list[tuple[int, str, str]] = []
+        viewers: list[tuple[int, str, str]] = []
+        for row in rows:
+            pair = (row["user_id"], row["username"], row["email"])
+            if row["role"] == RoleEnum.contributor.value:
+                contributors.append(pair)
+            else:
+                viewers.append(pair)
+        return contributors, viewers
