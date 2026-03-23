@@ -60,7 +60,16 @@ class CookbookService:
 
     async def list_cookbooks(self, current_user: CurrentUser) -> list[dict]:
         cookbooks = await self.repo.list_cookbooks_for_user(current_user.id)
-        return [cookbook.model_dump() for cookbook in cookbooks]
+        result: list[dict] = []
+        for cookbook in cookbooks:
+            role = await self.get_cookbook_role(cookbook.id, current_user.id)
+            result.append(
+                {
+                    **cookbook.model_dump(),
+                    "current_user_role": role.value if role is not None else None,
+                }
+            )
+        return result
 
     async def edit_cookbook(self, cookbook: Cookbook, current_user: CurrentUser) -> dict:
         if cookbook.id is None:
