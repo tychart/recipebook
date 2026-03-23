@@ -6,6 +6,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import { getCookbook } from "../../api/cookbooks";
 
+type ParsedRecipeResponse = {
+  recipe_name?: string;
+  instructions?: string[];
+  ingredients?: { name: string; amount: number; unit: string }[];
+};
+
 export default function RecipeNew() {
   const { cookbookId } = useParams<{ cookbookId?: string }>();
   const navigate = useNavigate();
@@ -13,6 +19,8 @@ export default function RecipeNew() {
   
   const [cookbook, setCookbook] = useState<Cookbook | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isTextImportOpen, setIsTextImportOpen] = useState(false);
+  const [textImportValue, setTextImportValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Move initial state into React state so it can be updated by OCR
@@ -43,6 +51,20 @@ export default function RecipeNew() {
     fetchCookbook();
   }, [cookbookId]);
 
+  const applyParsedRecipe = (parsedRecipe: ParsedRecipeResponse) => {
+    setRecipeData((prev) => ({
+      ...prev,
+      name: parsedRecipe.recipe_name || prev.name,
+      instructions: parsedRecipe.instructions ?? prev.instructions,
+      ingredients:
+        parsedRecipe.ingredients?.map((ing) => ({
+          name: ing.name,
+          amount: ing.amount,
+          unit: ing.unit,
+        })) || prev.ingredients,
+    }));
+  };
+
   const handleOCRUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -52,25 +74,41 @@ export default function RecipeNew() {
     formData.append("image", file);
 
     try {
-      const response = await fetch("/api/ocr/process-recipe", {
+      const response = await fetch("/api/generate/ocr", {
         method: "POST",
         body: formData,
       });
       const ocrData = await response.json();
 
-      setRecipeData((prev) => ({
-        ...prev,
-        name: ocrData.recipe_name || prev.name,
-        instructions: ocrData.instructions ?? prev.instructions,
-        ingredients: ocrData.ingredients?.map((ing: any) => ({
-          name: ing.name,
-          amount: ing.amount,
-          unit: ing.unit,
-        })) || prev.ingredients,
-      }));
+      applyParsedRecipe(ocrData);
     } catch (error) {
       console.error("OCR Error:", error);
       alert("Failed to process image.");
+    } finally {
+      setIsProcessing(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleTextImport = async () => {
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch("/api/generate/text", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: textImportValue }),
+      });
+      const textData = await response.json();
+
+      applyParsedRecipe(textData);
+      setIsTextImportOpen(false);
+      setTextImportValue("");
+    } catch (error) {
+      console.error("Text import error:", error);
+      alert("Failed to import recipe text.");
     } finally {
       setIsProcessing(false);
     }
@@ -108,13 +146,19 @@ export default function RecipeNew() {
         </div>
 
         <div className="flex gap-3">
-          {/* OCR Upload Button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 disabled:opacity-50"
           >
             {isProcessing ? "Processing..." : "✨ Scan from Image"}
+          </button>
+          <button
+            onClick={() => setIsTextImportOpen((prev) => !prev)}
+            disabled={isProcessing}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-100 text-stone-700 border border-stone-300 hover:bg-stone-200 disabled:opacity-50"
+          >
+            Import from Text
           </button>
           <input
             type="file"
@@ -133,7 +177,39 @@ export default function RecipeNew() {
         </div>
       </div>
 
-      {/* Key: Adding 'key' helps React reset the form state when recipeData changes */}
+      {isTextImportOpen && (
+        <div className="mb-8 max-w-4xl mx-auto rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <label className="block text-sm font-medium text-stone-700 mb-2">
+            Paste recipe text
+          </label>
+          <textarea
+            value={textImportValue}
+            onChange={(event) => setTextImportValue(event.target.value)}
+            placeholder="Paste a recipe, blog excerpt, or handwritten transcription here..."
+            className="w-full min-h-48 rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
+          />
+          <div className="mt-3 flex gap-3">
+            <button
+              onClick={handleTextImport}
+              disabled={isProcessing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50"
+            >
+              {isProcessing ? "Processing..." : "Submit Text"}
+            </button>
+            <button
+              onClick={() => {
+                setIsTextImportOpen(false);
+                setTextImportValue("");
+              }}
+              disabled={isProcessing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-100 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <RecipeForm
         key={recipeData.name} 
         initialData={recipeData}
