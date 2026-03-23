@@ -1,9 +1,9 @@
 from fastapi import HTTPException
 
 from repositories.cookbook_repo import CookbookRepository
-from repositories.auth_repo import AuthRepository
 from schemas.auth import CurrentUser
 from schemas.cookbook import Cookbook, RoleEnum, ShareCookbookRequest
+from services.auth_service import AuthService
 
 
 
@@ -14,9 +14,9 @@ def _categories_to_text(categories: list[str] | None) -> str:
 
 
 class CookbookService:
-    def __init__(self, repo: CookbookRepository, auth_repo: AuthRepository):
+    def __init__(self, repo: CookbookRepository, auth_service: AuthService):
         self.repo = repo
-        self.auth_repo = auth_repo
+        self.auth_service = auth_service
 
     async def get_cookbook_role(self, cookbook_id: int, user_id: int) -> RoleEnum | None:
         role_record = await self.repo.get_user_role(cookbook_id, user_id)
@@ -92,7 +92,12 @@ class CookbookService:
         if body.role == RoleEnum.owner:
             raise HTTPException(status_code=400, detail="Cannot share as owner")
 
-        user = await self.auth_repo.get_user_by_email(body.email)
+        owner_email = current_user.email.strip().lower()
+        recipient_email = str(body.email)
+        if recipient_email == owner_email:
+            raise HTTPException(status_code=400, detail="Owner already has access")
+
+        user = await self.auth_service.get_user_record_by_email(recipient_email)
         if user is None:
             raise HTTPException(status_code=404, detail="User not found")
 
