@@ -2,7 +2,7 @@ from fastapi import HTTPException
 
 from repositories.cookbook_repo import CookbookRepository
 from schemas.auth import CurrentUser
-from schemas.cookbook import Cookbook, RoleEnum, ShareCookbookRequest
+from schemas.cookbook import Cookbook, CookbookMember, RoleEnum, ShareCookbookRequest
 
 
 def _categories_to_text(categories: list[str] | None) -> str:
@@ -38,15 +38,21 @@ class CookbookService:
         }
 
     async def get_cookbook(self, cookbook_id: int, current_user: CurrentUser) -> dict:
-        await self.require_cookbook_role(
-            cookbook_id,
-            current_user.id,
-            [RoleEnum.owner, RoleEnum.contributor, RoleEnum.viewer],
-        )
+        role = await self.get_cookbook_role(cookbook_id, current_user.id)
+        if role is None or role not in (RoleEnum.owner, RoleEnum.contributor, RoleEnum.viewer):
+            raise HTTPException(status_code=403, detail="Not allowed for this cookbook")
         cookbook = await self.repo.get_cookbook(cookbook_id)
         if cookbook is None:
             raise HTTPException(status_code=404, detail="Cookbook not found")
-        return cookbook.model_dump()
+        contributors_rows, viewers_rows = await self.repo.list_cookbook_contributors_and_viewers(cookbook_id)
+        return {
+            **cookbook.model_dump(),
+            "current_user_role": role.value,
+            "contributors": [
+                CookbookMember(user_id=uid, username=name).model_dump() for uid, name in contributors_rows
+            ],
+            "viewers": [CookbookMember(user_id=uid, username=name).model_dump() for uid, name in viewers_rows],
+        }
 
     async def list_cookbooks(self, current_user: CurrentUser) -> list[dict]:
         cookbooks = await self.repo.list_cookbooks_for_user(current_user.id)
