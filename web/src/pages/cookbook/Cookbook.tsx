@@ -63,7 +63,7 @@ export default function Cookbook() {
           {/* TODO: Disable adding recipe button if user is not a contributor or admin */}
           <Link
             to={`/cookbook/${id}/recipe/new`}
-            className="w-auto"
+            className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
           >
             Add recipe
           </Link>
@@ -71,7 +71,7 @@ export default function Cookbook() {
           {/* TODO: Disable Manage Access button if user is not admin */}
           <button
             onClick={() => setShowShare(true)}
-            className="w-auto"
+            className="w-40"
             disabled={false}
           >
             Manage Access
