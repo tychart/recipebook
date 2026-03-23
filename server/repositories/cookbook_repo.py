@@ -151,10 +151,10 @@ class CookbookRepository:
 
     async def list_cookbook_contributors_and_viewers(
         self, cookbook_id: int
-    ) -> tuple[list[tuple[int, str]], list[tuple[int, str]]]:
+    ) -> tuple[list[tuple[int, str, str]], list[tuple[int, str, str]]]:
         rows = await self.conn.fetch(
             """
-            SELECT cu.User_ID AS user_id, u.Username AS username, cu.Role::text AS role
+            SELECT cu.User_ID AS user_id, u.Username AS username, u.Email AS email, cu.Role::text AS role
             FROM Cookbook_Users cu
             INNER JOIN Users u ON u.User_ID = cu.User_ID
             WHERE cu.Book_ID = $1 AND cu.Role IN ('contributor', 'viewer')
@@ -162,10 +162,10 @@ class CookbookRepository:
             """,
             cookbook_id,
         )
-        contributors: list[tuple[int, str]] = []
-        viewers: list[tuple[int, str]] = []
+        contributors: list[tuple[int, str, str]] = []
+        viewers: list[tuple[int, str, str]] = []
         for row in rows:
-            pair = (row["user_id"], row["username"])
+            pair = (row["user_id"], row["username"], row["email"])
             if row["role"] == RoleEnum.contributor.value:
                 contributors.append(pair)
             else:

@@ -25,6 +25,7 @@ class CookbookRoleRecord(BaseModel):
 class CookbookMember(BaseModel):
     user_id: int
     username: str
+    email: str
 
 
 class ShareCookbookRequest(BaseModel):

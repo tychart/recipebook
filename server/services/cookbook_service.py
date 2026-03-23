@@ -49,9 +49,13 @@ class CookbookService:
             **cookbook.model_dump(),
             "current_user_role": role.value,
             "contributors": [
-                CookbookMember(user_id=uid, username=name).model_dump() for uid, name in contributors_rows
+                CookbookMember(user_id=uid, username=name, email=email).model_dump()
+                for uid, name, email in contributors_rows
             ],
-            "viewers": [CookbookMember(user_id=uid, username=name).model_dump() for uid, name in viewers_rows],
+            "viewers": [
+                CookbookMember(user_id=uid, username=name, email=email).model_dump()
+                for uid, name, email in viewers_rows
+            ],
         }
 
     async def list_cookbooks(self, current_user: CurrentUser) -> list[dict]:
