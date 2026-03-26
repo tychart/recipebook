@@ -48,7 +48,7 @@ CREATE TABLE Recipe (
   Recipe_Image_URL TEXT,
   Recipe_Tags TEXT,
   Book_ID INTEGER NOT NULL REFERENCES Cookbook(Book_ID),
-  embedding VECTOR(1536)
+  embedding VECTOR(768)
 );
 
 
