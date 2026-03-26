@@ -21,7 +21,7 @@ export default function CookbookShareModal({
   const [contributorsInput, setContributorsInput] = useState("");
   const [viewersInput, setViewersInput] = useState("");
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   // TODO: Populate viewers and contributors with actual database values
   // TODO: Make API calls to add users as either contributors or viewers, and to remove them as well
