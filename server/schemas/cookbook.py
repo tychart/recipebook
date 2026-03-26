@@ -1,7 +1,7 @@
 import datetime as dt
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, field_validator
 
 
 class RoleEnum(str, Enum):
@@ -30,5 +30,12 @@ class CookbookMember(BaseModel):
 
 class ShareCookbookRequest(BaseModel):
     book_id: int
-    user_id: int
+    email: EmailStr
     role: RoleEnum = RoleEnum.viewer
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip().lower()
+        return value

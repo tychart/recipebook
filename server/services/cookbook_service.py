@@ -1,8 +1,15 @@
 from fastapi import HTTPException
 
+
+
 from repositories.cookbook_repo import CookbookRepository
 from schemas.auth import CurrentUser
 from schemas.cookbook import Cookbook, CookbookMember, RoleEnum, ShareCookbookRequest
+
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _categories_to_text(categories: list[str] | None) -> str:
@@ -12,8 +19,9 @@ def _categories_to_text(categories: list[str] | None) -> str:
 
 
 class CookbookService:
-    def __init__(self, repo: CookbookRepository):
+    def __init__(self, repo: CookbookRepository, auth_service: AuthService):
         self.repo = repo
+        self.auth_service = auth_service
 
     async def get_cookbook_role(self, cookbook_id: int, user_id: int) -> RoleEnum | None:
         role_record = await self.repo.get_user_role(cookbook_id, user_id)
@@ -103,13 +111,40 @@ class CookbookService:
         return {"message": "Cookbook deleted successfully!"}
 
     async def share_cookbook(self, body: ShareCookbookRequest, current_user: CurrentUser) -> dict:
+        logger.info(f"share_cookbook called: book_id={body.book_id}, role={body.role}, email='{body.email}'")
+        
         await self.require_cookbook_role(body.book_id, current_user.id, [RoleEnum.owner])
+
         if body.role == RoleEnum.owner:
-            raise HTTPException(status_code=400, detail="Cannot share as owner; use transfer instead.")
-        await self.repo.upsert_shared_user(body.book_id, body.user_id, body.role.value)
+            logger.warning(f"Invalid role 'owner' attempted for book {body.book_id}")
+            raise HTTPException(status_code=400, detail="Cannot share as owner")
+
+        owner_email = current_user.email.strip().lower()
+        recipient_email = str(body.email).strip().lower()
+        
+        logger.info(f"Normalized emails - owner: '{owner_email}', recipient: '{recipient_email}'")
+        
+        if recipient_email == owner_email:
+            logger.warning(f"Self-share attempt blocked for book {body.book_id}")
+            raise HTTPException(status_code=400, detail="Owner already has access")
+
+        logger.info(f"Looking up user by email: '{recipient_email}'")
+        user = await self.auth_service.get_user_record_by_email(recipient_email)
+        
+        if user is None:
+            logger.error(f"User NOT FOUND for email: '{recipient_email}'")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"User found: id={user.id}, email='{user.email}', username='{user.username}'")
+        
+        await self.repo.upsert_shared_user(body.book_id, user.id, body.role.value)
+        
+        logger.info(f"Successfully shared book {body.book_id} with user {user.id} as {body.role.value}")
+        
         return {
             "message": "Cookbook shared successfully!",
             "book_id": body.book_id,
-            "user_id": body.user_id,
+            "user_id": user.id,
+            "email": user.email,
             "role": body.role.value,
         }

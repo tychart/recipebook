@@ -63,7 +63,7 @@ export type CookbookRole = "viewer" | "contributor";
 
 export interface ShareCookbookRequest {
   book_id: number;
-  user_id: number;
+  email: string;
   role: CookbookRole;
 }
 
@@ -76,3 +76,22 @@ export async function shareCookbook(data: ShareCookbookRequest): Promise<{ messa
   if (!res.ok) throw new Error("Failed to share cookbook");
   return res.json();
 }
+
+/* =========================
+   Remove Cookbook User
+========================= */
+export interface RemoveCookbookUserRequest {
+  book_id: number;
+  user_id: number;
+}
+
+export async function removeCookbookUser(data: RemoveCookbookUserRequest): Promise<{ message: string }> {
+  const res = await authFetch(`${BASE_URL}/remove-user`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to remove user from cookbook");
+  return res.json();
+}
+
