@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, File, UploadFile
 
 from dependencies.auth import get_current_user_dep
 from dependencies.services import get_generate_service
+from schemas.auth import CurrentUser
+from schemas.generate import GenerateSearchRequest
 from schemas.job import GenerateTextRequest
 from services.generate_service import GenerateService
 
@@ -28,6 +30,23 @@ async def generate_ocr(
     generate_service: GenerateService = Depends(get_generate_service),
 ):
     return await generate_service.process_ocr_upload(image)
+
+
+@router.post("/search")
+async def search_recipes(
+    body: GenerateSearchRequest,
+    generate_service: GenerateService = Depends(get_generate_service),
+    current_user: CurrentUser = Depends(get_current_user_dep),
+):
+    return await generate_service.process_search_query(body, current_user)
+
+
+@router.post("/reembed")
+async def reembed_recipes(
+    generate_service: GenerateService = Depends(get_generate_service),
+    current_user: CurrentUser = Depends(get_current_user_dep),
+):
+    return await generate_service.reembed_user_recipes(current_user)
 
 
 @router.get("/jobs")

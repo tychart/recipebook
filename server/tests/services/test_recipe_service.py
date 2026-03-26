@@ -28,6 +28,7 @@ class FakeRecipeRepo:
         self.created_image_url: str | None = None
         self.updated_image_url: str | None = None
         self.stored_recipes: dict[int, RecipeMetadata] = {}
+        self.embedding_updates: list[tuple[int, list[float] | None]] = []
 
     async def create_recipe(self, **kwargs):
         self.create_creator_id = kwargs["creator_id"]
@@ -129,6 +130,16 @@ class FakeRecipeRepo:
             )
         ]
 
+    async def update_recipe_embedding(self, recipe_id: int, embedding: list[float] | None):
+        self.embedding_updates.append((recipe_id, embedding))
+
+    async def list_recipe_ids_missing_embeddings(self):
+        return [17, 18]
+
+    async def list_accessible_recipe_ids_for_user(self, user_id: int):
+        assert user_id == 22
+        return [17, 18]
+
 
 class FakeCookbookRepo:
     async def get_user_role(self, cookbook_id: int, user_id: int):
@@ -158,6 +169,7 @@ def test_create_recipe_uses_authenticated_user_as_creator():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
         service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        from services import recipe_service as recipe_service_module
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
         recipe = RecipeMetadata(
             id=None,
@@ -175,11 +187,18 @@ def test_create_recipe_uses_authenticated_user_as_creator():
             modified_at=None,
         )
 
+        async def fake_embed_text(text: str, model: str | None = None) -> list[float]:
+            return [0.1] * 1536
+
+        recipe_service_module.get_embedding_model = lambda: "embed-model"
+        recipe_service_module.embed_text = fake_embed_text
+
         created = await service.create_recipe(3, recipe, current_user)
 
         assert created["recipe"].creator_id == 22
         assert recipe_repo.create_creator_id == 22
         assert created["recipe"].image_url is None
+        assert recipe_repo.embedding_updates == [(17, [0.1] * 1536)]
 
     asyncio.run(run())
 
@@ -221,6 +240,7 @@ def test_edit_recipe_replaces_image_and_deletes_previous_object():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
         service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        from services import recipe_service as recipe_service_module
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
         recipe = RecipeMetadata(
             id=17,
@@ -239,11 +259,18 @@ def test_edit_recipe_replaces_image_and_deletes_previous_object():
         )
         image_file = UploadFile(filename="new.png", file=BytesIO(b"png"))
 
+        async def fake_embed_text(text: str, model: str | None = None) -> list[float]:
+            return [0.2] * 1536
+
+        recipe_service_module.get_embedding_model = lambda: "embed-model"
+        recipe_service_module.embed_text = fake_embed_text
+
         updated = await service.edit_recipe(recipe, current_user, image_file)
 
         assert recipe_repo.updated_image_url == "recipes/3/uploaded.png"
         assert storage_service.deleted == ["recipes/3/original.png"]
         assert updated["recipe"].image_url == "http://public.example/recipes/3/uploaded.png?signed=1"
+        assert recipe_repo.embedding_updates == [(17, [0.2] * 1536)]
 
     asyncio.run(run())
 
@@ -260,5 +287,54 @@ def test_get_and_list_recipes_return_presigned_image_urls():
 
         assert recipe.image_url == "http://public.example/recipes/3/original.png?signed=1"
         assert recipes[0].image_url == "http://public.example/recipes/3/list.png?signed=1"
+
+    asyncio.run(run())
+
+
+def test_backfill_missing_embeddings_updates_all_missing_recipes():
+    async def run():
+        recipe_repo = FakeRecipeRepo()
+        storage_service = FakeStorageService()
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        from services import recipe_service as recipe_service_module
+
+        async def fake_embed_text(text: str, model: str | None = None) -> list[float]:
+            return [0.3] * 1536
+
+        recipe_service_module.get_embedding_model = lambda: "embed-model"
+        recipe_service_module.embed_text = fake_embed_text
+
+        updated = await service.backfill_missing_embeddings()
+
+        assert updated == 2
+        assert recipe_repo.embedding_updates == [
+            (17, [0.3] * 1536),
+            (18, [0.3] * 1536),
+        ]
+
+    asyncio.run(run())
+
+
+def test_reembed_recipes_for_user_updates_accessible_recipes():
+    async def run():
+        recipe_repo = FakeRecipeRepo()
+        storage_service = FakeStorageService()
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        from services import recipe_service as recipe_service_module
+
+        async def fake_embed_text(text: str, model: str | None = None) -> list[float]:
+            return [0.4] * 1536
+
+        recipe_service_module.get_embedding_model = lambda: "embed-model"
+        recipe_service_module.embed_text = fake_embed_text
+
+        current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
+        result = await service.reembed_recipes_for_user(current_user)
+
+        assert result == {"processed_count": 2, "updated_count": 2}
+        assert recipe_repo.embedding_updates == [
+            (17, [0.4] * 1536),
+            (18, [0.4] * 1536),
+        ]
 
     asyncio.run(run())

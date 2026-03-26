@@ -17,7 +17,9 @@ from PIL import Image
 from pydantic import BaseModel, Field
 
 from core.config import Settings
+from inference.embedding import embed_text, format_recipe_for_embedding, get_embedding_model
 from schemas.auth import CurrentUser
+from schemas.generate import GenerateSearchRequest, GenerateSearchResult
 from schemas.job import GenerateOcrRequest, GenerateTextRequest, JobSource
 from schemas.recipe import RecipeMetadata
 from services.job_service import JobService
@@ -64,41 +66,6 @@ class RecipeExtraction(BaseModel):
     recipe_author: str | None = Field(default="", description="The author's name, or blank if not found")
     ingredients: list[Ingredient]
     instructions: list[str]
-
-
-def format_recipe_for_embedding(recipe: RecipeMetadata) -> str:
-    parts: list[str] = [f"Title: {recipe.name}"]
-    if recipe.description:
-        parts.append(f"Description: {recipe.description}")
-    if recipe.notes:
-        parts.append(f"Notes: {recipe.notes}")
-    parts.append(f"Category: {recipe.category}")
-    parts.append(f"Servings: {recipe.servings}")
-    if recipe.tags:
-        parts.append("Tags: " + ", ".join(recipe.tags))
-
-    ingredient_lines: list[str] = []
-    for ingredient in recipe.ingredients:
-        amount = f"{ingredient.amount:g}" if ingredient.amount is not None else ""
-        unit = f" {ingredient.unit}" if ingredient.unit else ""
-        ingredient_lines.append(f"- {amount}{unit} {ingredient.name}".strip())
-    if ingredient_lines:
-        parts.append("Ingredients:\n" + "\n".join(ingredient_lines))
-
-    sorted_instructions = sorted(recipe.instructions, key=lambda item: item.instruction_number)
-    if sorted_instructions:
-        parts.append(
-            "Instructions:\n"
-            + "\n".join(
-                f"{instruction.instruction_number}. {instruction.instruction_text}"
-                for instruction in sorted_instructions
-            )
-        )
-
-    # if recipe.creator_id is not None:
-    #     parts.append(f"CreatorID: {recipe.creator_id}")
-    # parts.append(f"CookbookID: {recipe.cookbook_id}")
-    return "\n\n".join(parts)
 
 
 class LLMProvider(Protocol):
@@ -379,6 +346,52 @@ class GenerateService:
                 (time.perf_counter() - request_started) * 1000,
             )
             raise
+
+    def _present_search_result(self, result: GenerateSearchResult) -> GenerateSearchResult:
+        if self.recipe_service is None or not result.image_url:
+            return result
+
+        return result.model_copy(
+            update={"image_url": self.recipe_service.storage_service.build_presigned_get_url(result.image_url)}
+        )
+
+    async def process_search_query(
+        self,
+        body: GenerateSearchRequest,
+        current_user: CurrentUser,
+    ) -> list[GenerateSearchResult]:
+        query = body.query.strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Search query is required")
+
+        if self.recipe_service is None:
+            raise HTTPException(status_code=500, detail="Recipe service is not available")
+
+        embedding = await self.embed_string(get_embedding_model(), query)
+        results = await self.recipe_service.recipe_repo.search_semantic_recipes_for_user(
+            current_user.id,
+            embedding,
+            body.limit,
+        )
+        return [self._present_search_result(result) for result in results]
+
+    async def embed_string(self, model: str, text: str) -> list[float]:
+        return await embed_text(text, model=model)
+
+    async def embed_all_recipes(self) -> int:
+        if self.recipe_service is None:
+            raise HTTPException(status_code=500, detail="Recipe service is not available")
+        return await self.recipe_service.backfill_missing_embeddings()
+
+    async def embed_recipe(self, recipe_id: int) -> bool:
+        if self.recipe_service is None:
+            raise HTTPException(status_code=500, detail="Recipe service is not available")
+        return await self.recipe_service.refresh_recipe_embedding(recipe_id)
+
+    async def reembed_user_recipes(self, current_user: CurrentUser) -> dict[str, int]:
+        if self.recipe_service is None:
+            raise HTTPException(status_code=500, detail="Recipe service is not available")
+        return await self.recipe_service.reembed_recipes_for_user(current_user)
 
     async def list_jobs(self, current_user: CurrentUser):
         return await self.job_service.list_jobs(owner_id=current_user.id)
