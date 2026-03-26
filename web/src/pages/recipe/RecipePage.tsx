@@ -51,11 +51,14 @@ export default function RecipePage() {
 
         <div className="flex items-center gap-10">
           {/* TODO: Disable editing button if user is not the creator of the recipe */}
-          <Link to={`/recipe/${id}/edit`}>Edit</Link>
+          <Link
+            to={`/recipe/${id}/edit`}
+            className="block w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+          >
+            Edit
+          </Link>
 
-
-
-          <button onClick={() => setShowShare(true)} className="share-button">
+          <button onClick={() => setShowShare(true)} className="w-20">
             Share
           </button>
         </div>

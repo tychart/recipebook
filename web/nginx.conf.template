@@ -14,6 +14,14 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # This is probebly temporary due to really long requests for the LLM
+    # This should be removed after we get the jobs queue working
+    proxy_connect_timeout 300s;
+    proxy_send_timeout 300s;
+    proxy_read_timeout 300s;
+    send_timeout 300s;
+    # End block
   }
 
   location /s3/ {

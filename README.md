@@ -105,6 +105,7 @@ Prerequisites: (As far as I know)
 - python3
 - python3-venv
 - npm
+- Tesseract OCR for local image upload/OCR support
 
 
 Clone the repo to your local machine:
@@ -130,6 +131,28 @@ docker compose up
 ```
 
 ### Backend:
+
+If you want to use image upload OCR locally, install the system `tesseract` binary first. `pip install -r requirements.txt` installs `pytesseract`, but that package is only a Python wrapper and still requires Tesseract to be installed on your machine and available on your `PATH`.
+
+Common install commands:
+
+```bash
+# Ubuntu / Debian
+sudo apt-get update
+sudo apt-get install -y tesseract-ocr
+
+# macOS with Homebrew
+brew install tesseract
+
+# Windows with Chocolatey
+choco install tesseract
+```
+
+After installing, verify it is available:
+
+```bash
+tesseract --version
+```
 
 ```bash
 cd server/

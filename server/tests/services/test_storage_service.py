@@ -1,4 +1,5 @@
 import pytest
+from botocore.exceptions import ClientError
 from fastapi import HTTPException
 
 from services.storage_service import StorageService
@@ -28,6 +29,29 @@ class FakeS3Client:
 
     def delete_object(self, Bucket, Key):
         self.deleted.append((Bucket, Key))
+
+
+class BucketCheckClient:
+    def __init__(self, exc: Exception | None = None):
+        self.exc = exc
+        self.created_bucket: str | None = None
+
+    def head_bucket(self, Bucket):
+        if self.exc is not None:
+            raise self.exc
+
+    def create_bucket(self, Bucket):
+        self.created_bucket = Bucket
+
+
+def make_client_error(code: str, status_code: int) -> ClientError:
+    return ClientError(
+        {
+            "Error": {"Code": code, "Message": code},
+            "ResponseMetadata": {"HTTPStatusCode": status_code},
+        },
+        "HeadBucket",
+    )
 
 
 def test_generate_filename_accepts_supported_extensions():
@@ -63,3 +87,23 @@ def test_delete_object_is_best_effort():
     service.client = client
     service.delete_object("recipes/3/example.png")
     assert client.deleted == [("bucket", "recipes/3/example.png")]
+
+
+def test_ensure_bucket_exists_creates_bucket_when_missing():
+    service = StorageService(DummySettings())
+    client = BucketCheckClient(exc=make_client_error("NoSuchBucket", 404))
+    service.client = client
+
+    service.ensure_bucket_exists()
+
+    assert client.created_bucket == "bucket"
+
+
+def test_ensure_bucket_exists_does_not_create_bucket_on_forbidden():
+    service = StorageService(DummySettings())
+    client = BucketCheckClient(exc=make_client_error("403", 403))
+    service.client = client
+
+    service.ensure_bucket_exists()
+
+    assert client.created_bucket is None

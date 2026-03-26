@@ -8,7 +8,6 @@ Server APIs are defined in:
   - server/routers/recipes.py   -> /api/recipe (list, get, create, edit, delete, copy)
   - server/routers/storage.py  -> /api/uploads
   - server/routers/generate.py -> (generation endpoints)
-  - server/routers/ocr.py      -> (OCR endpoints)
 
 Requires: DATABASE_URL set and PostgreSQL running (and migrations applied).
 S3 is optional for these tests (ensure_bucket_exists skips if S3_KEY/S3_SECRET unset).
