@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, data } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getCookbook } from "../../api/cookbooks"; // assume listRecipes fetches recipes by cookbook_id
 import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
