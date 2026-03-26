@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, data } from "react-router-dom";
 import { getCookbook } from "../../api/cookbooks"; // assume listRecipes fetches recipes by cookbook_id
 import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
@@ -11,6 +11,7 @@ export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
@@ -18,8 +19,7 @@ export default function Cookbook() {
   const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-    if (!user) {
+    if (!id || !user) {
       setLoadingCookbook(false);
       setLoadingRecipes(false);
       return;
@@ -35,7 +35,10 @@ export default function Cookbook() {
 
     // Fetch the cookbook (authFetch sends Bearer token from localStorage)
     getCookbook(cookbookId)
-      .then((data) => setCookbook(data))
+      .then((data) => {
+        setCookbook(data);
+        setUserRole(data.current_user_role || null);
+      })
       .catch((err) => setError("Failed to load cookbook: " + err.message))
       .finally(() => setLoadingCookbook(false));
 
@@ -60,22 +63,24 @@ export default function Cookbook() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
         <div className="flex items-center gap-10">
-          {/* TODO: Disable adding recipe button if user is not a contributor or admin */}
-          <Link
-            to={`/cookbook/${id}/recipe/new`}
-            className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
-          >
-            Add recipe
-          </Link>
+          {(userRole === "contributor" || userRole === "owner") && (
+            <Link
+              to={`/cookbook/${id}/recipe/new`}
+              className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+            >
+              Add recipe
+            </Link>
+          )}
 
-          {/* TODO: Disable Manage Access button if user is not admin */}
-          <button
-            onClick={() => setShowShare(true)}
-            className="w-40"
-            disabled={false}
-          >
-            Manage Access
-          </button>
+          {userRole === "owner" && (
+            <button
+              onClick={() => setShowShare(true)}
+              className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
+              title="Only owners can manage access"
+            >
+              Manage Access
+            </button>
+          )}
         </div>
       </div>
 

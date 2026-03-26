@@ -1,5 +1,10 @@
-import { useState } from "react";
-import { shareCookbook } from "../api/cookbooks";
+import { useEffect, useState } from "react";
+import {
+  getCookbook,
+  shareCookbook,
+  removeCookbookUser,
+} from "../api/cookbooks";
+import type { Cookbook as CookbookType } from "../../types/types";
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -15,11 +20,33 @@ export default function CookbookShareModal({
   const [addedViewers, setAddedViewers] = useState<string[]>([]);
   const [contributorsInput, setContributorsInput] = useState("");
   const [viewersInput, setViewersInput] = useState("");
+  const [cookbook, setCookbook] = useState<CookbookType | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // TODO: Populate viewers and contributors with actual database values
   // TODO: Make API calls to add users as either contributors or viewers, and to remove them as well
 
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
+
+  // Fetch cookbook data on mount
+  useEffect(() => {
+    const loadCookbook = async () => {
+      try {
+        const data = await getCookbook(Number(cookbookId));
+        setCookbook(data);
+
+        // Populate contributors and viewers from API response
+        setAddedContributors(data.contributors?.map((c: any) => c.email) || []);
+        setAddedViewers(data.viewers?.map((v: any) => v.email) || []);
+      } catch (err) {
+        console.error("Failed to load cookbook sharing data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCookbook();
+  }, [cookbookId]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -68,12 +95,42 @@ export default function CookbookShareModal({
     return re.test(email);
   };
 
-  const removeContributor = (email: string) => {
-    setAddedContributors(addedContributors.filter((e) => e !== email));
+  const removeContributor = async (email: string) => {
+    if (!cookbook?.contributors) return;
+
+    const contributor = cookbook.contributors.find((c) => c.email === email);
+    if (!contributor) return;
+
+    try {
+      await removeCookbookUser({
+        book_id: Number(cookbookId),
+        user_id: contributor.user_id,
+      });
+
+      setAddedContributors((prev) => prev.filter((e) => e !== email));
+    } catch (err) {
+      console.error("Failed to remove contributor:", err);
+      alert("Failed to remove contributor");
+    }
   };
 
-  const removeViewer = (email: string) => {
-    setAddedViewers(addedViewers.filter((e) => e !== email));
+  const removeViewer = async (email: string) => {
+    if (!cookbook?.viewers) return;
+
+    const viewer = cookbook.viewers.find((v) => v.email === email);
+    if (!viewer) return;
+
+    try {
+      await removeCookbookUser({
+        book_id: Number(cookbookId),
+        user_id: viewer.user_id,
+      });
+
+      setAddedViewers((prev) => prev.filter((e) => e !== email));
+    } catch (err) {
+      console.error("Failed to remove viewer:", err);
+      alert("Failed to remove viewer");
+    }
   };
 
   return (

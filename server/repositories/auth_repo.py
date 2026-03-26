@@ -104,7 +104,7 @@ class AuthRepository:
             """
             SELECT User_ID, Username, Email
             FROM Users
-            WHERE Email = $1
+            WHERE LOWER(Email) = LOWER($1)
             """,
             email,
         )
