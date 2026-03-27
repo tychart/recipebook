@@ -97,3 +97,17 @@ class AuthRepository:
         if row is None:
             return None
         return _row_to_auth_user(row)
+
+
+    async def get_user_by_email(self, email: str) -> AuthUserRecord | None:
+        row = await self.conn.fetchrow(
+            """
+            SELECT User_ID, Username, Email
+            FROM Users
+            WHERE LOWER(Email) = LOWER($1)
+            """,
+            email,
+        )
+        if row is None:
+            return None
+        return _row_to_auth_user(row)

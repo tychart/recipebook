@@ -17,15 +17,23 @@ async def get_auth_service(db=Depends(get_db)) -> AuthService:
     return AuthService(AuthRepository(db))
 
 
-async def get_cookbook_service(db=Depends(get_db)) -> CookbookService:
-    return CookbookService(CookbookRepository(db))
+async def get_cookbook_service(
+    db=Depends(get_db),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> CookbookService:
+    return CookbookService(
+        CookbookRepository(db),
+        auth_service,
+    )
 
-
-async def get_recipe_service(db=Depends(get_db)) -> RecipeService:
+async def get_recipe_service(
+    db=Depends(get_db),
+    cookbook_service: CookbookService = Depends(get_cookbook_service),
+) -> RecipeService:
     return RecipeService(
         db,
         RecipeRepository(db),
-        CookbookRepository(db),
+        cookbook_service,
         get_storage_service(),
     )
 
