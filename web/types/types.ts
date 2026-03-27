@@ -13,12 +13,21 @@ export interface AuthToken {
    Cookbook
 =========================== */
 
+export interface CookbookMember {
+  user_id: number;
+  username: string;
+  email: string;
+}
+
 export interface Cookbook {
   id: number;
   name: string;
   owner_id: number;
   categories: string[];
   created_at: string | null;
+  current_user_role?: 'owner' | 'contributor' | 'viewer'; // Optional for list endpoints
+  contributors?: CookbookMember[]; // Optional for list endpoints
+  viewers?: CookbookMember[];      // Optional for list endpoints
 }
 
 /* ===========================
@@ -33,6 +42,17 @@ export interface CookbookUser {
   role: CookbookRole;
   added_dttm: string;
 }
+
+/* ===========================
+   Share Cookbook Request
+=========================== */
+
+export interface ShareCookbookRequest {
+  book_id: number;
+  email: string;
+  role: CookbookRole;
+}
+
 
 /* ===========================
    Ingredient

@@ -14,7 +14,8 @@ import RecipePage from "./pages/recipe/RecipePage";
 import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
 import { AuthProvider } from "./context/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
+// import ProtectedRoute from "./components/ProtectedRoute";
+import RecipeOptions from "./pages/recipe/RecipeOptions";
 
 function App() {
   // const [testApi, setTestApi] = useState<string>("loading...");
@@ -41,10 +42,11 @@ function App() {
               <Route path="/cookbook/:id" element={<Cookbook />} />
               <Route path="/recipe/:id" element={<RecipePage />} />
               <Route path="/search" element={<Search />} />
+              <Route path="/cookbook/:id/recipe/options" element={<RecipeOptions />} />
               
 
-              // Protected routes
-              <Route element={<ProtectedRoute />}>
+              {/* // Protected routes
+              <Route element={<ProtectedRoute />}> */}
                 <Route path="/cookbooks" element={<Cookbooks />} />
                 <Route path="/cookbooks/new" element={<CookbookNew />} />
                 <Route
@@ -53,7 +55,7 @@ function App() {
                 />
                 <Route path="/recipe/new" element={<RecipeNew />} />
                 <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
-              </Route>
+              {/* </Route> */}
               
               // Catch-all route
               <Route path="*" element={<Navigate to="/" replace />} />

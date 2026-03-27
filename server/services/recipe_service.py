@@ -20,12 +20,12 @@ class RecipeService:
         self,
         conn: asyncpg.Connection,
         recipe_repo: RecipeRepository,
-        cookbook_repo: CookbookRepository,
+        cookbook_service: CookbookService,
         storage_service: StorageService,
     ):
         self.conn = conn
         self.recipe_repo = recipe_repo
-        self.cookbook_service = CookbookService(cookbook_repo)
+        self.cookbook_service = cookbook_service
         self.storage_service = storage_service
 
     def _present_recipe(self, recipe: RecipeMetadata) -> RecipeMetadata:

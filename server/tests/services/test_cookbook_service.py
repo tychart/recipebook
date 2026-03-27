@@ -29,9 +29,15 @@ class FakeCookbookRepo:
         )
 
 
+# Minimal fake auth service for testing
+class FakeAuthService:
+    async def get_current_user(self):
+        return CurrentUser(id=42, username="bob", email="bob@example.com")
+
+
 def test_require_cookbook_role_rejects_disallowed_role():
     async def run():
-        service = CookbookService(FakeCookbookRepo("viewer"))
+        service = CookbookService(FakeCookbookRepo("viewer"), FakeAuthService())
         with pytest.raises(HTTPException):
             await service.require_cookbook_role(1, 2, [RoleEnum.owner, RoleEnum.contributor])
 
@@ -41,7 +47,7 @@ def test_require_cookbook_role_rejects_disallowed_role():
 def test_create_cookbook_uses_authenticated_user_as_owner():
     async def run():
         repo = FakeCookbookRepo("owner")
-        service = CookbookService(repo)
+        service = CookbookService(repo, FakeAuthService())
         cookbook = Cookbook(id=None, name="Favorites", owner_id=999, categories=["Main"], created_at=None)
         current_user = CurrentUser(id=42, username="bob", email="bob@example.com")
 
