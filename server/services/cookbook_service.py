@@ -1,6 +1,9 @@
 from fastapi import HTTPException
 
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    from services.auth_service import AuthService
 
 from repositories.cookbook_repo import CookbookRepository
 from schemas.auth import CurrentUser
@@ -19,7 +22,7 @@ def _categories_to_text(categories: list[str] | None) -> str:
 
 
 class CookbookService:
-    def __init__(self, repo: CookbookRepository, auth_service: AuthService):
+    def __init__(self, repo: CookbookRepository, auth_service: "AuthService"):
         self.repo = repo
         self.auth_service = auth_service
 
