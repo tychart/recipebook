@@ -7,10 +7,10 @@ import { useAuth } from "../../context/AuthContext";
 
 export default function Cookbooks() {
   const [cookbooks, setCookbooks] = useState<Cookbook[]>([]);
-  const [contributorCookbooks, setContributorCookbooks] = useState<Cookbook[]>(
-    [],
-  );
-  const [viewerCookbooks, setViewerCookbooks] = useState<Cookbook[]>([]);
+  // const [contributorCookbooks, setContributorCookbooks] = useState<Cookbook[]>(
+  //   [],
+  // );
+  // const [viewerCookbooks, setViewerCookbooks] = useState<Cookbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,10 +28,10 @@ export default function Cookbooks() {
       .finally(() => setLoading(false));
   }, []);
 
-  const sortCookbooks = async (cookbooks: Cookbook[]) => {
-    // for cookbook in cookbooks
-    // based on the role of the cookbook, put the cookbook in the correct place
-  };
+  // const sortCookbooks = async (cookbooks: Cookbook[]) => {
+  //   // for cookbook in cookbooks
+  //   // based on the role of the cookbook, put the cookbook in the correct place
+  // };
 
   //Replace this with actual user ID
   if (!user) {
