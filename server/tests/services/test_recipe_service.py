@@ -8,6 +8,8 @@ from schemas.recipe import Ingredient, Instruction, RecipeMetadata
 from services.recipe_service import RecipeService
 
 
+# --- Fakes for RecipeService tests --- #
+
 class FakeTransaction:
     async def __aenter__(self):
         return self
@@ -130,9 +132,11 @@ class FakeRecipeRepo:
         ]
 
 
-class FakeCookbookRepo:
-    async def get_user_role(self, cookbook_id: int, user_id: int):
-        return CookbookRoleRecord(role=RoleEnum.owner)
+class FakeCookbookService:
+    async def require_cookbook_role(self, cookbook_id: int, user_id: int, allowed_roles: list[RoleEnum]):
+        # Always allow owner role, reject otherwise
+        if RoleEnum.owner not in allowed_roles:
+            raise Exception("Unauthorized")
 
 
 class FakeStorageService:
@@ -153,11 +157,13 @@ class FakeStorageService:
         self.deleted.append(key)
 
 
+# --- Tests --- #
+
 def test_create_recipe_uses_authenticated_user_as_creator():
     async def run():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
-        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookService(), storage_service)
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
         recipe = RecipeMetadata(
             id=None,
@@ -188,7 +194,7 @@ def test_create_recipe_uploads_image_and_returns_presigned_url():
     async def run():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
-        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookService(), storage_service)
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
         recipe = RecipeMetadata(
             id=None,
@@ -220,7 +226,7 @@ def test_edit_recipe_replaces_image_and_deletes_previous_object():
     async def run():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
-        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookService(), storage_service)
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
         recipe = RecipeMetadata(
             id=17,
@@ -252,7 +258,7 @@ def test_get_and_list_recipes_return_presigned_image_urls():
     async def run():
         recipe_repo = FakeRecipeRepo()
         storage_service = FakeStorageService()
-        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookRepo(), storage_service)
+        service = RecipeService(FakeConn(), recipe_repo, FakeCookbookService(), storage_service)
         current_user = CurrentUser(id=22, username="chef", email="chef@example.com")
 
         recipe = await service.get_recipe(17)
