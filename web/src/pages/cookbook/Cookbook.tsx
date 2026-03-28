@@ -73,6 +73,15 @@ export default function Cookbook() {
           )}
 
           {userRole === "owner" && (
+            <Link
+              to={`/cookbook/${id}/edit`}
+              className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+            >
+              Edit cookbook
+            </Link>
+          )}
+
+          {userRole === "owner" && (
             <button
               onClick={() => setShowShare(true)}
               className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
@@ -100,6 +109,17 @@ export default function Cookbook() {
           cookbookId={id}
           onClose={() => setShowShare(false)}
         />
+      )}
+
+      {userRole === "owner" && (
+        <div className="flex justify-left py-6">
+          <Link
+            to={`/cookbooks`}
+            className="px-4 py-3 bg-red-500 text-white rounded-lg text-sm font-semibold text-center shadow-lg hover:bg-red-600 transition-colors"
+          >
+            Delete cookbook
+          </Link>
+        </div>
       )}
     </div>
   );

@@ -2,8 +2,6 @@ import asyncpg
 import re
 
 from schemas.auth import AuthLoginRecord, AuthTokenRecord, AuthUserRecord
-from server.repositories.data_sanitization import clean_token
-
 
 
 def _row_to_auth_user(row: asyncpg.Record) -> AuthUserRecord:
