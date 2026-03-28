@@ -48,7 +48,7 @@ CREATE TABLE Recipe (
   Recipe_Image_URL TEXT,
   Recipe_Tags TEXT,
   Book_ID INTEGER NOT NULL REFERENCES Cookbook(Book_ID),
-  embedding VECTOR(768)
+  embedding VECTOR(768) -- This is the size for the standard "nomic-embed-text" model
 );
 
 
