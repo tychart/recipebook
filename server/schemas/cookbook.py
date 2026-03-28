@@ -39,3 +39,8 @@ class ShareCookbookRequest(BaseModel):
         if isinstance(value, str):
             return value.strip().lower()
         return value
+
+
+class RemoveCookbookUserRequest(BaseModel):
+    book_id: int
+    user_id: int

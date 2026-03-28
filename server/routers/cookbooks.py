@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from dependencies.auth import get_current_user_dep
 from dependencies.services import get_cookbook_service
 from schemas.auth import CurrentUser
-from schemas.cookbook import Cookbook, RoleEnum, ShareCookbookRequest
+from schemas.cookbook import Cookbook, RemoveCookbookUserRequest, ShareCookbookRequest
 from services.cookbook_service import CookbookService
 
 router = APIRouter(
@@ -64,3 +64,12 @@ async def share_cookbook(
     current_user: CurrentUser = Depends(get_current_user_dep),
 ):
     return await cookbook_service.share_cookbook(body, current_user)
+
+
+@router.post("/remove-user")
+async def remove_cookbook_user(
+    body: RemoveCookbookUserRequest,
+    cookbook_service: CookbookService = Depends(get_cookbook_service),
+    current_user: CurrentUser = Depends(get_current_user_dep),
+):
+    return await cookbook_service.remove_cookbook_user(body, current_user)
