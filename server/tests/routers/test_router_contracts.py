@@ -70,6 +70,26 @@ class FakeGenerateService:
             "instructions": ["Mix"],
         }
 
+    async def process_search_query(self, body, current_user):
+        return [
+            {
+                "recipe_id": 12,
+                "recipe_name": "Brownies",
+                "cookbook_id": 3,
+                "cookbook_name": "Dessert Vault",
+                "image_url": "http://public.example/recipes/3/brownies.png?signed=1",
+                "category": "Dessert",
+                "tags": ["sweet"],
+                "score": 0.98,
+            }
+        ]
+
+    async def reembed_user_recipes(self, current_user):
+        return {
+            "processed_count": 4,
+            "updated_count": 4,
+        }
+
 
 def test_auth_me_route_returns_legacy_shape():
     async def run():
@@ -277,5 +297,127 @@ def test_generate_text_route_keeps_direct_text_shape():
             "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
             "instructions": ["Mix"],
         }
+
+    asyncio.run(run())
+
+
+def test_generate_search_route_returns_summary_results():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post(
+                "/api/generate/search",
+                json={"query": "brownies", "limit": 5},
+            )
+
+        assert response.status_code == 200
+        assert response.json() == [
+            {
+                "recipe_id": 12,
+                "recipe_name": "Brownies",
+                "cookbook_id": 3,
+                "cookbook_name": "Dessert Vault",
+                "image_url": "http://public.example/recipes/3/brownies.png?signed=1",
+                "category": "Dessert",
+                "tags": ["sweet"],
+                "score": 0.98,
+            }
+        ]
+
+    asyncio.run(run())
+
+
+def test_generate_search_route_requires_auth():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post(
+                "/api/generate/search",
+                json={"query": "brownies", "limit": 5},
+            )
+
+        assert response.status_code == 401
+
+    asyncio.run(run())
+
+
+def test_generate_reembed_route_requires_auth_and_returns_counts():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post("/api/generate/reembed")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "processed_count": 4,
+            "updated_count": 4,
+        }
+
+    asyncio.run(run())
+
+
+def test_generate_reembed_route_rejects_unauthenticated_requests():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post("/api/generate/reembed")
+
+        assert response.status_code == 401
 
     asyncio.run(run())
