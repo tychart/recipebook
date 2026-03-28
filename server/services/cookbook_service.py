@@ -6,8 +6,15 @@ if TYPE_CHECKING:
     from services.auth_service import AuthService
 
 from repositories.cookbook_repo import CookbookRepository
+from repositories.recipe_repo import RecipeRepository
 from schemas.auth import CurrentUser
-from schemas.cookbook import Cookbook, CookbookMember, RoleEnum, ShareCookbookRequest
+from schemas.cookbook import (
+    Cookbook,
+    CookbookMember,
+    RemoveCookbookUserRequest,
+    RoleEnum,
+    ShareCookbookRequest,
+)
 
 
 import logging
@@ -22,9 +29,15 @@ def _categories_to_text(categories: list[str] | None) -> str:
 
 
 class CookbookService:
-    def __init__(self, repo: CookbookRepository, auth_service: "AuthService"):
+    def __init__(
+        self,
+        repo: CookbookRepository,
+        auth_service: "AuthService",
+        recipe_repo: RecipeRepository | None = None,
+    ):
         self.repo = repo
         self.auth_service = auth_service
+        self.recipe_repo = recipe_repo
 
     async def get_cookbook_role(self, cookbook_id: int, user_id: int) -> RoleEnum | None:
         role_record = await self.repo.get_user_role(cookbook_id, user_id)
@@ -151,3 +164,27 @@ class CookbookService:
             "email": user.email,
             "role": body.role.value,
         }
+
+    async def remove_cookbook_user(self, body: RemoveCookbookUserRequest, current_user: CurrentUser) -> dict:
+        await self.require_cookbook_role(body.book_id, current_user.id, [RoleEnum.owner])
+        cookbook = await self.repo.get_cookbook(body.book_id)
+        if cookbook is None:
+            raise HTTPException(status_code=404, detail="Cookbook not found")
+        if body.user_id == cookbook.owner_id:
+            raise HTTPException(status_code=400, detail="Cannot remove the cookbook owner")
+        shared_role = await self.repo.get_shared_user_role(body.book_id, body.user_id)
+        if shared_role is None:
+            raise HTTPException(status_code=404, detail="User is not a member of this cookbook")
+        if self.recipe_repo is None:
+            raise RuntimeError("CookbookService requires recipe_repo for remove_cookbook_user")
+        async with self.repo.conn.transaction():
+            if shared_role == RoleEnum.contributor:
+                await self.recipe_repo.reassign_recipe_creators_in_cookbook(
+                    body.book_id,
+                    body.user_id,
+                    cookbook.owner_id,
+                )
+            removed = await self.repo.delete_shared_user(body.book_id, body.user_id)
+        if not removed:
+            raise HTTPException(status_code=404, detail="User is not a member of this cookbook")
+        return {"message": "User removed from cookbook successfully!"}
