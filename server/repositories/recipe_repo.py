@@ -90,6 +90,11 @@ class RecipeRepository:
         tags: list[str] | None,
         cookbook_id: int,
     ) -> RecipeMetadata:
+        name = name.strip()
+        description = description.strip()
+        notes = notes.strip()
+        image_url = image_url.strip()
+        category = category.strip()
         row = await self.conn.fetchrow(
             """
             INSERT INTO Recipe (
@@ -126,6 +131,11 @@ class RecipeRepository:
         tags: list[str] | None,
         cookbook_id: int,
     ) -> RecipeMetadata | None:
+        name = name.strip()
+        description = description.strip()
+        notes = notes.strip()
+        image_url = image_url.strip()
+        category = category.strip()
         row = await self.conn.fetchrow(
             """
             UPDATE Recipe

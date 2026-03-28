@@ -1,6 +1,9 @@
 import asyncpg
+import re
 
 from schemas.auth import AuthLoginRecord, AuthTokenRecord, AuthUserRecord
+from server.repositories.data_sanitization import clean_token
+
 
 
 def _row_to_auth_user(row: asyncpg.Record) -> AuthUserRecord:
@@ -35,20 +38,34 @@ class AuthRepository:
         self.conn = conn
 
     async def fetch_user_for_login(self, username: str | None, email: str | None) -> AuthLoginRecord | None:
-        row = await self.conn.fetchrow(
-            """
-            SELECT User_ID, Username, Email, Password
-            FROM Users
-            WHERE (Username = $1 OR Email = $2)
-            """,
-            username or email,
-            email or username,
-        )
+        row = None
+        if username is not None:
+            username = username.strip().lower()
+            row = await self.conn.fetchrow(
+                """
+                SELECT User_ID, Username, Email, Password
+                FROM Users
+                WHERE Username = $1
+                """,
+                username
+            )
+        elif email is not None:
+            email = email.strip().lower()
+            row = await self.conn.fetchrow(
+                """
+                SELECT User_ID, Username, Email, Password
+                FROM Users
+                WHERE Email = $1
+                """,
+                email
+            )
         if row is None:
             return None
         return _row_to_login_record(row)
 
     async def create_user(self, username: str, password_hash: str, email: str) -> AuthUserRecord:
+        username = username.strip().lower()
+        email = email.strip().lower()
         row = await self.conn.fetchrow(
             """
             INSERT INTO Users (Username, Password, Email)
@@ -100,6 +117,7 @@ class AuthRepository:
 
 
     async def get_user_by_email(self, email: str) -> AuthUserRecord | None:
+        email = email.strip().lower()
         row = await self.conn.fetchrow(
             """
             SELECT User_ID, Username, Email
