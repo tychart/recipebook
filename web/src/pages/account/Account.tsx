@@ -1,8 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useBorderTheme } from "../../context/BorderThemeContext";
 import { listCookbooks } from "../../api/cookbooks";
 import { listRecipes } from "../../api/recipes";
+import {
+  BORDER_THEME_IDS,
+  BORDER_THEME_LABELS,
+  themePreviewColors,
+} from "../../theme/borderTheme";
 
 function fieldBox(label: string, children: ReactNode) {
   return (
@@ -30,6 +36,7 @@ function statBox(label: string, display: string | number) {
 
 export default function Account() {
   const { user, isInitializing } = useAuth();
+  const { borderTheme, setBorderTheme } = useBorderTheme();
   const [stats, setStats] = useState<{ cookbooks: number; recipes: number } | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -92,6 +99,43 @@ export default function Account() {
         <div className="min-w-0 w-full max-w-lg flex flex-col gap-4">
           {fieldBox("Username", user.username)}
           {fieldBox("Email", user.email)}
+
+          <div className="rounded-lg border border-black/10 bg-stone-50 p-6 shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-1">
+              Page border
+            </p>
+            <p className="text-sm text-stone-600 mb-4">
+              Choose a border theme for your account page.
+            </p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+              {BORDER_THEME_IDS.map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setBorderTheme(id)}
+                  className={`rounded-lg border-2 p-2 flex flex-col items-center gap-2 transition ${
+                    borderTheme === id
+                      ? "border-black ring-2 ring-black/20 ring-offset-2"
+                      : "border-black/15 hover:border-black/35"
+                  }`}
+                >
+                  <div className="flex h-8 w-full rounded overflow-hidden border border-black/10">
+                    <div
+                      className="flex-1 min-h-0"
+                      style={{ backgroundColor: themePreviewColors[id][0] }}
+                    />
+                    <div
+                      className="flex-1 min-h-0"
+                      style={{ backgroundColor: themePreviewColors[id][1] }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-black">
+                    {BORDER_THEME_LABELS[id]}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <aside className="w-full lg:w-60 shrink-0 flex flex-col gap-3">
