@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { BorderThemeProvider } from "../../../context/BorderThemeContext";
 import { CookbookCard } from "../../cards/CookbookCard";
 import type { Cookbook } from "../../../../../shared/types/recipe";
 
@@ -16,7 +17,9 @@ describe("CookbookCard", () => {
   it("renders cookbook name", () => {
     render(
       <MemoryRouter>
-        <CookbookCard cookbook={mockCookbook} />
+        <BorderThemeProvider>
+          <CookbookCard cookbook={mockCookbook} />
+        </BorderThemeProvider>
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { name: /Test Cookbook/i })).toBeInTheDocument();
@@ -25,7 +28,9 @@ describe("CookbookCard", () => {
   it("links to the cookbook page", () => {
     render(
       <MemoryRouter>
-        <CookbookCard cookbook={mockCookbook} />
+        <BorderThemeProvider>
+          <CookbookCard cookbook={mockCookbook} />
+        </BorderThemeProvider>
       </MemoryRouter>,
     );
     const link = screen.getByRole("link", { name: /Test Cookbook/i });

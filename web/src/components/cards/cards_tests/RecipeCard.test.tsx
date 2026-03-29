@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { BorderThemeProvider } from "../../../context/BorderThemeContext";
 import { RecipeCard } from "../../cards/RecipeCard";
 import type { Recipe } from "../../../../../shared/types/recipe";
 
@@ -20,7 +21,9 @@ describe("RecipeCard", () => {
   it("renders recipe name", () => {
     render(
       <MemoryRouter>
-        <RecipeCard recipe={mockRecipe} />
+        <BorderThemeProvider>
+          <RecipeCard recipe={mockRecipe} />
+        </BorderThemeProvider>
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { name: /Test Recipe/i })).toBeInTheDocument();
@@ -29,7 +32,9 @@ describe("RecipeCard", () => {
   it("links to the recipe page", () => {
     render(
       <MemoryRouter>
-        <RecipeCard recipe={mockRecipe} />
+        <BorderThemeProvider>
+          <RecipeCard recipe={mockRecipe} />
+        </BorderThemeProvider>
       </MemoryRouter>,
     );
     const link = screen.getByRole("link", { name: /Test Recipe/i });

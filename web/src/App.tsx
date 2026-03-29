@@ -13,6 +13,7 @@ import RecipePage from "./pages/recipe/RecipePage";
 // import { useEffect, useState } from "react";
 import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
+import Account from "./pages/account/Account";
 import { AuthProvider } from "./context/AuthContext";
 // import ProtectedRoute from "./components/ProtectedRoute";
 import RecipeOptions from "./pages/recipe/RecipeOptions";
@@ -42,6 +43,7 @@ function App() {
               <Route path="/cookbook/:id" element={<Cookbook />} />
               <Route path="/recipe/:id" element={<RecipePage />} />
               <Route path="/search" element={<Search />} />
+              <Route path="/account" element={<Account />} />
               <Route path="/cookbook/:id/recipe/options" element={<RecipeOptions />} />
               
 
