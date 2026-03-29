@@ -3,6 +3,7 @@ from typing import Any
 
 import asyncpg
 
+from schemas.generate import GenerateSearchResult
 from schemas.recipe import Ingredient, Instruction, RecipeMetadata
 
 
@@ -71,6 +72,20 @@ def _row_to_recipe(row: asyncpg.Record, ingredients: list[Ingredient], instructi
         modified_at=data.get("modified_dttm"),
         ingredients=ingredients,
         instructions=instructions,
+    )
+
+
+def _row_to_search_result(row: asyncpg.Record) -> GenerateSearchResult:
+    data = dict(row)
+    return GenerateSearchResult(
+        recipe_id=data["recipe_id"],
+        recipe_name=data["recipe_name"],
+        cookbook_id=data["book_id"],
+        cookbook_name=data["book_name"],
+        image_url=data.get("recipe_image_url"),
+        category=data["category"],
+        tags=_text_to_tags(data.get("recipe_tags")),
+        score=float(data["score"]),
     )
 
 
@@ -168,6 +183,69 @@ class RecipeRepository:
         if row is None:
             return None
         return _row_to_recipe(row, [], [])
+
+    async def list_recipe_ids_missing_embeddings(self) -> list[int]:
+        rows = await self.conn.fetch(
+            """
+            SELECT Recipe_ID
+            FROM Recipe
+            WHERE embedding IS NULL
+            ORDER BY Recipe_ID
+            """
+        )
+        return [row["recipe_id"] for row in rows]
+
+    async def list_accessible_recipe_ids_for_user(self, user_id: int) -> list[int]:
+        rows = await self.conn.fetch(
+            """
+            SELECT DISTINCT r.Recipe_ID
+            FROM Recipe r
+            JOIN Cookbook c
+              ON c.Book_ID = r.Book_ID
+            LEFT JOIN Cookbook_Users cu
+              ON cu.Book_ID = c.Book_ID
+             AND cu.User_ID = $1
+            WHERE c.Owner_ID = $1
+               OR cu.User_ID IS NOT NULL
+            ORDER BY r.Recipe_ID
+            """,
+            user_id,
+        )
+        return [row["recipe_id"] for row in rows]
+
+    async def search_semantic_recipes_for_user(
+        self,
+        user_id: int,
+        embedding: list[float],
+        limit: int,
+    ) -> list[GenerateSearchResult]:
+        rows = await self.conn.fetch(
+            """
+            SELECT
+                r.Recipe_ID,
+                r.Recipe_name,
+                r.Book_ID,
+                c.Book_Name,
+                r.Recipe_Image_URL,
+                r.Category,
+                r.Recipe_Tags,
+                (1 - (r.embedding <=> $1::vector)) AS score
+            FROM Recipe r
+            JOIN Cookbook c
+              ON c.Book_ID = r.Book_ID
+            LEFT JOIN Cookbook_Users cu
+              ON cu.Book_ID = c.Book_ID
+             AND cu.User_ID = $2
+            WHERE r.embedding IS NOT NULL
+              AND (c.Owner_ID = $2 OR cu.User_ID IS NOT NULL)
+            ORDER BY r.embedding <=> $1::vector
+            LIMIT $3
+            """,
+            _embedding_to_vector(embedding),
+            user_id,
+            limit,
+        )
+        return [_row_to_search_result(row) for row in rows]
 
     async def get_recipe_row(self, recipe_id: int):
         return await self.conn.fetchrow(

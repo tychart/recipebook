@@ -25,6 +25,8 @@ class Settings:
     llm_base_url: str | None
     llm_api_key: str | None
     llm_model: str | None
+    embedding_model: str | None
+    embedding_vector_size: int
     llm_request_timeout: float
     queue_worker_count: int
     scheduler_interval_seconds: int
@@ -74,6 +76,8 @@ def get_settings() -> Settings:
         llm_base_url=os.getenv("LLM_BASE_URL"),
         llm_api_key=os.getenv("LLM_API_KEY"),
         llm_model=os.getenv("LLM_MODEL"),
+        embedding_model=os.getenv("EMBEDDING_MODEL"),
+        embedding_vector_size=max(1, _get_int_env("EMBEDDING_VECTOR_SIZE", 1536)),
         llm_request_timeout=_get_float_env("LLM_REQUEST_TIMEOUT", 60.0),
         queue_worker_count=max(1, _get_int_env("QUEUE_WORKER_COUNT", 1)),
         scheduler_interval_seconds=max(5, _get_int_env("SCHEDULER_INTERVAL_SECONDS", 300)),

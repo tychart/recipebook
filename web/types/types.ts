@@ -107,6 +107,17 @@ export interface RecipeInput {
   tags?: string[]; // array of tag strings
 }
 
+export interface SemanticSearchResult {
+  recipe_id: number;
+  recipe_name: string;
+  cookbook_id: number;
+  cookbook_name: string;
+  image_url?: string | null;
+  category: string;
+  tags?: string[];
+  score: number;
+}
+
 export interface User {
   id: number;
   username: string;
