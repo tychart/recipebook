@@ -272,6 +272,20 @@ class RecipeRepository:
             cookbook_id,
         )
 
+    async def reassign_recipe_creators_in_cookbook(
+        self, cookbook_id: int, from_creator_id: int, to_creator_id: int
+    ) -> None:
+        await self.conn.execute(
+            """
+            UPDATE Recipe
+            SET Creator_ID = $1, Modified_DtTm = CURRENT_TIMESTAMP
+            WHERE Book_ID = $2 AND Creator_ID = $3
+            """,
+            to_creator_id,
+            cookbook_id,
+            from_creator_id,
+        )
+
     async def get_recipe_cookbook_id(self, recipe_id: int) -> int | None:
         row = await self.conn.fetchrow(
             "SELECT Book_ID FROM Recipe WHERE Recipe_ID = $1",
