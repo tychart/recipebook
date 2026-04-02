@@ -9,8 +9,8 @@ export default function Sidebar() {
   // 🔒 Hide entire sidebar if not logged in
   if (!user) return null;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/home");
   };
 
