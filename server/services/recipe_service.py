@@ -144,6 +144,11 @@ class RecipeService:
         )
 
         existing = await self._get_recipe_or_404(recipe.id)
+        if existing.creator_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only the recipe owner can edit this recipe",
+            )
         new_image_key: str | None = None
         async with self.conn.transaction():
             try:

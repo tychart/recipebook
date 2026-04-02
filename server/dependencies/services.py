@@ -24,6 +24,7 @@ async def get_cookbook_service(
     return CookbookService(
         CookbookRepository(db),
         auth_service,
+        RecipeRepository(db),
     )
 
 async def get_recipe_service(
