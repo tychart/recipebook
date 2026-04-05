@@ -48,6 +48,13 @@ export default function Cookbooks() {
         case "viewer":
           setViewerCookbooks((prev) => [...prev, cookbook]);
           break;
+        default:
+          console.warn("Unexpected cookbook role; defaulting to viewer", {
+            cookbookId: cookbook.id,
+            current_user_role: cookbook.current_user_role,
+          });
+          setViewerCookbooks((prev) => [...prev, cookbook]);
+          break;
       }
     }
   };
