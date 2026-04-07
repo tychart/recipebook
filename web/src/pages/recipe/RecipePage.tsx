@@ -53,20 +53,7 @@ export default function RecipePage() {
     <div className="py-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-3xl font-semibold">{recipe.name}</h1>
-          {parentCookbook && (
-            <p className="text-sm text-gray-600 dark:text-black-300 mt-5">
-              In{" "}
-              <Link
-                to={`/cookbook/${parentCookbook.id}`}
-                className="font-medium"
-              >
-                {parentCookbook.name}
-              </Link>
-            </p>
-          )}
-        </div>
+        <h1 className="text-3xl font-semibold">{recipe.name}</h1>
 
         <div className="flex items-center gap-10">
           {/* TODO: Disable editing button if user is not the creator of the recipe */}
@@ -82,6 +69,13 @@ export default function RecipePage() {
           </button>
         </div>
       </div>
+      {parentCookbook && (
+        <p className="text-sm text-gray-600 dark:text-black-300 mb-5">
+          <Link to={`/cookbook/${parentCookbook.id}`} className="font-medium">
+            ← {parentCookbook.name}
+          </Link>
+        </p>
+      )}
 
       {/* Image */}
       <RecipeImage imageUrl={recipe.image_url} alt={recipe.name} />
