@@ -113,6 +113,41 @@ class AuthRepository:
             return None
         return _row_to_auth_user(row)
 
+    async def fetch_user_by_id_with_password(self, user_id: int) -> AuthLoginRecord | None:
+        row = await self.conn.fetchrow(
+            """
+            SELECT User_ID, Username, Email, Password
+            FROM Users
+            WHERE User_ID = $1
+            """,
+            user_id,
+        )
+        if row is None:
+            return None
+        return _row_to_login_record(row)
+
+    async def update_user_profile(self, user_id: int, username: str, email: str) -> AuthUserRecord | None:
+        row = await self.conn.fetchrow(
+            """
+            UPDATE Users
+            SET Username = $2, Email = $3
+            WHERE User_ID = $1
+            RETURNING User_ID, Username, Email
+            """,
+            user_id,
+            username,
+            email,
+        )
+        if row is None:
+            return None
+        return _row_to_auth_user(row)
+
+    async def update_password_hash(self, user_id: int, password_hash: str) -> None:
+        await self.conn.execute(
+            "UPDATE Users SET Password = $2 WHERE User_ID = $1",
+            user_id,
+            password_hash,
+        )
 
     async def get_user_by_email(self, email: str) -> AuthUserRecord | None:
         email = email.strip().lower()

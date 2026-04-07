@@ -7,7 +7,15 @@ from argon2.exceptions import InvalidHashError, VerifyMismatchError
 from fastapi import HTTPException
 
 from repositories.auth_repo import AuthRepository
-from schemas.auth import AuthUserRecord, CurrentUser, LoginRequest, RegisterRequest, TOKEN_TTL_SECONDS
+from schemas.auth import (
+    AuthUserRecord,
+    ChangePasswordRequest,
+    CurrentUser,
+    LoginRequest,
+    RegisterRequest,
+    TOKEN_TTL_SECONDS,
+    UpdateProfileRequest,
+)
 
 
 def _user_to_dict(user: AuthUserRecord) -> dict:
@@ -129,3 +137,36 @@ class AuthService:
             "email": user.email,
             "username": user.username,
         }
+
+    async def update_profile(self, current_user: CurrentUser, body: UpdateProfileRequest) -> dict:
+        if body.username is None and body.email is None:
+            raise HTTPException(status_code=400, detail="Provide username and/or email to update")
+
+        existing = await self.repo.get_user_by_id(current_user.id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        new_username = body.username.strip() if body.username is not None else existing.username
+        new_email = body.email.strip() if body.email is not None else existing.email
+
+        try:
+            updated = await self.repo.update_user_profile(current_user.id, new_username, new_email)
+        except asyncpg.UniqueViolationError:
+            raise HTTPException(status_code=400, detail="Username or email already in use")
+
+        if updated is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        return {"message": "Profile updated", "user": _user_to_dict(updated)}
+
+    async def change_password(self, current_user: CurrentUser, body: ChangePasswordRequest) -> dict:
+        user = await self.repo.fetch_user_by_id_with_password(current_user.id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        if not self.password_hasher.verify_password(body.current_password, user.password_hash):
+            raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+        new_hash = self.password_hasher.hash_password(body.new_password)
+        await self.repo.update_password_hash(current_user.id, new_hash)
+        return {"message": "Password updated successfully"}

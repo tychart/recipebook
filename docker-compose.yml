@@ -20,6 +20,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@recipebook-db:5432/recipebook
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      LLM_MODEL: ${LLM_MODEL}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL}
+      EMBEDDING_VECTOR_SIZE: ${EMBEDDING_VECTOR_SIZE}
       LOG_LEVEL: ${LOG_LEVEL}
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
@@ -71,7 +74,7 @@ services:
       container_name: recipebook-ollama
       restart: unless-stopped
       ports:
-        - "11434:11434"
+        - "${OLLAMA_PORT}:11434"
       volumes:
         - ollama_data:/root/.ollama
 

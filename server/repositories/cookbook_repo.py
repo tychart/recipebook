@@ -131,6 +131,32 @@ class CookbookRepository:
             role,
         )
 
+    async def delete_shared_user(self, book_id: int, user_id: int) -> bool:
+        row = await self.conn.fetchrow(
+            """
+            DELETE FROM Cookbook_Users
+            WHERE Book_ID = $1 AND User_ID = $2
+            RETURNING Book_ID
+            """,
+            book_id,
+            user_id,
+        )
+        return row is not None
+
+    async def get_shared_user_role(self, book_id: int, user_id: int) -> RoleEnum | None:
+        row = await self.conn.fetchrow(
+            """
+            SELECT cu.Role::text AS role
+            FROM Cookbook_Users cu
+            WHERE cu.Book_ID = $1 AND cu.User_ID = $2
+            """,
+            book_id,
+            user_id,
+        )
+        if row is None or row["role"] is None:
+            return None
+        return RoleEnum(row["role"])
+
     async def get_user_role(self, cookbook_id: int, user_id: int) -> CookbookRoleRecord | None:
         row = await self.conn.fetchrow(
             """

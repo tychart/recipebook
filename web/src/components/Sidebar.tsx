@@ -1,33 +1,37 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useBorderTheme } from "../context/BorderThemeContext";
+import {
+  sidebarActiveNavClasses,
+  sidebarBackgroundImage,
+  sidebarTitleLinkClasses,
+} from "../theme/borderTheme";
 
 export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { borderTheme } = useBorderTheme();
 
   // 🔒 Hide entire sidebar if not logged in
   if (!user) return null;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/home");
   };
 
   const navItem = (to: string, label: string) => {
     const isActive = location.pathname === to;
-
-  
+    const activeClasses = sidebarActiveNavClasses[borderTheme];
+    const inactiveClasses = "bg-white text-black border-black hover:bg-stone-100";
 
     return (
       <Link
         to={to}
-        className={`block px-4 py-2 rounded-md text-sm font-medium transition border
-          ${
-            isActive
-              ? "bg-red-500 text-white border-red-500 hover:bg-red-600"
-              : "bg-white text-black border-black hover:bg-stone-100"
-          }`}
+        className={`block px-4 py-2 rounded-md text-sm font-medium transition border ${
+          isActive ? activeClasses : inactiveClasses
+        }`}
       >
         {label}
       </Link>
@@ -38,10 +42,7 @@ export default function Sidebar() {
     <aside
       className="w-64 min-h-screen p-[6px] flex flex-col rounded-lg"
       style={{
-        backgroundImage: `
-          linear-gradient(#EEE9E0, #EEE9E0),
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30'%3E%3Crect x='0' y='0' width='10' height='10' fill='%23d21404'/%3E%3Crect x='10' y='0' width='10' height='10' fill='%23fc6b5f'/%3E%3Crect x='20' y='0' width='10' height='10' fill='%23ffffff'/%3E%3Crect x='0' y='10' width='10' height='10' fill='%23fc6b5f'/%3E%3Crect x='10' y='10' width='10' height='10' fill='%23ffffff'/%3E%3Crect x='20' y='10' width='10' height='10' fill='%23d21404'/%3E%3Crect x='0' y='20' width='10' height='10' fill='%23ffffff'/%3E%3Crect x='10' y='20' width='10' height='10' fill='%23d21404'/%3E%3Crect x='20' y='20' width='10' height='10' fill='%23fc6b5f'/%3E%3C/svg%3E")
-        `,
+        backgroundImage: sidebarBackgroundImage(borderTheme),
         backgroundOrigin: "border-box",
         backgroundClip: "content-box, border-box",
       }}
@@ -50,7 +51,7 @@ export default function Sidebar() {
         {/* App Title */}
         <Link
           to="/"
-          className="text-2xl font-semibold text-red-500 mb-10 tracking-tight hover:text-red-600 transition"
+          className={`text-2xl font-semibold mb-10 tracking-tight transition ${sidebarTitleLinkClasses[borderTheme]}`}
         >
           RecipeBook
         </Link>

@@ -1,6 +1,9 @@
+import logging
+
 import asyncpg
 from fastapi import HTTPException, UploadFile
 
+from inference.embedding import embed_text, format_recipe_for_embedding, get_embedding_model
 from repositories.cookbook_repo import CookbookRepository
 from repositories.recipe_repo import RecipeRepository
 from schemas.auth import CurrentUser
@@ -8,6 +11,8 @@ from schemas.cookbook import RoleEnum
 from schemas.recipe import RecipeMetadata
 from services.cookbook_service import CookbookService
 from services.storage_service import StorageService
+
+logger = logging.getLogger(__name__)
 
 
 class RecipeService:
@@ -41,6 +46,45 @@ class RecipeService:
         if cookbook_id is None:
             raise HTTPException(status_code=404, detail="Recipe not found")
         return cookbook_id
+
+    async def refresh_recipe_embedding(self, recipe_id: int) -> bool:
+        recipe = await self.recipe_repo.get_recipe(recipe_id)
+        if recipe is None:
+            return False
+
+        try:
+            model = get_embedding_model()
+            formatted_str = format_recipe_for_embedding(recipe) 
+            embedding = await embed_text(formatted_str, model=model)
+            await self.recipe_repo.update_recipe_embedding(recipe_id, embedding)
+            return True
+        except RuntimeError as exc:
+            logger.warning("Skipping embedding refresh recipe_id=%s: %s", recipe_id, exc)
+            return False
+        except Exception:
+            logger.exception("Embedding refresh failed recipe_id=%s", recipe_id)
+            return False
+
+    async def backfill_missing_embeddings(self) -> int:
+        updated = 0
+        for recipe_id in await self.recipe_repo.list_recipe_ids_missing_embeddings():
+            if await self.refresh_recipe_embedding(recipe_id):
+                updated += 1
+        return updated
+
+    async def reembed_recipes_for_user(self, current_user: CurrentUser) -> dict[str, int]:
+        processed = 0
+        updated = 0
+
+        for recipe_id in await self.recipe_repo.list_accessible_recipe_ids_for_user(current_user.id):
+            processed += 1
+            if await self.refresh_recipe_embedding(recipe_id):
+                updated += 1
+
+        return {
+            "processed_count": processed,
+            "updated_count": updated,
+        }
 
     async def create_recipe(
         self,
@@ -81,6 +125,7 @@ class RecipeService:
         created = await self.recipe_repo.get_recipe(recipe_id)
         if created is None:
             raise HTTPException(status_code=500, detail="Recipe created but could not be loaded")
+        await self.refresh_recipe_embedding(recipe_id)
         return {"message": "Recipe created successfully!", "recipe": self._present_recipe(created)}
 
     async def edit_recipe(
@@ -99,6 +144,11 @@ class RecipeService:
         )
 
         existing = await self._get_recipe_or_404(recipe.id)
+        if existing.creator_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="Only the recipe owner can edit this recipe",
+            )
         new_image_key: str | None = None
         async with self.conn.transaction():
             try:
@@ -131,6 +181,7 @@ class RecipeService:
         updated = await self.recipe_repo.get_recipe(recipe.id)
         if updated is None:
             raise HTTPException(status_code=500, detail="Recipe updated but could not be loaded")
+        await self.refresh_recipe_embedding(recipe.id)
         return {"message": "Recipe edited successfully!", "recipe": self._present_recipe(updated)}
 
     async def delete_recipe(self, recipe_id: int, current_user: CurrentUser) -> dict:
@@ -191,4 +242,5 @@ class RecipeService:
         created = await self.recipe_repo.get_recipe(new_recipe_id)
         if created is None:
             raise HTTPException(status_code=500, detail="Recipe copied but could not be loaded")
+        await self.refresh_recipe_embedding(new_recipe_id)
         return {"message": "Recipe copied successfully!", "recipe": self._present_recipe(created)}
