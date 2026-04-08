@@ -65,6 +65,7 @@ export default function Sidebar() {
         <div className="flex flex-col gap-3 mb-8">
           {navItem("/cookbooks", "My Cookbooks")}
           {navItem("/search", "Search")}
+          {navItem("/jobs", "Jobs")}
         </div>
 
         {/* Actions */}
