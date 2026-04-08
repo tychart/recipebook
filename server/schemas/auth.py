@@ -1,9 +1,9 @@
 import datetime as dt
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60
+TOKEN_TTL_SECONDS = 24 * 60 * 60
 
 
 class User(BaseModel):
@@ -44,3 +44,13 @@ class AuthLoginRecord(AuthUserRecord):
 class AuthTokenRecord(BaseModel):
     user_id: int
     created_at: dt.datetime
+
+
+class UpdateProfileRequest(BaseModel):
+    username: str | None = Field(default=None, min_length=1)
+    email: str | None = Field(default=None, min_length=1)
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=1)

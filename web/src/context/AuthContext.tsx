@@ -1,5 +1,10 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { login as apiLogin, register as apiRegister, getCurrentUser } from "../api/auth";
+import {
+  login as apiLogin,
+  logout as apiLogout,
+  register as apiRegister,
+  getCurrentUser,
+} from "../api/auth";
 import type { User } from "../../types/types";
 
 
@@ -9,7 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isInitializing: boolean;
 }
@@ -63,7 +68,15 @@ useEffect(() => {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    const stored = token ?? localStorage.getItem("authToken");
+    if (stored) {
+      try {
+        await apiLogout(stored);
+      } catch {
+        // Still clear client session if the server is unreachable or token already invalid.
+      }
+    }
     localStorage.removeItem("authToken");
     setUser(null);
     setToken(null);

@@ -6,11 +6,11 @@ import type { Cookbook } from "../../../types/types";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Cookbooks() {
-  const [cookbooks, setCookbooks] = useState<Cookbook[]>([]);
-  // const [contributorCookbooks, setContributorCookbooks] = useState<Cookbook[]>(
-  //   [],
-  // );
-  // const [viewerCookbooks, setViewerCookbooks] = useState<Cookbook[]>([]);
+  const [ownerCookbooks, setOwnerCookbooks] = useState<Cookbook[]>([]);
+  const [contributorCookbooks, setContributorCookbooks] = useState<Cookbook[]>(
+    [],
+  );
+  const [viewerCookbooks, setViewerCookbooks] = useState<Cookbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,15 +23,41 @@ export default function Cookbooks() {
     }
 
     listCookbooks(user.id)
-      .then(setCookbooks)
+      .then((cookbooks) => {
+        // clear existing lists before sorting to avoid duplicates on re-run
+        setOwnerCookbooks([]);
+        setContributorCookbooks([]);
+        setViewerCookbooks([]);
+        return sortCookbooks(cookbooks);
+      })
       .catch(() => setError("Failed to load cookbooks"))
       .finally(() => setLoading(false));
   }, []);
 
-  // const sortCookbooks = async (cookbooks: Cookbook[]) => {
-  //   // for cookbook in cookbooks
-  //   // based on the role of the cookbook, put the cookbook in the correct place
-  // };
+  const sortCookbooks = async (cookbooks: Cookbook[]) => {
+    // for cookbook in cookbooks
+    // based on the role of the cookbook, put the cookbook in the correct place
+    for (const cookbook of cookbooks) {
+      switch (cookbook.current_user_role) {
+        case "owner":
+          setOwnerCookbooks((prev) => [...prev, cookbook]);
+          break;
+        case "contributor":
+          setContributorCookbooks((prev) => [...prev, cookbook]);
+          break;
+        case "viewer":
+          setViewerCookbooks((prev) => [...prev, cookbook]);
+          break;
+        default:
+          console.warn("Unexpected cookbook role; defaulting to viewer", {
+            cookbookId: cookbook.id,
+            current_user_role: cookbook.current_user_role,
+          });
+          setViewerCookbooks((prev) => [...prev, cookbook]);
+          break;
+      }
+    }
+  };
 
   //Replace this with actual user ID
   if (!user) {
@@ -54,21 +80,39 @@ export default function Cookbooks() {
           </Link>
         </div>
 
-        {cookbooks.length === 0 ? (
+        {ownerCookbooks.length === 0 ? (
           <p className="text-gray-500">No cookbooks yet.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {cookbooks.map((book) => (
+            {ownerCookbooks.map((book) => (
               <CookbookCard key={book.id} cookbook={book} />
             ))}
           </div>
         )}
       </div>
       <div className="mt-4">
-        <h1 className="text-2xl font-semibold">Contributer Cookbooks</h1>
+        <h1 className="text-2xl font-semibold">Contributor Cookbooks</h1>
+        {contributorCookbooks.length === 0 ? (
+          <p className="text-gray-500">No cookbooks yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {contributorCookbooks.map((book) => (
+              <CookbookCard key={book.id} cookbook={book} />
+            ))}
+          </div>
+        )}
       </div>
       <div className="mt-4">
         <h1 className="text-2xl font-semibold">Viewer Cookbooks</h1>
+        {viewerCookbooks.length === 0 ? (
+          <p className="text-gray-500">No cookbooks yet.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {viewerCookbooks.map((book) => (
+              <CookbookCard key={book.id} cookbook={book} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
