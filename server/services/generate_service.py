@@ -4,16 +4,14 @@ import logging
 import os
 import time
 from base64 import b64decode
-from io import BytesIO
 from typing import Any, Protocol
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 
-import pytesseract
+import httpx
 from fastapi import HTTPException
 from fastapi import UploadFile
 from openai import OpenAI
-from PIL import Image
 from pydantic import BaseModel, Field
 
 from core.config import Settings
@@ -279,14 +277,12 @@ class GenerateService:
     async def parse_recipe_with_llm(self, system_prompt: str, raw_text: str) -> RecipeExtraction:
         return await asyncio.to_thread(self._parse_recipe_with_llm_sync, system_prompt, raw_text)
 
-    def _parse_image_bytes_with_ocr_sync(self, image_bytes: bytes) -> str:
-        img = Image.open(BytesIO(image_bytes))
-        return pytesseract.image_to_string(
-            image=img,
-            output_type=pytesseract.Output.STRING,
-        )
-
-    async def parse_image_bytes_with_ocr(self, image_bytes: bytes, filename: str, content_type: str) -> str:
+    async def parse_image_bytes_with_ocr(
+        self,
+        image_bytes: bytes,
+        filename: str,
+        content_type: str,
+    ) -> tuple[str, dict[str, Any]]:
         file_name = filename or "<unknown>"
         content_type = content_type or "<unknown>"
 
@@ -296,7 +292,11 @@ class GenerateService:
             content_type,
         )
 
-        raw_text = await asyncio.to_thread(self._parse_image_bytes_with_ocr_sync, image_bytes)
+        raw_text, metadata = await self._request_ml_ocr(
+            image_bytes=image_bytes,
+            filename=file_name,
+            content_type=content_type,
+        )
 
         logger.info(
             "OCR text extracted filename=%s text_length=%s",
@@ -306,7 +306,51 @@ class GenerateService:
 
         logger.debug("OCR parsed text: %s", raw_text)
 
-        return raw_text
+        return raw_text, metadata
+
+    async def _request_ml_ocr(
+        self,
+        image_bytes: bytes,
+        filename: str,
+        content_type: str,
+    ) -> tuple[str, dict[str, Any]]:
+        base_url = self.settings.ml_base_url.rstrip("/")
+        if not base_url:
+            raise RuntimeError("ML OCR service is not configured")
+
+        try:
+            async with httpx.AsyncClient(timeout=self.settings.ml_timeout_seconds) as client:
+                response = await client.post(
+                    f"{base_url}/ocr",
+                    files={
+                        "image": (
+                            filename or "upload",
+                            image_bytes,
+                            content_type or "application/octet-stream",
+                        ),
+                    },
+                )
+                response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text.strip() or exc.response.reason_phrase
+            raise RuntimeError(f"ML OCR service returned {exc.response.status_code}: {detail}") from exc
+        except httpx.RequestError as exc:
+            raise RuntimeError(f"ML OCR service request failed: {exc}") from exc
+
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise RuntimeError("ML OCR service returned invalid JSON") from exc
+
+        raw_text = str(payload.get("text", ""))
+        if not raw_text.strip():
+            raise RuntimeError("ML OCR service returned no text")
+
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+
+        return raw_text, metadata
 
     async def run_text_job(self, payload: dict[str, Any]) -> JobResult:
         request_started = time.perf_counter()
@@ -353,7 +397,11 @@ class GenerateService:
             raise RuntimeError("OCR image payload is missing")
 
         try:
-            ocr_text = await self.parse_image_bytes_with_ocr(bytes(image_bytes), file_name, content_type)
+            ocr_text, ocr_metadata = await self.parse_image_bytes_with_ocr(
+                bytes(image_bytes),
+                file_name,
+                content_type,
+            )
             if not ocr_text.strip():
                 logger.warning("OCR produced no text filename=%s", file_name)
                 raise RuntimeError("No text detected in image")
@@ -377,6 +425,7 @@ class GenerateService:
                     "source": JobSource.ocr.value,
                     "filename": file_name,
                     "content_type": content_type,
+                    **ocr_metadata,
                 },
             )
         except Exception:

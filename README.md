@@ -13,7 +13,7 @@ Have you ever called your friends or family asking for a recipe? Have you ever s
 * **Easy recipe ingestion**
   * Upload recipes manually via a form
   * Upload images or screenshots of recipes
-  * OCR to extract text from images
+  * OCR via a dedicated ML service to extract text from images
   * LLM-assisted formatting to normalize recipes into a consistent structure
 
 * **Cookbooks**
@@ -49,6 +49,7 @@ Have you ever called your friends or family asking for a recipe? Have you ever s
 
 * **Extensible architecture**
   * Clean separation between frontend, backend, and worker services
+  * Dedicated ML containers for OCR and future inference workloads
   * Well-defined API boundaries
   * Designed to be easy to extend with additional features or integrations
 
@@ -105,7 +106,6 @@ Prerequisites: (As far as I know)
 - python3
 - python3-venv
 - npm
-- Tesseract OCR for local image upload/OCR support
 
 
 Clone the repo to your local machine:
@@ -132,28 +132,6 @@ docker compose up
 
 ### Backend:
 
-If you want to use image upload OCR locally, install the system `tesseract` binary first. `pip install -r requirements.txt` installs `pytesseract`, but that package is only a Python wrapper and still requires Tesseract to be installed on your machine and available on your `PATH`.
-
-Common install commands:
-
-```bash
-# Ubuntu / Debian
-sudo apt-get update
-sudo apt-get install -y tesseract-ocr
-
-# macOS with Homebrew
-brew install tesseract
-
-# Windows with Chocolatey
-choco install tesseract
-```
-
-After installing, verify it is available:
-
-```bash
-tesseract --version
-```
-
 ```bash
 cd server/
 python3 -m venv .venv
@@ -168,12 +146,20 @@ source .venv/bin/activate  # If not already activated
 uvicorn main:app --env-file ../.env --reload
 ```
 
+For OCR jobs in local development, keep `recipebook-ml` running through Docker Compose. The backend now calls that service over `ML_BASE_URL` instead of depending on a local Tesseract install.
+
 To run for (semi) production:
 
 ```bash
 source .venv/bin/activate  # If not already activated
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
+
+### ML Service:
+
+The repo now includes a dedicated `recipebook-ml` container in `ml/`. Local defaults in `.env.example` run PaddleOCR on CPU with optional Tesseract fallback so the full stack still comes up on a typical laptop with a single `.env` file.
+
+If you have a remote GPU host, override only `ML_BASE_URL` in your production `.env` so the backend talks to that machine instead of the local Compose service. If you also build `recipebook-ml` on a GPU host, you can swap the Paddle wheel at build time with `ML_PADDLE_PACKAGE` and `ML_PADDLE_INDEX_URL`.
 
 
 ### Frontend:

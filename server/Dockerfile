@@ -1,15 +1,5 @@
 FROM python:3.13-slim
 
-# Install system dependencies for Tesseract and image processing
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    libtesseract-dev \
-    libleptonica-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-    
 WORKDIR /app
 
 # Install dependencies first (better caching)

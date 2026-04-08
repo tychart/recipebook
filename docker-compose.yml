@@ -24,6 +24,8 @@ services:
       EMBEDDING_MODEL: ${EMBEDDING_MODEL}
       EMBEDDING_VECTOR_SIZE: ${EMBEDDING_VECTOR_SIZE}
       LOG_LEVEL: ${LOG_LEVEL}
+      ML_BASE_URL: ${ML_BASE_URL:-http://recipebook-ml:8001}
+      ML_TIMEOUT_SECONDS: ${ML_TIMEOUT_SECONDS:-120}
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_BUCKET: ${S3_BUCKET} # <- not required, backend can use a default name
@@ -32,6 +34,7 @@ services:
     depends_on:
       - recipebook-db
       - recipebook-rustfs
+      - recipebook-ml
       - recipebook-ollama  # Enable or disable this if you want to use the Ollama container
     ports:
       - "8000:8000"
@@ -78,8 +81,29 @@ services:
       volumes:
         - ollama_data:/root/.ollama
 
+  recipebook-ml:
+      build:
+        context: ./ml
+        args:
+          ML_PADDLE_PACKAGE: ${ML_PADDLE_PACKAGE:-paddlepaddle==3.2.0}
+          ML_PADDLE_INDEX_URL: ${ML_PADDLE_INDEX_URL:-https://www.paddlepaddle.org.cn/packages/stable/cpu/}
+      container_name: recipebook-ml
+      restart: unless-stopped
+      environment:
+        ML_PORT: ${ML_PORT:-8001}
+        ML_OCR_ENGINE: ${ML_OCR_ENGINE:-paddleocr}
+        ML_OCR_AUTO_FALLBACK: ${ML_OCR_AUTO_FALLBACK:-true}
+        ML_OCR_TESSERACT_LANG: ${ML_OCR_TESSERACT_LANG:-eng}
+        ML_OCR_PADDLE_DEVICE: ${ML_OCR_PADDLE_DEVICE:-cpu}
+        ML_OCR_PADDLE_MODEL: ${ML_OCR_PADDLE_MODEL:-PaddleOCR-VL-1.5}
+      ports:
+        - "${ML_PORT:-8001}:8001"
+      volumes:
+        - ml_models:/root/.paddlex
+
 volumes:
   db_data:
   rustfs_data:
   rustfs_logs:
   ollama_data:
+  ml_models:

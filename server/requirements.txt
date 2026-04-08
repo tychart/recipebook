@@ -4,8 +4,7 @@ pydantic
 email-validator
 asyncpg
 python-multipart
-pytesseract
-pillow
+httpx
 openai
 boto3
 openai

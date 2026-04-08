@@ -34,6 +34,8 @@ def make_settings() -> Settings:
         llm_base_url=None,
         llm_api_key=None,
         llm_model=None,
+        ml_base_url="http://recipebook-ml:8001",
+        ml_timeout_seconds=120.0,
         embedding_model=None,
         embedding_vector_size=1536,
         llm_request_timeout=60.0,
@@ -150,6 +152,80 @@ def test_run_text_job_returns_parsed_recipe(monkeypatch):
         assert response.draft["name"] == "Brownies"
         assert response.draft["notes"] == "Imported author: Grandma"
         assert response.raw_text == "Brownies\n1 cup sugar\nMix"
+
+    asyncio.run(run())
+
+
+def test_parse_image_bytes_with_ocr_delegates_to_ml_service(monkeypatch):
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        request_mock = AsyncMock(
+            return_value=("Brownies\n1 cup sugar\nMix", {"engine": "paddleocr", "fallback_used": False})
+        )
+
+        monkeypatch.setattr(service, "_request_ml_ocr", request_mock)
+
+        raw_text, metadata = await service.parse_image_bytes_with_ocr(
+            b"png-bytes",
+            "brownies.png",
+            "image/png",
+        )
+
+        request_mock.assert_awaited_once_with(
+            image_bytes=b"png-bytes",
+            filename="brownies.png",
+            content_type="image/png",
+        )
+        assert raw_text == "Brownies\n1 cup sugar\nMix"
+        assert metadata["engine"] == "paddleocr"
+
+    asyncio.run(run())
+
+
+def test_run_ocr_job_returns_draft_and_metadata(monkeypatch):
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+
+        monkeypatch.setattr(
+            service,
+            "parse_image_bytes_with_ocr",
+            AsyncMock(
+                return_value=(
+                    "Brownies\n1 cup sugar\nMix",
+                    {"engine": "tesseract", "fallback_used": True},
+                )
+            ),
+        )
+        monkeypatch.setattr(
+            service,
+            "parse_recipe_with_llm",
+            AsyncMock(
+                return_value=type(
+                    "RecipeExtractionStub",
+                    (),
+                    {
+                        "ingredients": [type("IngredientStub", (), {"name": "sugar", "amount": 1, "unit": "cup"})()],
+                        "instructions": ["Mix"],
+                        "recipe_name": "Brownies",
+                        "recipe_author": "",
+                    },
+                )()
+            ),
+        )
+
+        response = await service.run_ocr_job(
+            {
+                "image_bytes": b"png-bytes",
+                "filename": "brownies.png",
+                "content_type": "image/png",
+            }
+        )
+
+        assert response.draft["name"] == "Brownies"
+        assert response.raw_text == "Brownies\n1 cup sugar\nMix"
+        assert response.metadata["engine"] == "tesseract"
+        assert response.metadata["fallback_used"] is True
+        assert response.metadata["filename"] == "brownies.png"
 
     asyncio.run(run())
 

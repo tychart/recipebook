@@ -25,6 +25,8 @@ class Settings:
     llm_base_url: str | None
     llm_api_key: str | None
     llm_model: str | None
+    ml_base_url: str
+    ml_timeout_seconds: float
     embedding_model: str | None
     embedding_vector_size: int
     llm_request_timeout: float
@@ -76,6 +78,8 @@ def get_settings() -> Settings:
         llm_base_url=os.getenv("LLM_BASE_URL"),
         llm_api_key=os.getenv("LLM_API_KEY"),
         llm_model=os.getenv("LLM_MODEL"),
+        ml_base_url=os.getenv("ML_BASE_URL", "http://localhost:8001"),
+        ml_timeout_seconds=_get_float_env("ML_TIMEOUT_SECONDS", 120.0),
         embedding_model=os.getenv("EMBEDDING_MODEL"),
         embedding_vector_size=max(1, _get_int_env("EMBEDDING_VECTOR_SIZE", 1536)),
         llm_request_timeout=_get_float_env("LLM_REQUEST_TIMEOUT", 60.0),
