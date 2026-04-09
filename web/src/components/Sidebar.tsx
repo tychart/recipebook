@@ -24,7 +24,8 @@ export default function Sidebar() {
   const navItem = (to: string, label: string) => {
     const isActive = location.pathname === to;
     const activeClasses = sidebarActiveNavClasses[borderTheme];
-    const inactiveClasses = "bg-white text-black border-black hover:bg-stone-100";
+    const inactiveClasses =
+      "bg-white text-black border-black hover:bg-stone-100";
 
     return (
       <Link
@@ -40,7 +41,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-64 min-h-screen p-[6px] flex flex-col rounded-lg"
+      className="w-64 min-h-screen p-[6px] flex flex-col rounded-lg no-print"
       style={{
         backgroundImage: sidebarBackgroundImage(borderTheme),
         backgroundOrigin: "border-box",
@@ -74,11 +75,11 @@ export default function Sidebar() {
 
           {/* Logout Button (styled same as nav items) */}
           <button
-  onClick={handleLogout}
-  className="block w-full px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer"
->
-  Logout
-</button>
+            onClick={handleLogout}
+            className="block w-full px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer"
+          >
+            Logout
+          </button>
         </div>
 
         <div className="flex-grow" />

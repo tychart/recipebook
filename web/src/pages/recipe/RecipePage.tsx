@@ -16,9 +16,7 @@ export default function RecipePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) {
-      return;
-    }
+    if (!id) return;
 
     const fetchRecipe = async () => {
       try {
@@ -35,25 +33,21 @@ export default function RecipePage() {
     fetchRecipe();
   }, [id]);
 
+  if (!id) return <p>Invalid recipe</p>;
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
   if (!recipe) return <p>Recipe not found</p>;
 
-  // const tags = recipe.recipe_tags
-  //   ? recipe.recipe_tags.split(",").map((tag: string) => tag.trim())
-  //   : [];
-
   return (
-    <div className="py-6 max-w-4xl mx-auto">
+    <div className="print-container py-6 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 no-print">
         <h1 className="text-3xl font-semibold">{recipe.name}</h1>
 
-        <div className="flex items-center gap-10">
-          {/* TODO: Disable editing button if user is not the creator of the recipe */}
+        <div className="flex items-center gap-4">
           <Link
             to={`/recipe/${id}/edit`}
-            className="block w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+            className="block w-20 px-4 py-2 rounded-md text-sm font-medium border bg-white text-black border-black hover:bg-stone-100 text-center"
           >
             Edit
           </Link>
@@ -61,26 +55,33 @@ export default function RecipePage() {
           <button onClick={() => setShowShare(true)} className="w-20">
             Share
           </button>
+
+          <button onClick={() => window.print()} className="w-20">
+            Print
+          </button>
         </div>
       </div>
+
+      {/* Print-only title (centered for paper) */}
+      <h1 className="hidden print:block text-3xl text-center mb-4">
+        {recipe.name}
+      </h1>
 
       {/* Image */}
       <RecipeImage imageUrl={recipe.image_url} alt={recipe.name} />
 
       {/* Description */}
       {recipe.description && (
-        <p className="mb-4 text-gray-600 dark:text-black-300 text-center">
-          {recipe.description}
-        </p>
+        <p className="mb-4 text-gray-600 text-center">{recipe.description}</p>
       )}
 
-      {/* Tags */}
+      {/* Tags (hidden in print) */}
       {recipe.tags && recipe.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6 no-print">
           {recipe.tags.map((tag: string) => (
             <span
               key={tag}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-100 rounded-full"
+              className="px-3 py-1 text-sm bg-gray-200 rounded-full"
             >
               #{tag}
             </span>
@@ -88,11 +89,12 @@ export default function RecipePage() {
         </div>
       )}
 
-      {/* Content Sections - ingredients and instructions side by side */}
+      {/* Content Sections */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
           <IngredientList ingredients={recipe.ingredients} />
         </div>
+
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
           <Instructions instructions={recipe.instructions} />
         </div>
@@ -100,11 +102,15 @@ export default function RecipePage() {
 
       {recipe.notes && <Notes notes={recipe.notes} />}
 
+      {/* Share Modal */}
       {showShare && id && (
-        <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
+        <div className="no-print">
+          <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
+        </div>
       )}
-      {/* Meta Info - at bottom */}
-      <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
+
+      {/* Meta Info */}
+      <div className="mt-6 text-sm text-gray-600 space-y-1 text-center">
         <p>Serves {recipe.servings}</p>
         <p>Category: {recipe.category}</p>
         <p>
