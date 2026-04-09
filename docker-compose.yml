@@ -25,17 +25,21 @@ services:
       EMBEDDING_VECTOR_SIZE: ${EMBEDDING_VECTOR_SIZE}
       LOG_LEVEL: ${LOG_LEVEL}
       ML_BASE_URL: ${ML_BASE_URL:-http://recipebook-ml:8001}
-      ML_TIMEOUT_SECONDS: ${ML_TIMEOUT_SECONDS:-120}
+      ML_TIMEOUT_SECONDS: ${ML_TIMEOUT_SECONDS:-600}
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT}
       S3_BUCKET: ${S3_BUCKET} # <- not required, backend can use a default name
       S3_KEY: ${S3_KEY:?Env variable S3_KEY is required}
       S3_SECRET: ${S3_SECRET:?Env variable S3_SECRET is required}
     depends_on:
-      - recipebook-db
-      - recipebook-rustfs
-      - recipebook-ml
-      - recipebook-ollama  # Enable or disable this if you want to use the Ollama container
+      recipebook-db:
+        condition: service_started
+      recipebook-rustfs:
+        condition: service_started
+      recipebook-ml:
+        condition: service_healthy
+      recipebook-ollama:
+        condition: service_started  # Enable or disable this if you want to use the Ollama container
     ports:
       - "8000:8000"
 
@@ -96,10 +100,17 @@ services:
         ML_OCR_TESSERACT_LANG: ${ML_OCR_TESSERACT_LANG:-eng}
         ML_OCR_PADDLE_DEVICE: ${ML_OCR_PADDLE_DEVICE:-cpu}
         ML_OCR_PADDLE_MODEL: ${ML_OCR_PADDLE_MODEL:-PaddleOCR-VL-1.5}
+        ML_WARMUP_ON_STARTUP: ${ML_WARMUP_ON_STARTUP:-true}
+        PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK: ${PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK:-True}
       ports:
         - "${ML_PORT:-8001}:8001"
       volumes:
         - ml_models:/root/.paddlex
+      healthcheck:
+        test: ["CMD", "python", "-c", "import json, urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8001/health')); raise SystemExit(0 if data.get('status') == 'ok' else 1)"]
+        interval: 10s
+        timeout: 5s
+        retries: 60
 
 volumes:
   db_data:

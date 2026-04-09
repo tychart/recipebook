@@ -1,6 +1,7 @@
 import json
 import logging
 import tempfile
+import threading
 import time
 from io import BytesIO
 from pathlib import Path
@@ -152,6 +153,9 @@ class OcrService:
         self.settings = settings
         self._paddle = PaddleOcrProvider(settings)
         self._tesseract = TesseractOcrProvider(settings)
+        self._pipeline_lock = threading.Lock()
+        self._ready = False
+        self._last_warmup_error: str | None = None
 
     def describe(self) -> dict[str, Any]:
         return {
@@ -159,31 +163,64 @@ class OcrService:
             "auto_fallback": self.settings.ocr_auto_fallback,
             "paddle_device": self.settings.ocr_paddle_device,
             "paddle_model": self.settings.ocr_paddle_model,
+            "ready": self._ready,
+            "last_warmup_error": self._last_warmup_error,
         }
+
+    def is_ready(self) -> bool:
+        return self._ready
+
+    def warmup(self) -> None:
+        with self._pipeline_lock:
+            try:
+                if self.settings.ocr_engine == "tesseract":
+                    self._last_warmup_error = None
+                    self._ready = True
+                    return
+
+                if self.settings.ocr_engine != "paddleocr":
+                    raise RuntimeError(f"Unsupported OCR engine: {self.settings.ocr_engine}")
+
+                self._paddle._get_pipeline()
+                self._last_warmup_error = None
+                self._ready = True
+            except Exception as exc:
+                self._ready = False
+                self._last_warmup_error = str(exc)
+                logger.exception("OCR warmup failed")
+                if not self.settings.ocr_auto_fallback:
+                    raise
+                logger.warning("OCR warmup will rely on Tesseract fallback until PaddleOCR is available")
 
     def extract_text(self, image_bytes: bytes, filename: str | None = None) -> tuple[str, dict[str, Any]]:
         started = time.perf_counter()
         engine = self.settings.ocr_engine
 
-        if engine == "tesseract":
-            text, metadata = self._tesseract.extract_text(image_bytes, filename=filename)
-            return text, self._finalize_metadata(metadata, started)
+        with self._pipeline_lock:
+            if engine == "tesseract":
+                text, metadata = self._tesseract.extract_text(image_bytes, filename=filename)
+                self._ready = True
+                return text, self._finalize_metadata(metadata, started)
 
-        if engine != "paddleocr":
-            raise RuntimeError(f"Unsupported OCR engine: {engine}")
+            if engine != "paddleocr":
+                raise RuntimeError(f"Unsupported OCR engine: {engine}")
 
-        try:
-            text, metadata = self._paddle.extract_text(image_bytes, filename=filename)
-            return text, self._finalize_metadata(metadata, started)
-        except Exception as exc:
-            logger.warning("PaddleOCR failed: %s", exc)
-            if not self.settings.ocr_auto_fallback:
-                raise
+            try:
+                text, metadata = self._paddle.extract_text(image_bytes, filename=filename)
+                self._ready = True
+                self._last_warmup_error = None
+                return text, self._finalize_metadata(metadata, started)
+            except Exception as exc:
+                logger.warning("PaddleOCR failed: %s", exc)
+                self._ready = False
+                self._last_warmup_error = str(exc)
+                if not self.settings.ocr_auto_fallback:
+                    raise
 
-            text, metadata = self._tesseract.extract_text(image_bytes, filename=filename)
-            metadata["fallback_used"] = True
-            metadata["fallback_reason"] = str(exc)
-            return text, self._finalize_metadata(metadata, started)
+                text, metadata = self._tesseract.extract_text(image_bytes, filename=filename)
+                metadata["fallback_used"] = True
+                metadata["fallback_reason"] = str(exc)
+                return text, self._finalize_metadata(metadata, started)
 
     def _finalize_metadata(self, metadata: dict[str, Any], started: float) -> dict[str, Any]:
         finalized = dict(metadata)

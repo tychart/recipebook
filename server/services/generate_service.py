@@ -318,8 +318,16 @@ class GenerateService:
         if not base_url:
             raise RuntimeError("ML OCR service is not configured")
 
+        timeout_seconds = max(self.settings.ml_timeout_seconds, 600.0)
+        timeout = httpx.Timeout(
+            connect=min(timeout_seconds, 30.0),
+            read=timeout_seconds,
+            write=timeout_seconds,
+            pool=min(timeout_seconds, 30.0),
+        )
+
         try:
-            async with httpx.AsyncClient(timeout=self.settings.ml_timeout_seconds) as client:
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(
                     f"{base_url}/ocr",
                     files={
@@ -334,6 +342,10 @@ class GenerateService:
         except httpx.HTTPStatusError as exc:
             detail = exc.response.text.strip() or exc.response.reason_phrase
             raise RuntimeError(f"ML OCR service returned {exc.response.status_code}: {detail}") from exc
+        except httpx.ReadTimeout as exc:
+            raise RuntimeError(
+                f"ML OCR service timed out after {timeout_seconds:.0f}s while waiting for OCR output"
+            ) from exc
         except httpx.RequestError as exc:
             raise RuntimeError(f"ML OCR service request failed: {exc}") from exc
 

@@ -10,6 +10,7 @@ def make_settings(**overrides) -> Settings:
         "ocr_tesseract_lang": "eng",
         "ocr_paddle_device": "cpu",
         "ocr_paddle_model": "PaddleOCR-VL-1.5",
+        "warmup_on_startup": True,
     }
     defaults.update(overrides)
     return Settings(**defaults)

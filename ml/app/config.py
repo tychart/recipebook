@@ -18,6 +18,7 @@ class Settings:
     ocr_tesseract_lang: str
     ocr_paddle_device: str
     ocr_paddle_model: str
+    warmup_on_startup: bool
 
 
 @lru_cache(maxsize=1)
@@ -29,4 +30,5 @@ def get_settings() -> Settings:
         ocr_tesseract_lang=os.getenv("ML_OCR_TESSERACT_LANG", "eng").strip() or "eng",
         ocr_paddle_device=os.getenv("ML_OCR_PADDLE_DEVICE", "cpu").strip() or "cpu",
         ocr_paddle_model=os.getenv("ML_OCR_PADDLE_MODEL", "PaddleOCR-VL-1.5").strip() or "PaddleOCR-VL-1.5",
+        warmup_on_startup=_get_bool_env("ML_WARMUP_ON_STARTUP", True),
     )

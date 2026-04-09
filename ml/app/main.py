@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -10,9 +11,20 @@ from .ocr_service import OcrService
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="recipebook-ml")
 settings = get_settings()
 ocr_service = OcrService(settings)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if settings.warmup_on_startup:
+        logger.info("Starting OCR warmup")
+        await asyncio.to_thread(ocr_service.warmup)
+        logger.info("OCR warmup complete ready=%s", ocr_service.is_ready())
+    yield
+
+
+app = FastAPI(title="recipebook-ml", lifespan=lifespan)
 
 
 class OcrResponse(BaseModel):
@@ -22,8 +34,9 @@ class OcrResponse(BaseModel):
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
+    status = "ok" if ocr_service.is_ready() else "warming"
     return {
-        "status": "ok",
+        "status": status,
         "service": "recipebook-ml",
         "ocr": ocr_service.describe(),
     }
