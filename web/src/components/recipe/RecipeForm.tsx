@@ -32,7 +32,8 @@ export default function RecipeForm({
 
     setRecipe((prev) => ({
       ...prev,
-      [name]: name === "servings" ? Number(value) : value,
+      // Ensure servings cannot be less than 0
+      [name]: name === "servings" ? Math.max(0, Number(value)) : value,
     }));
   };
 
@@ -45,7 +46,8 @@ export default function RecipeForm({
       const updated = [...prev.ingredients];
       updated[index] = {
         ...updated[index],
-        [field]: value,
+        // Ensure amount cannot be less than 0
+        [field]: field === "amount" ? Math.max(0, Number(value)) : value,
       };
       return { ...prev, ingredients: updated };
     });
@@ -212,6 +214,7 @@ export default function RecipeForm({
           <input
             type="number"
             name="servings"
+            min="0"
             value={recipe.servings}
             onChange={handleChange}
             className="w-32 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
@@ -239,6 +242,7 @@ export default function RecipeForm({
               <div key={index} className="flex gap-3 items-center">
                 <input
                   type="number"
+                  min="0"
                   value={ingredient.amount}
                   onChange={(e) =>
                     handleIngredientChange(

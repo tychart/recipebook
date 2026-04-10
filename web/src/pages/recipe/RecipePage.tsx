@@ -82,7 +82,7 @@ export default function RecipePage() {
 
       {/* Description */}
       {recipe.description && (
-        <p className="mb-4 text-gray-600 dark:text-black-300 text-center">
+        <p className="mb-4 text-gray-600 dark:text-black-300 text-center whitespace-pre-wrap">
           {recipe.description}
         </p>
       )}
