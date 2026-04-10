@@ -56,18 +56,26 @@ class FakeRecipeService:
 
 
 class FakeGenerateService:
-    async def process_text_input(self, body):
+    async def enqueue_text_job(self, body, current_user):
         return {
-            "recipe_name": "Brownies",
-            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
-            "instructions": ["Mix"],
+            "job_id": "job-text-1",
+            "status": "queued",
+            "source": "text",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "error": None,
         }
 
-    async def process_ocr_upload(self, image):
+    async def enqueue_ocr_upload(self, image, current_user):
         return {
-            "recipe_name": "Brownies",
-            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
-            "instructions": ["Mix"],
+            "job_id": "job-ocr-1",
+            "status": "queued",
+            "source": "ocr",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "error": None,
         }
 
     async def process_search_query(self, body, current_user):
@@ -88,6 +96,56 @@ class FakeGenerateService:
         return {
             "processed_count": 4,
             "updated_count": 4,
+        }
+
+    async def list_jobs(self, current_user):
+        return [
+            {
+                "job_id": "job-text-1",
+                "status": "queued",
+                "source": "text",
+                "created_at": "2026-01-01T00:00:00Z",
+                "started_at": None,
+                "completed_at": None,
+                "error": None,
+            }
+        ]
+
+    async def get_job(self, job_id, current_user):
+        return {
+            "job_id": job_id,
+            "status": "succeeded",
+            "source": "text",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": "2026-01-01T00:00:01Z",
+            "completed_at": "2026-01-01T00:00:02Z",
+            "error": None,
+            "result": {
+                "draft": {
+                    "name": "Brownies",
+                    "description": "",
+                    "servings": 1,
+                    "instructions": ["Mix"],
+                    "notes": "",
+                    "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+                    "category": "Main",
+                    "tags": [],
+                },
+                "raw_text": "Brownies\n1 cup sugar\nMix",
+                "metadata": {"source": "text"},
+            },
+            "logs": ["job-worker-1: started attempt 1", "job-worker-1: finished"],
+        }
+
+    async def retry_job(self, job_id, current_user):
+        return {
+            "job_id": job_id,
+            "status": "queued",
+            "source": "text",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "error": None,
         }
 
 
@@ -241,7 +299,7 @@ def test_recipe_edit_route_keeps_existing_path_and_response_shape():
     asyncio.run(run())
 
 
-def test_generate_ocr_route_keeps_direct_upload_shape():
+def test_generate_ocr_route_queues_job():
     async def run():
         app = FastAPI()
         app.include_router(generate_router.router)
@@ -249,7 +307,15 @@ def test_generate_ocr_route_keeps_direct_upload_shape():
         async def override_generate_service():
             return FakeGenerateService()
 
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
         app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
 
         async with AsyncClient(
             transport=ASGITransport(app=app),
@@ -262,17 +328,62 @@ def test_generate_ocr_route_keeps_direct_upload_shape():
                 },
             )
 
-        assert response.status_code == 200
+        assert response.status_code == 202
         assert response.json() == {
-            "recipe_name": "Brownies",
-            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
-            "instructions": ["Mix"],
+            "job_id": "job-ocr-1",
+            "status": "queued",
+            "source": "ocr",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "error": None,
         }
 
     asyncio.run(run())
 
 
-def test_generate_text_route_keeps_direct_text_shape():
+def test_generate_text_route_queues_job():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post(
+                "/api/generate/text",
+                json={"text": "Brownies\n1 cup sugar\nMix"},
+            )
+
+        assert response.status_code == 202
+        assert response.json() == {
+            "job_id": "job-text-1",
+            "status": "queued",
+            "source": "text",
+            "created_at": "2026-01-01T00:00:00Z",
+            "started_at": None,
+            "completed_at": None,
+            "error": None,
+        }
+
+    asyncio.run(run())
+
+
+def test_generate_text_route_requires_auth():
     async def run():
         app = FastAPI()
         app.include_router(generate_router.router)
@@ -291,12 +402,68 @@ def test_generate_text_route_keeps_direct_text_shape():
                 json={"text": "Brownies\n1 cup sugar\nMix"},
             )
 
+        assert response.status_code == 401
+
+    asyncio.run(run())
+
+
+def test_generate_jobs_detail_route_returns_full_result():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.get("/api/generate/jobs/job-text-1")
+
         assert response.status_code == 200
-        assert response.json() == {
-            "recipe_name": "Brownies",
-            "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
-            "instructions": ["Mix"],
-        }
+        assert response.json()["result"]["draft"]["name"] == "Brownies"
+        assert response.json()["result"]["raw_text"] == "Brownies\n1 cup sugar\nMix"
+
+    asyncio.run(run())
+
+
+def test_generate_jobs_retry_route_requires_auth_and_requeues():
+    async def run():
+        app = FastAPI()
+        app.include_router(generate_router.router)
+
+        async def override_generate_service():
+            return FakeGenerateService()
+
+        async def override_current_user():
+            return CurrentUser(
+                id=5,
+                username="chef",
+                email="chef@example.com",
+            )
+
+        app.dependency_overrides[get_generate_service] = override_generate_service
+        app.dependency_overrides[get_current_user_dep] = override_current_user
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://testserver",
+        ) as client:
+            response = await client.post("/api/generate/jobs/job-text-1/retry")
+
+        assert response.status_code == 202
+        assert response.json()["status"] == "queued"
 
     asyncio.run(run())
 

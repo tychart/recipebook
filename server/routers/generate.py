@@ -16,20 +16,22 @@ router = APIRouter(
 async def do_stuff(generate_service: GenerateService = Depends(get_generate_service)):
     return await generate_service.get_debug_recipe(1)
 
-@router.post("/text")
+@router.post("/text", status_code=202)
 async def generate_text(
     body: GenerateTextRequest,
     generate_service: GenerateService = Depends(get_generate_service),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
-    return await generate_service.process_text_input(body)
+    return await generate_service.enqueue_text_job(body, current_user)
 
 
-@router.post("/ocr")
+@router.post("/ocr", status_code=202)
 async def generate_ocr(
     image: UploadFile = File(...),
     generate_service: GenerateService = Depends(get_generate_service),
+    current_user: CurrentUser = Depends(get_current_user_dep),
 ):
-    return await generate_service.process_ocr_upload(image)
+    return await generate_service.enqueue_ocr_upload(image, current_user)
 
 
 @router.post("/search")
@@ -64,3 +66,12 @@ async def get_job(
     current_user=Depends(get_current_user_dep),
 ):
     return await generate_service.get_job(job_id, current_user)
+
+
+@router.post("/jobs/{job_id}/retry", status_code=202)
+async def retry_job(
+    job_id: str,
+    generate_service: GenerateService = Depends(get_generate_service),
+    current_user=Depends(get_current_user_dep),
+):
+    return await generate_service.retry_job(job_id, current_user)

@@ -118,6 +118,41 @@ export interface SemanticSearchResult {
   score: number;
 }
 
+export type JobStatus = "queued" | "running" | "succeeded" | "failed";
+export type JobSource = "text" | "ocr";
+
+export interface GeneratedRecipeDraft {
+  name: string;
+  description?: string;
+  servings: number;
+  instructions: string[];
+  notes?: string;
+  ingredients: IngredientInput[];
+  category?: string;
+  tags?: string[];
+}
+
+export interface JobSummary {
+  job_id: string;
+  status: JobStatus;
+  source: JobSource;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  error?: string | null;
+}
+
+export interface JobResult {
+  draft: GeneratedRecipeDraft;
+  raw_text: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface JobDetail extends JobSummary {
+  result?: JobResult | null;
+  logs: string[];
+}
+
 export interface User {
   id: number;
   username: string;
