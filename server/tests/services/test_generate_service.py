@@ -58,12 +58,42 @@ def test_generate_service_enqueues_text_job():
     asyncio.run(run())
 
 
-def test_worker_marks_job_failed_when_provider_is_missing():
+def test_generate_service_enqueues_ocr_job():
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+
+        class User:
+            id = 7
+
+        upload = type(
+            "UploadStub",
+            (),
+            {
+                "filename": "brownies.png",
+                "content_type": "image/png",
+                "read": AsyncMock(return_value=b"png-bytes"),
+            },
+        )()
+
+        job = await service.enqueue_ocr_upload(upload, User())
+
+        assert job.source == JobSource.ocr
+        assert job.status == JobStatus.queued
+
+    asyncio.run(run())
+
+
+def test_worker_marks_job_failed_after_automatic_retry(monkeypatch):
     async def run():
         manager = JobManager()
         job_service = JobService(manager)
         service = GenerateService(job_service, NoopLLMProvider(), make_settings())
         job = await job_service.enqueue(JobSource.text, {"text": "Brownies"})
+        monkeypatch.setattr(
+            service,
+            "run_text_job",
+            AsyncMock(side_effect=RuntimeError("llm exploded")),
+        )
 
         task = asyncio.create_task(worker_loop(manager, service, "test-worker"))
         await manager.queue.join()
@@ -71,78 +101,55 @@ def test_worker_marks_job_failed_when_provider_is_missing():
         await asyncio.gather(task, return_exceptions=True)
 
         stored = await job_service.get_job(job.job_id)
+
         assert stored.status == JobStatus.failed
-        assert "not configured" in (stored.error or "").lower()
+        assert stored.error == "llm exploded"
+        assert any("Automatic retry scheduled" in log for log in stored.logs)
 
     asyncio.run(run())
 
 
-def test_process_ocr_upload_returns_400_when_no_text_detected(monkeypatch):
-    async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
-        upload = type(
-            "UploadStub",
-            (),
-            {"filename": "empty.png", "content_type": "image/png"},
-        )()
-        monkeypatch.setattr(service, "parse_image_with_ocr", AsyncMock(return_value="   "))
-
-        response = await service.process_ocr_upload(upload)
-
-        assert response.status_code == 400
-        assert response.body == b'{"error":"No text detected in image"}'
-
-    asyncio.run(run())
-
-
-def test_process_text_input_returns_400_when_text_is_blank():
+def test_run_text_job_returns_400_when_text_is_blank():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
 
         try:
-            await service.process_text_input(GenerateTextRequest(text="   "))
-        except HTTPException as exc:
-            assert exc.status_code == 400
-            assert exc.detail == "Text input is required"
+            await service.run_text_job({"text": "   "})
+        except RuntimeError as exc:
+            assert str(exc) == "Text input is required"
             return
 
-        raise AssertionError("Expected HTTPException for blank text")
+        raise AssertionError("Expected RuntimeError for blank text")
 
     asyncio.run(run())
 
 
-def test_process_text_input_returns_parsed_recipe(monkeypatch):
+def test_run_text_job_returns_parsed_recipe(monkeypatch):
     async def run():
         service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
-        monkeypatch.setattr(service, "embed_string", AsyncMock(return_value=[0.1] * 1536))
 
         monkeypatch.setattr(
             service,
             "parse_recipe_with_llm",
-            lambda prompt, text: type(
-                "RecipeExtractionStub",
-                (),
-                {
-                    "ingredients": [type("IngredientStub", (), {"name": "sugar", "amount": 1, "unit": "cup"})()],
-                    "instructions": ["Mix"],
-                    "model_dump": lambda self: {
-                        "recipe_name": "Brownies",
-                        "recipe_author": "",
-                        "ingredients": [{"name": "sugar", "amount": 1, "unit": "cup"}],
+            AsyncMock(
+                return_value=type(
+                    "RecipeExtractionStub",
+                    (),
+                    {
+                        "ingredients": [type("IngredientStub", (), {"name": "sugar", "amount": 1, "unit": "cup"})()],
                         "instructions": ["Mix"],
+                        "recipe_name": "Brownies",
+                        "recipe_author": "Grandma",
                     },
-                },
-            )(),
+                )()
+            ),
         )
 
-        response = await service.process_text_input(GenerateTextRequest(text="Brownies\n1 cup sugar\nMix"))
+        response = await service.run_text_job({"text": "Brownies\n1 cup sugar\nMix"})
 
-        assert response.status_code == 200
-        assert response.body == (
-            b'{"recipe_name":"Brownies","recipe_author":"",'
-            b'"ingredients":[{"name":"sugar","amount":1,"unit":"cup"}],'
-            b'"instructions":["Mix"]}'
-        )
+        assert response.draft["name"] == "Brownies"
+        assert response.draft["notes"] == "Imported author: Grandma"
+        assert response.raw_text == "Brownies\n1 cup sugar\nMix"
 
     asyncio.run(run())
 

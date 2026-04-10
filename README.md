@@ -172,7 +172,7 @@ To run for (semi) production:
 
 ```bash
 source .venv/bin/activate  # If not already activated
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 

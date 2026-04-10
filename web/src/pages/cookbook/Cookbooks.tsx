@@ -24,7 +24,6 @@ export default function Cookbooks() {
 
     listCookbooks(user.id)
       .then((cookbooks) => {
-        // clear existing lists before sorting to avoid duplicates on re-run
         setOwnerCookbooks([]);
         setContributorCookbooks([]);
         setViewerCookbooks([]);
@@ -35,8 +34,6 @@ export default function Cookbooks() {
   }, []);
 
   const sortCookbooks = async (cookbooks: Cookbook[]) => {
-    // for cookbook in cookbooks
-    // based on the role of the cookbook, put the cookbook in the correct place
     for (const cookbook of cookbooks) {
       switch (cookbook.current_user_role) {
         case "owner":
@@ -91,28 +88,28 @@ export default function Cookbooks() {
         )}
       </div>
       <div className="mt-4">
-        <h1 className="text-2xl font-semibold">Contributor Cookbooks</h1>
-        {contributorCookbooks.length === 0 ? (
-          <p className="text-gray-500">No cookbooks yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {contributorCookbooks.map((book) => (
-              <CookbookCard key={book.id} cookbook={book} />
-            ))}
+        {contributorCookbooks.length > 0 ? (
+          <div>
+            <h1 className="text-2xl font-semibold">Contributor Cookbooks</h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {contributorCookbooks.map((book) => (
+                <CookbookCard key={book.id} cookbook={book} />
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
       <div className="mt-4">
-        <h1 className="text-2xl font-semibold">Viewer Cookbooks</h1>
-        {viewerCookbooks.length === 0 ? (
-          <p className="text-gray-500">No cookbooks yet.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {viewerCookbooks.map((book) => (
-              <CookbookCard key={book.id} cookbook={book} />
-            ))}
+        {viewerCookbooks.length > 0 ? (
+          <div>
+            <h1 className="text-2xl font-semibold">Viewer Cookbooks</h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {viewerCookbooks.map((book) => (
+                <CookbookCard key={book.id} cookbook={book} />
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

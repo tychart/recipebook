@@ -4,6 +4,8 @@ import Instructions from "../../components/recipe/Instructions";
 import IngredientList from "../../components/recipe/IngredientList";
 import Notes from "../../components/recipe/Notes";
 import type { Recipe } from "../../../types/types";
+import type { Cookbook } from "../../../types/types";
+import { getCookbook } from "../../api/cookbooks";
 import RecipeImage from "../../components/recipe/RecipeImage";
 import { getRecipe } from "../../api/recipes";
 import RecipeShareModal from "../../components/RecipeShareModal";
@@ -11,6 +13,7 @@ import RecipeShareModal from "../../components/RecipeShareModal";
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [parentCookbook, setParentCookbook] = useState<Cookbook | null>(null);
   const [loading, setLoading] = useState(true);
   const [showShare, setShowShare] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,13 @@ export default function RecipePage() {
       try {
         const data = await getRecipe(Number(id));
         setRecipe(data);
+        try {
+          const parentCookbook = await getCookbook(data.cookbook_id);
+          setParentCookbook(parentCookbook);
+        } catch (err) {
+          console.error("Error fetching cookbook:", err);
+          setParentCookbook(null);
+        }
       } catch (err) {
         console.error("Error fetching recipe:", err);
         setError("Failed to load recipe. Please try again later.");
@@ -61,6 +71,13 @@ export default function RecipePage() {
           </button>
         </div>
       </div>
+      {parentCookbook && (
+        <p className="text-sm text-gray-600 dark:text-black-300 mb-5">
+          <Link to={`/cookbook/${parentCookbook.id}`} className="font-medium">
+            ← {parentCookbook.name}
+          </Link>
+        </p>
+      )}
 
       {/* Print-only title (centered for paper) */}
       <h1 className="hidden print:block text-3xl text-center mb-4">
