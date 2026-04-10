@@ -118,7 +118,25 @@ export default function RecipePage() {
       )}
       {/* Meta Info - at bottom */}
       <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
-        <p>Serves {recipe.servings}</p>
+        <div className="flex items-center justify-center gap-2">
+          <label htmlFor="servings">Serves:</label>
+          <input
+            id="servings"
+            type="number"
+            min="1" // Prevents the browser's "up/down" arrows from going below 1
+            value={recipe.servings}
+            onChange={(e) => {
+              const newValue = parseInt(e.target.value);
+              // Safeguard: If the user types a negative number manually, clamp it to 1
+              setRecipe({
+                ...recipe,
+                servings: isNaN(newValue) || newValue < 1 ? 1 : newValue
+              });
+            }}
+            className="w-16 border border-gray-300 rounded px-2 py-1 text-center"
+          />
+        </div>
+        
         <p>Category: {recipe.category}</p>
         <p>
           Last updated:{" "}
