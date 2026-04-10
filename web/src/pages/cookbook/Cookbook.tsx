@@ -5,7 +5,7 @@ import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
 import { listRecipes } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
-import CookbookShareModal from "../../components/CookbookShareModal";
+//import ThreeDotsMenu from "../ThreeDotsMenu";
 
 export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +16,6 @@ export default function Cookbook() {
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     if (!id || !user) {
@@ -62,11 +61,11 @@ export default function Cookbook() {
       {/* Title + Add Recipe button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
-        <div className="flex items-center gap-10">
+        <div className="flex items-right gap-10">
           {(userRole === "contributor" || userRole === "owner") && (
             <Link
               to={`/cookbook/${id}/recipe/new`}
-              className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+              className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition bg-white text-black hover:bg-stone-100 cursor-pointer no-underline text-center"
             >
               Add recipe
             </Link>
@@ -79,16 +78,6 @@ export default function Cookbook() {
             >
               Edit cookbook
             </Link>
-          )}
-
-          {userRole === "owner" && (
-            <button
-              onClick={() => setShowShare(true)}
-              className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
-              title="Only owners can manage access"
-            >
-              Manage Access
-            </button>
           )}
         </div>
       </div>
@@ -108,24 +97,6 @@ export default function Cookbook() {
           {recipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
-        </div>
-      )}
-
-      {showShare && id && (
-        <CookbookShareModal
-          cookbookId={id}
-          onClose={() => setShowShare(false)}
-        />
-      )}
-
-      {userRole === "owner" && (
-        <div className="flex justify-left py-6">
-          <Link
-            to={`/cookbooks`}
-            className="px-4 py-3 bg-red-500 text-white rounded-lg text-sm font-semibold text-center shadow-lg hover:bg-red-600 transition-colors"
-          >
-            Delete cookbook
-          </Link>
         </div>
       )}
     </div>
