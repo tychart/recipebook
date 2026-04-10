@@ -1,12 +1,13 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 
-# Install system dependencies for Tesseract and image processing
-RUN apt-get update && apt-get install -y \
-    tesseract-ocr \
-    libtesseract-dev \
-    libleptonica-dev \
-    libjpeg-dev \
-    zlib1g-dev \
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Tesseract binary for pytesseract; libjpeg/zlib help if Pillow builds from source
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        tesseract-ocr \
+        libjpeg-dev \
+        zlib1g-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
     
