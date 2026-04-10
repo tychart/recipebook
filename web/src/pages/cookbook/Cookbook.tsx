@@ -93,6 +93,13 @@ export default function Cookbook() {
         </div>
       </div>
 
+      <Link
+        to="/cookbooks"
+        className="inline-block mb-4 text-sm hover:underline"
+      >
+        &larr; Back to Cookbooks
+      </Link>
+
       {/* Recipes list */}
       {recipes.length === 0 ? (
         <p className="text-gray-500">No recipes yet.</p>
