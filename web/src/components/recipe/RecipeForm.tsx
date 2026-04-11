@@ -5,6 +5,7 @@ import RecipeImage from "./RecipeImage";
 interface RecipeFormProps {
   initialData: RecipeInput;
   onSubmit: (recipe: RecipeInput, imageFile?: File) => void;
+  categories: string[] | undefined;
   submitLabel?: string;
 }
 
@@ -12,6 +13,7 @@ export default function RecipeForm({
   initialData,
   onSubmit,
   submitLabel = "Save",
+  categories
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
@@ -103,8 +105,15 @@ export default function RecipeForm({
     onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
   };
 
-  // Category options
-  const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
+  
+  const getCategories = (): string[] => {
+    if (categories === undefined) {
+      return ["Main", "Dessert", "Snacks", "Breakfast", ""];
+    }
+    return categories;
+  };
+  categories = getCategories();
+
 
   return (
     <div className="py-10 max-w-4xl mx-auto">
@@ -182,7 +191,7 @@ export default function RecipeForm({
             <option value="" disabled>
               Select a category
             </option>
-            {categories.map((cat) => (
+            {categories!.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
