@@ -29,6 +29,8 @@ export default function RecipeEdit() {
     fetchRecipe();
   }, [id]);
 
+
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
   if (!recipe) return <p>Recipe not found</p>;
@@ -85,6 +87,7 @@ export default function RecipeEdit() {
         initialData={recipeInput}
         onSubmit={handleUpdate}
         submitLabel="Save Changes"
+        categories={undefined}
       />
     </>
   );

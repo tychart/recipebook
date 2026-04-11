@@ -356,6 +356,7 @@ export default function RecipeNew() {
         initialData={recipeData}
         onSubmit={handleCreate}
         submitLabel="Create Recipe"
+        categories={cookbook?.categories}
       />
     </>
   );
