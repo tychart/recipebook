@@ -5,7 +5,7 @@ import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
 import { listRecipes } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
-import CookbookShareModal from "../../components/CookbookShareModal";
+import ThreeDotsMenu from "../ThreeDotsMenu";
 
 export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
@@ -16,7 +16,6 @@ export default function Cookbook() {
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     if (!id || !user) {
@@ -71,16 +70,7 @@ export default function Cookbook() {
               Add recipe
             </Link>
           )}
-
-          {userRole === "owner" && (
-            <button
-              onClick={() => setShowShare(true)}
-              className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
-              title="Only owners can manage access"
-            >
-              Manage Access
-            </button>
-          )}
+          <ThreeDotsMenu userRole={userRole} id={id}/>
         </div>
       </div>
 
@@ -102,12 +92,6 @@ export default function Cookbook() {
         </div>
       )}
 
-      {showShare && id && (
-        <CookbookShareModal
-          cookbookId={id}
-          onClose={() => setShowShare(false)}
-        />
-      )}
     </div>
   );
 }
