@@ -1,7 +1,6 @@
 import {
   deleteCookbook
 } from "../api/cookbooks";
-//import type { Cookbook as CookbookType } from "../../types/types";
 import { useNavigate } from "react-router-dom";
 
 type CookBookDeleteModalProps = {
@@ -13,25 +12,7 @@ export default function CookBookDeleteModal({
   cookbookId,
   onClose,
 }: CookBookDeleteModalProps) {
-  // const [cookbook, setCookbook] = useState<CookbookType | null>(null);
-  // const [, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  // // Fetch cookbook data on mount
-  // useEffect(() => {
-  //   const loadCookbook = async () => {
-  //     try {
-  //       const data = await getCookbook(Number(cookbookId));
-  //       setCookbook(data);
-  //     } catch (err) {
-  //       console.error("Failed to load cookbook sharing data:", err);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  //   loadCookbook();
-  // }, [cookbookId]);
 
   const deleteCookbookModal = async () => {
     try {
