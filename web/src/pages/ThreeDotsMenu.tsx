@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import CookbookShareModal from "../components/CookbookShareModal";
+import CookBookDeleteModal from "../components/CookBookDeleteModal";
 
 type ThreeDotsMenuProps = {
     userRole: string | null;
@@ -11,6 +12,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [showShare, setShowShare] = useState(false);
+    const [showDelete, setShowDelete] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -64,7 +66,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
 
                 {userRole === "owner" && (
                     <button
-                        onClick={() => navigate(`/cookbooks`)}
+                        onClick={() => setShowDelete(true)}
                         className="flex items-center gap-2 w-full text-left px-4 py-3 hover:bg-gray-100 rounded-b-xl transition border-none text-red-500"
                     >
                         Delete
@@ -77,6 +79,13 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
                 <CookbookShareModal
                     cookbookId={id}
                     onClose={() => setShowShare(false)}
+                />
+            )}
+
+            {showDelete && id && (
+                <CookBookDeleteModal
+                    cookbookId={id}
+                    onClose={() => setShowDelete(false)}
                 />
             )}
 

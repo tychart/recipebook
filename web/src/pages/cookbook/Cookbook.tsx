@@ -5,7 +5,6 @@ import type { Cookbook as CookbookType, Recipe } from "../../../types/types";
 import { RecipeCard } from "../../components/cards/RecipeCard";
 import { listRecipes } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
-import CookbookShareModal from "../../components/CookbookShareModal";
 import ThreeDotsMenu from "../ThreeDotsMenu";
 
 export default function Cookbook() {
@@ -17,7 +16,6 @@ export default function Cookbook() {
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showShare, setShowShare] = useState(false);
 
   useEffect(() => {
     if (!id || !user) {
@@ -94,12 +92,6 @@ export default function Cookbook() {
         </div>
       )}
 
-      {showShare && id && (
-        <CookbookShareModal
-          cookbookId={id}
-          onClose={() => setShowShare(false)}
-        />
-      )}
     </div>
   );
 }
