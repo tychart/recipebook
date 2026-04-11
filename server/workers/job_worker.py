@@ -9,13 +9,20 @@ async def worker_loop(manager: JobManager, generate_service: GenerateService, wo
         job_id = await manager.queue.get()
         try:
             state = await manager.get_job_state(job_id)
-            await manager.mark_running(job_id, f"{worker_name}: started")
+            await manager.mark_running(job_id, f"{worker_name}: started attempt {state.attempt_count + 1}")
             result = await generate_service.process_job(state.source, state.payload)
             await manager.mark_succeeded(job_id, result, f"{worker_name}: finished")
         except asyncio.CancelledError:
             await manager.append_log(job_id, f"{worker_name}: cancelled")
             raise
         except Exception as exc:
+            should_retry = await manager.schedule_automatic_retry(
+                job_id,
+                str(exc),
+                f"{worker_name}: retrying automatically",
+            )
+            if should_retry:
+                continue
             await manager.mark_failed(job_id, str(exc), f"{worker_name}: failed")
         finally:
             manager.queue.task_done()

@@ -27,13 +27,22 @@ class GenerateOcrRequest(BaseModel):
     filename: str | None = None
 
 
-class JobResponse(BaseModel):
+class JobResult(BaseModel):
+    draft: dict[str, Any]
+    raw_text: str
+    metadata: dict[str, Any] | None = None
+
+
+class JobSummaryResponse(BaseModel):
     job_id: str
     status: JobStatus
     source: JobSource
     created_at: dt.datetime
     started_at: dt.datetime | None = None
     completed_at: dt.datetime | None = None
-    result: dict[str, Any] | None = None
     error: str | None = None
+
+
+class JobDetailResponse(JobSummaryResponse):
+    result: JobResult | None = None
     logs: list[str] = Field(default_factory=list)
