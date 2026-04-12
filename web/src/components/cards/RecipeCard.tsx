@@ -32,6 +32,11 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
       <div className="recipe-index-card__title">
         <h3 className="recipe-index-card__text-title">{recipe.name}</h3>
       </div>
+      {recipe.image_url ? (
+        <div className="recipe-index-card__thumb">
+          <img src={recipe.image_url} alt={recipe.name} />
+        </div>
+      ) : null}
       <div className="recipe-index-card__accent" aria-hidden />
       <div className="recipe-index-card__body">
         {lines.map((text, i) => (

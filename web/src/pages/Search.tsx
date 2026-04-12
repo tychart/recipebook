@@ -177,7 +177,7 @@ export default function Search() {
                     <img
                       src={result.image_url}
                       alt={result.recipe_name}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]"
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#fca5a5,#fed7aa)] px-6 text-center text-sm font-semibold uppercase tracking-[0.25em] text-red-950/55">

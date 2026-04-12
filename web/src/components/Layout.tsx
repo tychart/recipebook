@@ -8,9 +8,9 @@ export default function Layout() {
   // 🔒 If logged in → show sidebar layout
   if (user) {
     return (
-      <div className="flex min-h-screen">
+      <div className="flex flex-1 w-full min-h-min">
         <Sidebar />
-        <main className="flex-1 p-8">
+        <main className="flex-1 min-h-min p-8">
           <Outlet />
         </main>
       </div>
@@ -19,7 +19,7 @@ export default function Layout() {
 
   // 🌐 If not logged in → center content
   return (
-    <div className="min-h-screen flex items-center justify-center p-8">
+    <div className="flex min-h-0 flex-1 w-full items-center justify-center p-8">
       <div className="w-full max-w-md">
         <Outlet />
       </div>

@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 :root {
+  /* Gingham “frame”: inset from viewport where the tiled body background shows */
+  --page-edge-padding: 0px;
+  /* Inner cream panel — 45px ≈ three 15px gingham half-cells across the frame strip */
+  --content-outer-margin: 45px;
+  /* Matches #root: use this instead of min-h-screen (100vh) so framed layout doesn’t overflow */
+  --app-main-min-height: calc(
+    100vh - 2 * var(--content-outer-margin) - 2 * var(--page-edge-padding)
+  );
+
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -16,20 +25,37 @@
 }
 
 html {
+  box-sizing: border-box;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  display: flow-root; /* prevents margin collapse with #root so the gingham ring stays even */
   min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
 
-  padding: 5px; /* ← creates border thickness */
+  padding: var(--page-edge-padding);
 
   background-color: #eee9e0; /* main page color */
-  /* Three-color checkerboard (15px squares) on top, bottom, left, and right border */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3Crect x='0' y='0' width='15' height='15' fill='%23d21404'/%3E%3Crect x='15' y='0' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='30' y='0' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='0' y='15' width='15' height='15' fill='%23fc6b5f'/%3E%3Crect x='15' y='15' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='30' y='15' width='15' height='15' fill='%23d21404'/%3E%3Crect x='0' y='30' width='15' height='15' fill='%23ffffff'/%3E%3Crect x='15' y='30' width='15' height='15' fill='%23d21404'/%3E%3Crect x='30' y='30' width='15' height='15' fill='%23fc6b5f'/%3E%3C/svg%3E");
-  background-size: 45px 45px;
-  background-attachment: fixed;
+  /* Default red gingham (2-yarn check); JS theme overwrites to match picker */
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2230%22%20height%3D%2230%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%220%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23d95950%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2215%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23d95950%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%2215%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23ad1003%22%2F%3E%3C%2Fsvg%3E");
+  background-size: 30px 30px;
+  /* Integer tile count in the painting area; scrolls with page so the frame ends with content */
+  background-repeat: round;
+  background-attachment: scroll;
+  background-position: 0 0;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-main-min-height: calc(
+      100dvh - 2 * var(--content-outer-margin) - 2 * var(--page-edge-padding)
+    );
+  }
 }
 
 h1 {

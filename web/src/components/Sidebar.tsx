@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useBorderTheme } from "../context/BorderThemeContext";
 import {
+  SIDEBAR_GINGHAM_CELL_PX,
   sidebarActiveNavClasses,
   sidebarBackgroundImage,
   sidebarTitleLinkClasses,
@@ -12,6 +13,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { borderTheme } = useBorderTheme();
+  const sidebarTilePx = SIDEBAR_GINGHAM_CELL_PX * 2;
 
   // 🔒 Hide entire sidebar if not logged in
   if (!user) return null;
@@ -41,9 +43,11 @@ export default function Sidebar() {
 
   return (
     <aside
-      className="w-64 min-h-screen p-[6px] flex flex-col rounded-lg no-print"
+      className="w-64 self-stretch p-[6px] flex flex-col rounded-lg no-print"
       style={{
         backgroundImage: sidebarBackgroundImage(borderTheme),
+        backgroundRepeat: "no-repeat, round",
+        backgroundSize: `100% 100%, ${sidebarTilePx}px ${sidebarTilePx}px`,
         backgroundOrigin: "border-box",
         backgroundClip: "content-box, border-box",
       }}

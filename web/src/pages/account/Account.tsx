@@ -7,7 +7,7 @@ import { listRecipes } from "../../api/recipes";
 import {
   BORDER_THEME_IDS,
   BORDER_THEME_LABELS,
-  themePreviewColors,
+  themePreviewSurface,
 } from "../../theme/borderTheme";
 
 function fieldBox(label: string, children: ReactNode) {
@@ -113,7 +113,7 @@ export default function Account() {
               Page border
             </p>
             <p className="text-sm text-stone-600 mb-4">
-              Choose a border theme for your account page.
+              Choose a gingham border color for your account page.
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {BORDER_THEME_IDS.map((id) => (
@@ -127,16 +127,10 @@ export default function Account() {
                       : "border-black/15 hover:border-black/35"
                   }`}
                 >
-                  <div className="flex h-8 w-full rounded overflow-hidden border border-black/10">
-                    <div
-                      className="flex-1 min-h-0"
-                      style={{ backgroundColor: themePreviewColors[id][0] }}
-                    />
-                    <div
-                      className="flex-1 min-h-0"
-                      style={{ backgroundColor: themePreviewColors[id][1] }}
-                    />
-                  </div>
+                  <div
+                    className="h-8 w-full rounded border border-black/10"
+                    style={themePreviewSurface(id)}
+                  />
                   <span className="text-xs font-medium text-black">
                     {BORDER_THEME_LABELS[id]}
                   </span>

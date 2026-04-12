@@ -36,9 +36,10 @@ function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="w-full">
-          <Routes>
-            <Route element={<Layout />}>
+        <div className="app-shell">
+          <div className="routes-root">
+            <Routes>
+              <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -62,12 +63,12 @@ function App() {
                 <Route path="/recipe/new" element={<RecipeNew />} />
                 <Route path="/recipe/:id/edit" element={<RecipeEdit />} />
               {/* </Route> */}
-              
-              // Catch-all route
+
               <Route path="*" element={<Navigate to="/" replace />} />
 
             </Route>
-          </Routes>
+            </Routes>
+          </div>
         </div>
         {/* <div>
       {testApi}
