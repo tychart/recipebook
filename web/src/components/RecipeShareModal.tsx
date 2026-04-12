@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useBorderTheme } from "../context/BorderThemeContext";
+import { sidebarActiveNavClasses } from "../theme/borderTheme";
 
 type RecipeShareModalProps = {
   recipeId: string;
@@ -10,50 +12,64 @@ export default function RecipeShareModal({
   onClose,
 }: RecipeShareModalProps) {
   const [linkCopied, setLinkCopied] = useState(false);
+  const { borderTheme } = useBorderTheme();
 
   const shareUrl = `${window.location.origin}/recipe/${recipeId}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setLinkCopied(true);
+    // Reset "Copied" text after 2 seconds
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
+  const primaryButtonClass = sidebarActiveNavClasses[borderTheme];
+
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    <div 
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
-      <div
-        className="bg-[#EEE9E0] dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl shadow-lg"
+      <div 
+        className="bg-white border border-black rounded-[10px] p-6 w-full max-w-md shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold mb-4">Share Recipe</h2>
+        <div className="mb-6">
+          <h3 className="text-2xl font-semibold leading-tight">Share Recipe</h3>
+        </div>
 
-        <div className="flex flex-col items-center">
-          <div
-            id="link-sharing"
-            className="mb-4 flex flex-row w-full items-center justify-center space-x-4"
-          >
+        <div className="space-y-6">
+          <p className="text-gray-600">
+            Copy the link below to share this recipe with others:
+          </p>
+
+          <div>
+            <label className="block text-xs uppercase tracking-wide font-bold mb-2 text-stone-500">
+              Recipe Link
+            </label>
             <input
               readOnly
               value={shareUrl}
-              className="flex-1 h-11 rounded-lg px-4 py-2 bg-gray-50"
+              className="w-full h-11 rounded-md border border-black bg-stone-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-black/10 transition-all"
             />
+          </div>
 
+          <div className="flex gap-3 pt-2">
             <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-md text-sm font-medium transition border border-black bg-white text-black hover:bg-stone-100"
+            >
+              Close
+            </button>
+            <button
+              type="button"
               onClick={copyLink}
-              className="px-4 py-2 rounded-lg w-32 flex-shrink-0"
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition border shadow-sm ${primaryButtonClass}`}
             >
               {linkCopied ? "Link Copied!" : "Copy Link"}
             </button>
           </div>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded-lg mt-4"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>
