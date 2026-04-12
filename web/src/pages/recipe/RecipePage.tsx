@@ -10,7 +10,7 @@ import RecipeImage from "../../components/recipe/RecipeImage";
 import { getRecipe, deleteRecipe, copyRecipe } from "../../api/recipes";
 import RecipeShareModal from "../../components/RecipeShareModal";
 import { Trash2 } from "lucide-react";
-import CopyRecipeDialog from "../../components/recipe/copyRecipeDialog";
+import CopyRecipeDialog from "../../components/recipe/CopyRecipeDialog";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -81,9 +81,8 @@ export default function RecipePage() {
 
     try {
       const copiedRecipe = await copyRecipe(recipe.id, targetCookbookId);
-      // Success: Close the dialog and move to the new recipe
       setShowCopyDialog(false);
-      // navigate(`/recipe/${copiedRecipe.id}`);
+      navigate(`/recipe/${copiedRecipe.id}`);
     } catch (err) {
       console.error("Failed to copy recipe:", err);
       throw err;
