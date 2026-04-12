@@ -5,6 +5,7 @@ import RecipeImage from "./RecipeImage";
 interface RecipeFormProps {
   initialData: RecipeInput;
   onSubmit: (recipe: RecipeInput, imageFile?: File) => void;
+  categories: string[] | undefined;
   submitLabel?: string;
 }
 
@@ -12,6 +13,7 @@ export default function RecipeForm({
   initialData,
   onSubmit,
   submitLabel = "Save",
+  categories
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
@@ -32,7 +34,8 @@ export default function RecipeForm({
 
     setRecipe((prev) => ({
       ...prev,
-      [name]: name === "servings" ? Number(value) : value,
+      // Ensure servings cannot be less than 0
+      [name]: name === "servings" ? Math.max(0, Number(value)) : value,
     }));
   };
 
@@ -45,7 +48,8 @@ export default function RecipeForm({
       const updated = [...prev.ingredients];
       updated[index] = {
         ...updated[index],
-        [field]: value,
+        // Ensure amount cannot be less than 0
+        [field]: field === "amount" ? Math.max(0, Number(value)) : value,
       };
       return { ...prev, ingredients: updated };
     });
@@ -103,8 +107,15 @@ export default function RecipeForm({
     onSubmit({ ...recipe, tags: parsedTags }, selectedImageFile);
   };
 
-  // Category options
-  const categories = ["Main", "Dessert", "Appetizer", "Side", "Snack", "Drink"];
+  
+  const getCategories = (): string[] => {
+    if (categories === undefined) {
+      return ["Main", "Dessert", "Snacks", "Breakfast", ""];
+    }
+    return categories;
+  };
+  categories = getCategories();
+
 
   return (
     <div className="py-10 max-w-4xl mx-auto">
@@ -182,7 +193,7 @@ export default function RecipeForm({
             <option value="" disabled>
               Select a category
             </option>
-            {categories.map((cat) => (
+            {categories!.map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
@@ -212,6 +223,7 @@ export default function RecipeForm({
           <input
             type="number"
             name="servings"
+            min="0"
             value={recipe.servings}
             onChange={handleChange}
             className="w-32 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
@@ -239,6 +251,7 @@ export default function RecipeForm({
               <div key={index} className="flex gap-3 items-center">
                 <input
                   type="number"
+                  min="0"
                   value={ingredient.amount}
                   onChange={(e) =>
                     handleIngredientChange(
