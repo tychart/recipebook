@@ -22,6 +22,16 @@ const PALETTES: Record<BorderThemeId, { dark: string; light: string }> = {
   pink: { dark: "#be185d", light: "#fbcfe8" },
 };
 
+/** Bold rule under recipe title on index-style cards — matches page border theme. */
+export const recipeCardAccentLineHex: Record<BorderThemeId, string> = {
+  red: PALETTES.red.dark,
+  blue: PALETTES.blue.dark,
+  green: PALETTES.green.dark,
+  yellow: PALETTES.yellow.dark,
+  purple: PALETTES.purple.dark,
+  pink: PALETTES.pink.dark,
+};
+
 const PAGE_FILL = "#EEE9E0";
 const WHITE = "#ffffff";
 
