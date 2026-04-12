@@ -5,7 +5,7 @@
   min-height: calc(100vh - 90px);
   padding: 2rem;
   /* text-align: center; */
-  background-color: #EEE9E0;
+  background-color: #eee9e0;
 }
 
 #root > * {
@@ -46,4 +46,80 @@
 
 .read-the-docs {
   color: #888;
+}
+
+@media print {
+  /* Hide interactive UI */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print\\:block {
+    display: block !important;
+  }
+
+  /* Reset page */
+  body {
+    background: white !important;
+    color: black !important;
+    font-family: serif;
+  }
+
+  /* Layout */
+  .print-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  /* Remove card styles */
+  .bg-white {
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Stack instead of grid */
+  .grid {
+    display: block !important;
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    margin-top: 20px;
+  }
+
+  p {
+    font-size: 14px;
+  }
+
+  ul,
+  ol {
+    padding-left: 20px;
+  }
+
+  /* Prevent awkward page breaks */
+  h1,
+  h2 {
+    page-break-after: avoid;
+  }
+
+  ul,
+  ol {
+    page-break-inside: avoid;
+  }
+
+  img {
+    max-height: 300px;
+    object-fit: cover;
+  }
+
+  @page {
+    margin: 1in;
+  }
 }

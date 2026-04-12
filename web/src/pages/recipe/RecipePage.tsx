@@ -50,6 +50,8 @@ export default function RecipePage() {
     fetchRecipe();
   }, [id]);
 
+  if (!id) return <p>Invalid recipe</p>;
+
   const handleDelete = async () => {
     if (!recipe || deleting) return;
 
@@ -75,7 +77,6 @@ export default function RecipePage() {
     }
   };
 
-
   const handleCopyRecipe = async (targetCookbookId: number) => {
     if (!recipe) return;
 
@@ -94,14 +95,14 @@ export default function RecipePage() {
   if (!recipe) return <p>Recipe not found</p>;
 
   return (
-    <div className="py-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+    <div className="print-container py-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-4 no-print">
         <h1 className="text-3xl font-semibold">{recipe.name}</h1>
 
         <div className="flex items-center gap-3 flex-wrap justify-end">
           <Link
             to={`/recipe/${id}/edit`}
-            className="block w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
+            className="block w-20 px-4 py-2 rounded-md text-sm font-medium border bg-white text-black border-black hover:bg-stone-100 text-center"
           >
             Edit
           </Link>
@@ -111,6 +112,13 @@ export default function RecipePage() {
             className="w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100"
           >
             Share
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100"
+          >
+            Print
           </button>
 
           <button
@@ -140,6 +148,10 @@ export default function RecipePage() {
         </p>
       )}
 
+      <h1 className="hidden print:block text-3xl text-center mb-4">
+        {recipe.name}
+      </h1>
+
       <RecipeImage imageUrl={recipe.image_url} alt={recipe.name} />
 
       {recipe.description && (
@@ -149,11 +161,11 @@ export default function RecipePage() {
       )}
 
       {recipe.tags && recipe.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6 no-print">
           {recipe.tags.map((tag: string) => (
             <span
               key={tag}
-              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-100 rounded-full"
+              className="px-3 py-1 text-sm bg-gray-200 rounded-full"
             >
               #{tag}
             </span>
@@ -165,6 +177,7 @@ export default function RecipePage() {
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
           <IngredientList ingredients={recipe.ingredients} />
         </div>
+
         <div className="bg-white border border-amber-200 rounded-[10px] p-4">
           <Instructions instructions={recipe.instructions} />
         </div>
@@ -173,7 +186,9 @@ export default function RecipePage() {
       {recipe.notes && <Notes notes={recipe.notes} />}
 
       {showShare && id && (
-        <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
+        <div className="no-print">
+          <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
+        </div>
       )}
 
       <CopyRecipeDialog
@@ -189,20 +204,19 @@ export default function RecipePage() {
           <input
             id="servings"
             type="number"
-            min="1" // Prevents the browser's "up/down" arrows from going below 1
+            min="1"
             value={recipe.servings}
             onChange={(e) => {
               const newValue = parseInt(e.target.value);
-              // Safeguard: If the user types a negative number manually, clamp it to 1
               setRecipe({
                 ...recipe,
-                servings: isNaN(newValue) || newValue < 1 ? 1 : newValue
+                servings: isNaN(newValue) || newValue < 1 ? 1 : newValue,
               });
             }}
             className="w-16 border border-gray-300 rounded px-2 py-1 text-center"
           />
         </div>
-        
+
         <p>Category: {recipe.category}</p>
         <p>
           Last updated:{" "}
