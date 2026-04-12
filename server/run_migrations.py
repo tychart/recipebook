@@ -19,6 +19,23 @@ MIGRATIONS = [
       instruction_text TEXT NOT NULL
     );
     """,
+    # 002: Some databases have a legacy NOT NULL `recipe.instructions` column while the app stores
+    # steps in the `instructions` table. Omitted INSERT columns then violate NOT NULL.
+    """
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'recipe'
+          AND column_name = 'instructions'
+      ) THEN
+        ALTER TABLE recipe ALTER COLUMN instructions SET DEFAULT '';
+        UPDATE recipe SET instructions = '' WHERE instructions IS NULL;
+      END IF;
+    END $$;
+    """,
 ]
 
 

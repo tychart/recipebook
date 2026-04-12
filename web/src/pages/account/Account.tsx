@@ -37,7 +37,11 @@ function statBox(label: string, display: string | number) {
 export default function Account() {
   const { user, isInitializing } = useAuth();
   const { borderTheme, setBorderTheme } = useBorderTheme();
-  const [stats, setStats] = useState<{ cookbooks: number; recipes: number } | null>(null);
+  const [stats, setStats] = useState<{
+    contributorCookbooks: number;
+    viewerCookbooks: number;
+    recipes: number;
+  } | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
 
@@ -53,10 +57,14 @@ export default function Account() {
     (async () => {
       try {
         const cookbooks = await listCookbooks(user.id);
+        const contributorCookbooks = cookbooks.filter(
+          (c) => c.current_user_role === "contributor" || c.current_user_role === "owner",
+        ).length;
+        const viewerCookbooks = cookbooks.filter((c) => c.current_user_role === "viewer").length;
         const recipeLists = await Promise.all(cookbooks.map((c) => listRecipes(c.id)));
         const recipes = recipeLists.reduce((sum, arr) => sum + arr.length, 0);
         if (!cancelled) {
-          setStats({ cookbooks: cookbooks.length, recipes });
+          setStats({ contributorCookbooks, viewerCookbooks, recipes });
         }
       } catch {
         if (!cancelled) {
@@ -107,7 +115,7 @@ export default function Account() {
             <p className="text-sm text-stone-600 mb-4">
               Choose a border theme for your account page.
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
               {BORDER_THEME_IDS.map((id) => (
                 <button
                   key={id}
@@ -138,13 +146,17 @@ export default function Account() {
           </div>
         </div>
 
-        <aside className="w-full lg:w-60 shrink-0 flex flex-col gap-3">
+        <aside className="w-full lg:w-72 shrink-0 flex flex-col gap-3">
           {statsError ? (
             <p className="text-sm text-red-600">{statsError}</p>
           ) : null}
           {statBox(
-            "Total cookbooks",
-            statsLoading ? "…" : statsError ? "—" : (stats?.cookbooks ?? 0),
+            "Contributor cookbooks",
+            statsLoading ? "…" : statsError ? "—" : (stats?.contributorCookbooks ?? 0),
+          )}
+          {statBox(
+            "Viewer cookbooks",
+            statsLoading ? "…" : statsError ? "—" : (stats?.viewerCookbooks ?? 0),
           )}
           {statBox(
             "Total recipes",

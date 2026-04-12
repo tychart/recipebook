@@ -74,8 +74,9 @@ export default function Cookbook() {
 
           {userRole === "owner" && (
             <button
+              type="button"
               onClick={() => setShowShare(true)}
-              className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
+              className="w-40 px-4 py-2 rounded-md text-sm font-medium transition-colors border bg-white text-black border-black hover:bg-stone-100"
               title="Only owners can manage access"
             >
               Manage Access
@@ -95,7 +96,7 @@ export default function Cookbook() {
       {recipes.length === 0 ? (
         <p className="text-gray-500">No recipes yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {recipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
