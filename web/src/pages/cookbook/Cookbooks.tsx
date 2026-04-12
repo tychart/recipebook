@@ -65,7 +65,7 @@ export default function Cookbooks() {
   if (error) return <p>{error}</p>;
 
   return (
-    <div className="py-6">
+    <div className="mx-auto w-full max-w-7xl py-6">
       <div>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold">My Cookbooks</h1>

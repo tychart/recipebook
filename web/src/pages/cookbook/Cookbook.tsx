@@ -57,7 +57,7 @@ export default function Cookbook() {
   if (!cookbook) return <p>Cookbook not found</p>;
 
   return (
-    <div className="py-6">
+    <div className="mx-auto w-full max-w-7xl py-6">
       {/* Title + Add Recipe button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>

@@ -28,7 +28,11 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
   } as CSSProperties;
 
   return (
-    <Link to={`/recipe/${recipe.id}`} className="recipe-index-card group" style={style}>
+    <Link
+      to={`/recipe/${recipe.id}`}
+      className="recipe-index-card group mx-auto w-full max-w-xs"
+      style={style}
+    >
       <div className="recipe-index-card__title">
         <h3 className="recipe-index-card__text-title">{recipe.name}</h3>
       </div>
