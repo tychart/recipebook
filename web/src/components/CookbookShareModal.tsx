@@ -5,6 +5,9 @@ import {
   removeCookbookUser,
 } from "../api/cookbooks";
 import type { Cookbook as CookbookType } from "../../types/types";
+import { useBorderTheme } from "../context/BorderThemeContext";
+import { sidebarActiveNavClasses } from "../theme/borderTheme";
+
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -23,19 +26,16 @@ export default function CookbookShareModal({
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
   const [, setLoading] = useState(true);
 
-  // TODO: Populate viewers and contributors with actual database values
-  // TODO: Make API calls to add users as either contributors or viewers, and to remove them as well
+  const { borderTheme } = useBorderTheme();
+  const primaryButtonClass = sidebarActiveNavClasses[borderTheme];
 
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
 
-  // Fetch cookbook data on mount
   useEffect(() => {
     const loadCookbook = async () => {
       try {
         const data = await getCookbook(Number(cookbookId));
         setCookbook(data);
-
-        // Populate contributors and viewers from API response
         setAddedContributors(data.contributors?.map((c: any) => c.email) || []);
         setAddedViewers(data.viewers?.map((v: any) => v.email) || []);
       } catch (err) {
@@ -51,6 +51,7 @@ export default function CookbookShareModal({
   const copyLink = () => {
     navigator.clipboard.writeText(shareUrl);
     setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const addContributor = async () => {
@@ -135,48 +136,51 @@ export default function CookbookShareModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-[#EEE9E0] dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl shadow-lg"
+        className="bg-white border border-black rounded-xl p-6 w-full max-w-xl shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold mb-4">Manage Cookbook Access</h2>
+        <h2 className="text-2xl font-semibold mb-6">Manage Cookbook Access</h2>
 
         <div className="flex flex-col items-center">
           <div
             id="link-sharing"
-            className="mb-4 flex flex-row w-full items-center justify-center space-x-4"
+            className="mb-6 flex flex-row w-full items-center justify-center space-x-4"
           >
             <input
               readOnly
               value={shareUrl}
-              className="flex-1 h-11 rounded-lg px-4 py-2 bg-gray-50"
+              className="flex-1 h-11 rounded-lg px-4 py-2 border border-black/10 bg-stone-50 focus:outline-none"
             />
 
-            <button onClick={copyLink} className="px-4 py-2 w-auto rounded-lg">
+            <button 
+              onClick={copyLink} 
+              className={`px-4 py-2 w-auto rounded-lg font-medium transition border shadow-sm ${primaryButtonClass}`}
+            >
               {linkCopied ? "Link Copied!" : "Copy Link"}
             </button>
           </div>
 
           <div
             id="add-contributors-container"
-            className="flex flex-col space-x-2 align-center justify-center mb-4"
+            className="flex flex-col space-x-0 w-full mb-6"
           >
             <div className="w-full">
-              <p className="mb-2 pl-1 text-lg">
+              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
                 Users with Contributor Access:
               </p>
               {addedContributors.map((email) => (
                 <div
                   key={email}
-                  className="flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-100 mb-2 rounded-lg border-b"
+                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
                 >
-                  <span>{email}</span>
+                  <span className="text-sm">{email}</span>
                   <button
                     onClick={() => removeContributor(email)}
-                    className="text-red-500 w-auto"
+                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
                   >
                     Remove
                   </button>
@@ -184,18 +188,18 @@ export default function CookbookShareModal({
               ))}
             </div>
 
-            <div className="flex flex-row space-x-4">
+            <div className="flex flex-row space-x-4 mt-2">
               <input
                 type="email"
                 placeholder="Add email addresses"
                 value={contributorsInput}
                 onChange={(e) => setContributorsInput(e.target.value)}
-                className="flex-1 h-11 rounded-lg px-4 py-2 bg-gray-50"
+                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
               />
 
               <button
                 onClick={addContributor}
-                className="px-4 py-2 w-auto rounded-lg"
+                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
                 disabled={
                   !contributorsInput ||
                   addedContributors.includes(contributorsInput) ||
@@ -209,19 +213,21 @@ export default function CookbookShareModal({
 
           <div
             id="add-viewers-container"
-            className="flex flex-col space-x-2 align-center justify-center"
+            className="flex flex-col space-x-0 w-full mb-6"
           >
             <div className="w-full">
-              <p className="mb-2 pl-1 text-lg">Users with Viewer Access:</p>
+              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
+                Users with Viewer Access:
+              </p>
               {addedViewers.map((email) => (
                 <div
                   key={email}
-                  className="flex items-center justify-between p-2 bg-gray-200 dark:bg-gray-100 mb-2 rounded-lg border-b"
+                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
                 >
-                  <span>{email}</span>
+                  <span className="text-sm">{email}</span>
                   <button
                     onClick={() => removeViewer(email)}
-                    className="text-red-500 w-30"
+                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
                   >
                     Remove
                   </button>
@@ -229,18 +235,18 @@ export default function CookbookShareModal({
               ))}
             </div>
 
-            <div className="flex flex-row space-x-4">
+            <div className="flex flex-row space-x-4 mt-2">
               <input
                 type="email"
                 placeholder="Add email addresses"
                 value={viewersInput}
                 onChange={(e) => setViewersInput(e.target.value)}
-                className="w-75 h-11 rounded-lg px-4 py-2 bg-gray-50"
+                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
               />
 
               <button
                 onClick={addViewer}
-                className="px-4 py-2 w-30 rounded-lg"
+                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
                 disabled={
                   !viewersInput ||
                   addedViewers.includes(viewersInput) ||
@@ -254,7 +260,7 @@ export default function CookbookShareModal({
 
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-lg mt-4"
+            className="w-full px-4 py-2 border border-black rounded-lg mt-4 bg-white text-black hover:bg-stone-100 transition font-medium"
           >
             Close
           </button>

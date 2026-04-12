@@ -7,6 +7,7 @@ from typing import AsyncGenerator
 import asyncpg
 
 from core.config import get_settings
+from run_migrations import run_migrations
 
 _pool: asyncpg.Pool | None = None
 
@@ -26,6 +27,7 @@ async def init_pool() -> asyncpg.Pool:
         max_size=10,
         command_timeout=60,
     )
+    await run_migrations(_pool)
     return _pool
 
 

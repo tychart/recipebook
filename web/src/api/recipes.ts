@@ -151,3 +151,32 @@ export async function updateRecipe(
   }
   return res.json();
 }
+
+
+export async function deleteRecipe(recipeId: number): Promise<{ message: string }> {
+  const res = await authFetch(`${API_BASE}/delete/${recipeId}`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to delete recipe");
+  }
+
+  return res.json();
+}
+
+export async function copyRecipe(
+  recipeId: number,
+  cookbookId: number
+): Promise<Recipe> {
+  const res = await authFetch(`${API_BASE}/copy/${recipeId}/${cookbookId}`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to copy recipe");
+  }
+
+  const data = await res.json();
+  return normalizeRecipeFromApi(data);
+}

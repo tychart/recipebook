@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { Cookbook } from "../../types/types";
 
+const SUBMIT_BUTTON_CLASS =
+  "px-4 py-2 rounded-md bg-white text-black border border-black hover:bg-stone-100 font-medium transition-colors";
+
 interface CookbookFormProps {
   initialData: Partial<Cookbook>;
   onSubmit: (data: Partial<Cookbook>) => void;
@@ -56,10 +59,7 @@ export default function CookbookForm({
         />
       </div>
 
-      <button
-        type="submit"
-        className="px-4 py-2 rounded bg-indigo-600 text-black"
-      >
+      <button type="submit" className={SUBMIT_BUTTON_CLASS}>
         {submitLabel}
       </button>
     </form>
