@@ -1,8 +1,8 @@
 export const BORDER_THEME_STORAGE_KEY = "recipebook_border_theme";
 
-export type BorderThemeId = "red" | "blue" | "green" | "yellow" | "purple";
+export type BorderThemeId = "red" | "blue" | "green" | "yellow" | "purple" | "pink";
 
-export const BORDER_THEME_IDS: BorderThemeId[] = ["red", "blue", "green", "yellow", "purple"];
+export const BORDER_THEME_IDS: BorderThemeId[] = ["red", "blue", "green", "yellow", "purple", "pink"];
 
 export const BORDER_THEME_LABELS: Record<BorderThemeId, string> = {
   red: "Red",
@@ -10,6 +10,7 @@ export const BORDER_THEME_LABELS: Record<BorderThemeId, string> = {
   green: "Green",
   yellow: "Yellow",
   purple: "Purple",
+  pink: "Pink",
 };
 
 const PALETTES: Record<BorderThemeId, { dark: string; light: string }> = {
@@ -18,6 +19,7 @@ const PALETTES: Record<BorderThemeId, { dark: string; light: string }> = {
   green: { dark: "#15803d", light: "#4ade80" },
   yellow: { dark: "#facc15", light: "#fef9c3" },
   purple: { dark: "#7e22ce", light: "#d8b4fe" },
+  pink: { dark: "#be185d", light: "#fbcfe8" },
 };
 
 const PAGE_FILL = "#EEE9E0";
@@ -56,8 +58,7 @@ export function sidebarBackgroundImage(theme: BorderThemeId): string {
 export function readStoredBorderTheme(): BorderThemeId {
   try {
     const v = localStorage.getItem(BORDER_THEME_STORAGE_KEY);
-    if (v === "red" || v === "blue" || v === "green" || v === "yellow" || v === "purple")
-      return v;
+    if (v && BORDER_THEME_IDS.includes(v as BorderThemeId)) return v as BorderThemeId;
   } catch {
     /* ignore */
   }
@@ -79,6 +80,7 @@ export const sidebarActiveNavClasses: Record<BorderThemeId, string> = {
   green: "bg-green-600 text-white border-green-600 hover:bg-green-700",
   yellow: "bg-yellow-600 text-white border-yellow-600 hover:bg-yellow-700",
   purple: "bg-purple-600 text-white border-purple-600 hover:bg-purple-700",
+  pink: "bg-pink-600 text-white border-pink-600 hover:bg-pink-700",
 };
 
 export const sidebarTitleLinkClasses: Record<BorderThemeId, string> = {
@@ -87,6 +89,7 @@ export const sidebarTitleLinkClasses: Record<BorderThemeId, string> = {
   green: "text-green-600 hover:text-green-700",
   yellow: "text-yellow-600 hover:text-yellow-700",
   purple: "text-purple-600 hover:text-purple-700",
+  pink: "text-pink-600 hover:text-pink-700",
 };
 
 /** Small preview swatches for the picker (dark / light). */
@@ -96,6 +99,7 @@ export const themePreviewColors: Record<BorderThemeId, [string, string]> = {
   green: ["#15803d", "#4ade80"],
   yellow: ["#facc15", "#fef9c3"],
   purple: ["#7e22ce", "#d8b4fe"],
+  pink: ["#be185d", "#fbcfe8"],
 };
 
 /** Cookbook grid cards: rotate through pastels per cookbook id. */
@@ -105,6 +109,7 @@ export const cookbookCardBgClasses: Record<BorderThemeId, string[]> = {
   green: ["bg-green-100", "bg-green-200", "bg-emerald-100", "bg-emerald-200", "bg-lime-100", "bg-green-50"],
   yellow: ["bg-yellow-100", "bg-yellow-50", "bg-amber-100", "bg-amber-50", "bg-yellow-200", "bg-amber-100"],
   purple: ["bg-purple-100", "bg-purple-200", "bg-violet-100", "bg-violet-200", "bg-fuchsia-100", "bg-purple-50"],
+  pink: ["bg-pink-100", "bg-pink-200", "bg-rose-100", "bg-rose-200", "bg-fuchsia-100", "bg-pink-50"],
 };
 
 /** Single background for recipe cards. */
@@ -114,6 +119,7 @@ export const recipeCardBgClasses: Record<BorderThemeId, string> = {
   green: "bg-green-100",
   yellow: "bg-yellow-100",
   purple: "bg-purple-100",
+  pink: "bg-pink-100",
 };
 
 /** Card title text — dark tint of each theme. */
@@ -123,6 +129,7 @@ export const cardTitleTextClasses: Record<BorderThemeId, string> = {
   green: "text-green-900",
   yellow: "text-amber-950",
   purple: "text-purple-900",
+  pink: "text-pink-900",
 };
 
 /** Subtle border tint to match theme (still reads as a frame). */
@@ -132,4 +139,5 @@ export const cardBorderClasses: Record<BorderThemeId, string> = {
   green: "border-green-900/25",
   yellow: "border-amber-900/25",
   purple: "border-purple-900/25",
+  pink: "border-pink-900/25",
 };

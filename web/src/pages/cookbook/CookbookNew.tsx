@@ -24,7 +24,7 @@ export default function CookbookNew() {
   return (
     <>
       <h1 className="text-2xl font-semibold">New Cookbook</h1>
-      <CookbookForm initialData={{}} onSubmit={handleCreate} submitLabel="Create" />
+      <CookbookForm initialData={{}} onSubmit={handleCreate} submitLabel="Create cookbook" />
     </>
   );
 }
