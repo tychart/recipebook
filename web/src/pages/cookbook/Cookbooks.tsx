@@ -67,7 +67,7 @@ export default function Cookbooks() {
   return (
     <div className="mx-auto w-full max-w-7xl py-6">
       <div>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col lg:flex-row items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold">My Cookbooks</h1>
           <Link
             to="/cookbooks/new"
@@ -80,7 +80,7 @@ export default function Cookbooks() {
         {ownerCookbooks.length === 0 ? (
           <p className="text-gray-500">No cookbooks yet.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {ownerCookbooks.map((book) => (
               <CookbookCard key={book.id} cookbook={book} />
             ))}
@@ -91,7 +91,7 @@ export default function Cookbooks() {
         {contributorCookbooks.length > 0 ? (
           <div>
             <h1 className="text-2xl font-semibold">Contributor Cookbooks</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {contributorCookbooks.map((book) => (
                 <CookbookCard key={book.id} cookbook={book} />
               ))}
@@ -103,7 +103,7 @@ export default function Cookbooks() {
         {viewerCookbooks.length > 0 ? (
           <div>
             <h1 className="text-2xl font-semibold">Viewer Cookbooks</h1>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {viewerCookbooks.map((book) => (
                 <CookbookCard key={book.id} cookbook={book} />
               ))}

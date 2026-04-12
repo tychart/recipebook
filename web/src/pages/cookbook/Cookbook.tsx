@@ -59,7 +59,7 @@ export default function Cookbook() {
   return (
     <div className="mx-auto w-full max-w-7xl py-6">
       {/* Title + Add Recipe button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
+      <div className="flex flex-col lg:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
         <div className="flex items-center gap-10">
           {(userRole === "contributor" || userRole === "owner") && (
