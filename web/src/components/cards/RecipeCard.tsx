@@ -30,7 +30,7 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
   return (
     <Link
       to={`/recipe/${recipe.id}`}
-      className="recipe-index-card group mx-auto w-full max-w-xs"
+      className="recipe-index-card group mx-auto w-full max-w-s"
       style={style}
     >
       <div className="recipe-index-card__title">
