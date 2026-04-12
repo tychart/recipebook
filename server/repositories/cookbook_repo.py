@@ -26,6 +26,7 @@ class CookbookRepository:
         self.conn = conn
 
     async def create_cookbook(self, name: str, owner_id: int, categories: str) -> Cookbook:
+        categories = categories.strip()
         row = await self.conn.fetchrow(
             """
             INSERT INTO Cookbook (Book_Name, Owner_ID, Categories)
@@ -36,7 +37,15 @@ class CookbookRepository:
             owner_id,
             categories,
         )
-        return _row_to_cookbook(row)
+        cookbook = _row_to_cookbook(row)
+        row2 = await self.conn.fetchrow(
+            """INSERT INTO cookbook_users (Book_id, user_id, role) 
+            values ($1, $2, $3)""",
+            cookbook.id,
+            owner_id,
+            'owner'
+        )
+        return cookbook
 
     async def get_cookbook(self, cookbook_id: int) -> Cookbook | None:
         row = await self.conn.fetchrow(
@@ -68,6 +77,7 @@ class CookbookRepository:
         return [_row_to_cookbook(row) for row in rows]
 
     async def update_cookbook(self, cookbook_id: int, name: str, owner_id: int, categories: str) -> Cookbook | None:
+        categories = categories.strip()
         row = await self.conn.fetchrow(
             """
             UPDATE Cookbook

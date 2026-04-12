@@ -18,6 +18,7 @@ import { AuthProvider } from "./context/AuthContext";
 // import ProtectedRoute from "./components/ProtectedRoute";
 import RecipeOptions from "./pages/recipe/RecipeOptions";
 import Jobs from "./pages/Jobs";
+import CookbookEdit from "./pages/cookbook/CookbookEdit";
 
 function App() {
   // const [testApi, setTestApi] = useState<string>("loading...");
@@ -53,6 +54,7 @@ function App() {
               <Route element={<ProtectedRoute />}> */}
                 <Route path="/cookbooks" element={<Cookbooks />} />
                 <Route path="/cookbooks/new" element={<CookbookNew />} />
+                <Route path="/cookbook/:id/edit" element={<CookbookEdit />} />
                 <Route
                   path="/cookbook/:cookbookId/recipe/new"
                   element={<RecipeNew />}
