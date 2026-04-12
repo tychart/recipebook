@@ -74,8 +74,9 @@ export default function Cookbook() {
 
           {userRole === "owner" && (
             <button
+              type="button"
               onClick={() => setShowShare(true)}
-              className="w-40 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors text-sm font-medium"
+              className="w-40 px-4 py-2 rounded-md text-sm font-medium transition-colors border bg-white text-black border-black hover:bg-stone-100"
               title="Only owners can manage access"
             >
               Manage Access
