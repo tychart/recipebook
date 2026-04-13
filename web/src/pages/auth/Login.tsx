@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import "../../style/Login.css";
 import Logo from "../../components/Logo";
 
@@ -13,6 +14,7 @@ const Login = () => {
   const navigate = useNavigate();
 
   const { login, isLoading } = useAuth();
+  const { showError } = useToast();
 
   const isSubmitDisabled = username.trim() === "" || password.trim() === "";
 
@@ -26,7 +28,11 @@ const Login = () => {
       navigate("/dashboard");
     } catch (err) {
       console.error("Login failed", err);
-      alert("Login failed. Please check your username and password.");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Login failed. Please check your username and password.";
+      showError(message);
     }
   };
 
