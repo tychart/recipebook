@@ -115,6 +115,7 @@ export function themePreviewSurface(theme: BorderThemeId): {
   backgroundColor: string;
   backgroundImage: string;
   backgroundSize: string;
+  backgroundRepeat: string;
 } {
   const cell = PREVIEW_GINGHAM_CELL_PX;
   return {
