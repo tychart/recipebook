@@ -5,6 +5,7 @@ from urllib.parse import urlparse, urlunparse
 import uuid
 
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError, EndpointConnectionError
 from fastapi import HTTPException, UploadFile
 
@@ -24,6 +25,10 @@ class StorageService:
             aws_access_key_id=settings.s3_key,
             aws_secret_access_key=settings.s3_secret,
             region_name=settings.s3_region,
+            config=Config(
+                signature_version="s3v4",
+                s3={"addressing_style": "path"},
+            ),
         )
 
     def ensure_bucket_exists(self) -> None:
