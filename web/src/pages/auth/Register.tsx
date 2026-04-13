@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import "../../style/Register.css";
 import Logo from "../../components/Logo";
 
@@ -15,6 +16,7 @@ const Register = () => {
 
   const navigate = useNavigate();
   const { register, isLoading } = useAuth();
+  const { showError } = useToast();
 
   const passwordsMatch = password === confirmPassword;
   const showPasswordError = confirmPassword.length > 0 && !passwordsMatch;
@@ -40,9 +42,11 @@ const Register = () => {
       setPassword("");
       setConfirmPassword("");
       navigate("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       console.error("Registration failed", err);
-      alert(err?.message || "Registration failed");
+      const message =
+        err instanceof Error ? err.message : "Registration failed.";
+      showError(message);
     }
   };
 

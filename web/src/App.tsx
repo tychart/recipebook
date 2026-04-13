@@ -15,6 +15,7 @@ import RecipeEdit from "./pages/recipe/RecipeEdit";
 import Search from "./pages/Search";
 import Account from "./pages/account/Account";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 // import ProtectedRoute from "./components/ProtectedRoute";
 import RecipeOptions from "./pages/recipe/RecipeOptions";
 import Jobs from "./pages/Jobs";
@@ -35,6 +36,7 @@ function App() {
 
   return (
     <AuthProvider>
+      <ToastProvider>
       <BrowserRouter>
         <div className="app-shell">
           <div className="routes-root">
@@ -74,6 +76,7 @@ function App() {
       {testApi}
     </div> */}
       </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }
