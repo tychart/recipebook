@@ -1,5 +1,5 @@
 // src/pages/Register.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
@@ -8,14 +8,18 @@ import { useToast } from "../../context/ToastContext";
 import "../../style/Register.css";
 import Logo from "../../components/Logo";
 
+const AUTH_OVERLAY_DELAY_MS = 280;
+
 const Register = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showPanOverlay, setShowPanOverlay] = useState(false);
 
   const navigate = useNavigate();
-  const { register, isLoading } = useAuth();
+  const { register } = useAuth();
   const { showError } = useToast();
 
   const passwordsMatch = password === confirmPassword;
@@ -28,6 +32,15 @@ const Register = () => {
     confirmPassword.trim() === "" ||
     !passwordsMatch;
 
+  useEffect(() => {
+    if (!submitting) {
+      setShowPanOverlay(false);
+      return;
+    }
+    const id = window.setTimeout(() => setShowPanOverlay(true), AUTH_OVERLAY_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [submitting]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     console.log("Submitting registration...");
 
@@ -35,6 +48,7 @@ const Register = () => {
 
     if (!passwordsMatch) return;
 
+    setSubmitting(true);
     try {
       await register(username, email, password);
       setUsername("");
@@ -47,6 +61,8 @@ const Register = () => {
       const message =
         err instanceof Error ? err.message : "Registration failed.";
       showError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -57,7 +73,8 @@ const Register = () => {
       <AuthForm
         title="Create your account"
         onSubmit={handleSubmit}
-        isLoading={isLoading}
+        isLoading={submitting}
+        showLoadingOverlay={showPanOverlay}
         isSubmitDisabled={isSubmitDisabled}
         buttonText="Register"
         loadingMessage="Registering, please wait"
