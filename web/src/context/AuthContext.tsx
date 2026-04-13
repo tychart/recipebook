@@ -11,7 +11,6 @@ import type { User } from "../../types/types";
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,7 +23,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("authToken"));
-const [isLoading, setIsLoading] = useState(false);
 const [isInitializing, setIsInitializing] = useState(true);
 
 useEffect(() => {
@@ -45,27 +43,17 @@ useEffect(() => {
 }, []);
 
   const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const response = await apiLogin({ username, password });
-      setUser(response.user);
-      setToken(response.token);
-      localStorage.setItem("authToken", response.token);
-    } finally {
-      setIsLoading(false);
-    }
+    const response = await apiLogin({ username, password });
+    setUser(response.user);
+    setToken(response.token);
+    localStorage.setItem("authToken", response.token);
   };
 
   const register = async (username: string, email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      const response = await apiRegister({ username, email, password });
-      setUser(response.user);
-      setToken(response.token);
-      localStorage.setItem("authToken", response.token);
-    } finally {
-      setIsLoading(false);
-    }
+    const response = await apiRegister({ username, email, password });
+    setUser(response.user);
+    setToken(response.token);
+    localStorage.setItem("authToken", response.token);
   };
 
   const logout = async () => {
@@ -93,7 +81,6 @@ useEffect(() => {
   value={{
     user,
     token,
-    isLoading,
     isInitializing,
     login,
     register,

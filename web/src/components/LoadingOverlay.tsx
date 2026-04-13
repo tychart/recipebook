@@ -15,11 +15,11 @@ export default function LoadingOverlay({
 }: LoadingOverlayProps) {
   return (
     <div
-      className="loading-overlay"
-      style={{ display: isLoading ? "flex" : "none" }}
+      className={`loading-overlay${isLoading ? " loading-overlay--visible" : ""}`}
       role="status"
       aria-live="polite"
       aria-label={message}
+      aria-hidden={!isLoading}
     >
       <div className="pan-loader" aria-hidden="true">
         <svg width="240" height="170" viewBox="0 0 180 130">

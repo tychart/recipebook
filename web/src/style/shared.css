@@ -11,6 +11,15 @@
   justify-content: center;
   gap: 14px;
   z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.loading-overlay--visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .pan-loader {
@@ -21,12 +30,19 @@
 .pan {
   transform-origin: 90px 92px;
   animation: panTilt 1.6s ease-in-out infinite;
+  animation-play-state: paused;
 }
 
 .food {
   transform-origin: center;
   animation: toss 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   opacity: 0;
+  animation-play-state: paused;
+}
+
+.loading-overlay--visible .pan,
+.loading-overlay--visible .food {
+  animation-play-state: running;
 }
 
 .food1 {

@@ -3,10 +3,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const ProtectedRoute = () => {
-  const { user, isLoading, isInitializing } = useAuth();
+  const { user, isInitializing } = useAuth();
 
   // Optional: show loading spinner while auth state initializes
-  if (isLoading || isInitializing) return <p>Loading...</p>;
+  if (isInitializing) return <p>Loading...</p>;
 
   // If no user, redirect to login
   if (!user) {

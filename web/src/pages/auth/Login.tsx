@@ -1,5 +1,5 @@
 // src/pages/Login.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
@@ -8,19 +8,34 @@ import { useToast } from "../../context/ToastContext";
 import "../../style/Login.css";
 import Logo from "../../components/Logo";
 
+/** Pan overlay only after this delay so fast failed logins skip the motion-heavy UI */
+const AUTH_OVERLAY_DELAY_MS = 280;
+
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [showPanOverlay, setShowPanOverlay] = useState(false);
   const navigate = useNavigate();
 
-  const { login, isLoading } = useAuth();
+  const { login } = useAuth();
   const { showError } = useToast();
 
   const isSubmitDisabled = username.trim() === "" || password.trim() === "";
 
+  useEffect(() => {
+    if (!submitting) {
+      setShowPanOverlay(false);
+      return;
+    }
+    const id = window.setTimeout(() => setShowPanOverlay(true), AUTH_OVERLAY_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [submitting]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    setSubmitting(true);
     try {
       await login(username, password);
       setUsername("");
@@ -33,6 +48,8 @@ const Login = () => {
           ? err.message
           : "Login failed. Please check your username and password.";
       showError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -43,7 +60,8 @@ const Login = () => {
       <AuthForm
         title="Welcome back! Please log in:"
         onSubmit={handleSubmit}
-        isLoading={isLoading}
+        isLoading={submitting}
+        showLoadingOverlay={showPanOverlay}
         isSubmitDisabled={isSubmitDisabled}
         buttonText="Login"
         loadingMessage="Logging in, please wait"

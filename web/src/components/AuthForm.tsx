@@ -5,6 +5,8 @@ interface AuthFormProps {
   title: string;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   isLoading: boolean;
+  /** Full-screen pan overlay; omit to follow `isLoading` */
+  showLoadingOverlay?: boolean;
   isSubmitDisabled: boolean;
   buttonText: string;
   loadingMessage: string;
@@ -18,6 +20,7 @@ const AuthForm = ({
   title,
   onSubmit,
   isLoading,
+  showLoadingOverlay,
   isSubmitDisabled,
   buttonText,
   loadingMessage,
@@ -26,6 +29,8 @@ const AuthForm = ({
   containerClass,
   formClass,
 }: AuthFormProps) => {
+  const overlayActive = showLoadingOverlay ?? isLoading;
+
   return (
     <div className={containerClass}>
       <form
@@ -45,7 +50,7 @@ const AuthForm = ({
         {footer}
       </form>
 
-      <LoadingOverlay isLoading={isLoading} message={loadingMessage} />
+      <LoadingOverlay isLoading={overlayActive} message={loadingMessage} />
     </div>
   );
 };
