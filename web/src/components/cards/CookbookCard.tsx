@@ -34,7 +34,7 @@ export const CookbookCard = ({ cookbook }: CookbookCardProps) => {
   return (
     <Link
       to={`/cookbook/${cookbook.id}`}
-      className="book group w-full focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2"
+      className="book group mx-auto w-full max-w-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2"
       style={bookStyle}
     >
       <div className="book-pages" aria-hidden />

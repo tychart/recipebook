@@ -47,7 +47,7 @@ const Register = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-6">
+    <div className="flex flex-col items-center justify-center gap-6">
       <Logo size="medium" />
 
       <AuthForm

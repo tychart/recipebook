@@ -28,7 +28,7 @@ export default function RecipeImage({
           <img
             src={preview}
             alt={alt}
-            className="w-full max-h-80 object-cover rounded-xl"
+            className="w-full max-h-80 object-contain rounded-xl"
           />
         ) : (
           <span className="text-stone-400 text-center">

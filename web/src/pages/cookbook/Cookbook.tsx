@@ -57,9 +57,9 @@ export default function Cookbook() {
   if (!cookbook) return <p>Cookbook not found</p>;
 
   return (
-    <div className="py-6">
+    <div className="mx-auto w-full max-w-7xl py-6">
       {/* Title + Add Recipe button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-2">
+      <div className="flex flex-col lg:flex-row sm:items-center justify-between mb-6 gap-2">
         <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
         <div className="flex items-center gap-10">
           {(userRole === "contributor" || userRole === "owner") && (
@@ -85,7 +85,7 @@ export default function Cookbook() {
       {recipes.length === 0 ? (
         <p className="text-gray-500">No recipes yet.</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
           {recipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}

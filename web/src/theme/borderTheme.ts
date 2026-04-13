@@ -14,12 +14,12 @@ export const BORDER_THEME_LABELS: Record<BorderThemeId, string> = {
 };
 
 const PALETTES: Record<BorderThemeId, { dark: string; light: string }> = {
-  red: { dark: "#d21404", light: "#fc6b5f" },
-  blue: { dark: "#1d4ed8", light: "#7dd3fc" },
-  green: { dark: "#15803d", light: "#4ade80" },
-  yellow: { dark: "#facc15", light: "#fef9c3" },
-  purple: { dark: "#7e22ce", light: "#d8b4fe" },
-  pink: { dark: "#be185d", light: "#fbcfe8" },
+  red: { dark: "#ad1003", light: "#d95950" },
+  blue: { dark: "#1842b8", light: "#5eb0e5" },
+  green: { dark: "#116c33", light: "#3cc46f" },
+  yellow: { dark: "#d9b512", light: "#ebe5ae" },
+  purple: { dark: "#681daa", light: "#c19aeb" },
+  pink: { dark: "#db2777", light: "#f0a3cb" },
 };
 
 /** Bold rule under recipe title on index-style cards — matches page border theme. */
@@ -35,21 +35,16 @@ export const recipeCardAccentLineHex: Record<BorderThemeId, string> = {
 const PAGE_FILL = "#EEE9E0";
 const WHITE = "#ffffff";
 
-/** 3×3 gingham cell grid; `cellSize` is one square (e.g. 15 for 45px tile, 10 for 30px). */
+/** One yarn color + white: classic 2×2 gingham repeat (white | half-tone / half-tone | solid). */
 function makeGinghamSvg(cellSize: number, dark: string, light: string, white: string): string {
   const s = cellSize;
-  const t = cellSize * 3;
+  const t = cellSize * 2;
   return (
     `<svg xmlns='http://www.w3.org/2000/svg' width='${t}' height='${t}'>` +
-    `<rect x='0' y='0' width='${s}' height='${s}' fill='${dark}'/>` +
+    `<rect x='0' y='0' width='${s}' height='${s}' fill='${white}'/>` +
     `<rect x='${s}' y='0' width='${s}' height='${s}' fill='${light}'/>` +
-    `<rect x='${s * 2}' y='0' width='${s}' height='${s}' fill='${white}'/>` +
     `<rect x='0' y='${s}' width='${s}' height='${s}' fill='${light}'/>` +
-    `<rect x='${s}' y='${s}' width='${s}' height='${s}' fill='${white}'/>` +
-    `<rect x='${s * 2}' y='${s}' width='${s}' height='${s}' fill='${dark}'/>` +
-    `<rect x='0' y='${s * 2}' width='${s}' height='${s}' fill='${white}'/>` +
-    `<rect x='${s}' y='${s * 2}' width='${s}' height='${s}' fill='${dark}'/>` +
-    `<rect x='${s * 2}' y='${s * 2}' width='${s}' height='${s}' fill='${light}'/>` +
+    `<rect x='${s}' y='${s}' width='${s}' height='${s}' fill='${dark}'/>` +
     `</svg>`
   );
 }
@@ -60,9 +55,18 @@ function ginghamDataUrl(cellSize: number, theme: BorderThemeId): string {
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+/** Body border: half-tile size in px (full repeat = 2× this). */
+export const BODY_GINGHAM_CELL_PX = 15;
+
+/** Sidebar gingham cell size (full repeat = 2× this). */
+export const SIDEBAR_GINGHAM_CELL_PX = 10;
+
+/** Account picker: tiny gingham swatch cell size. */
+const PREVIEW_GINGHAM_CELL_PX = 5;
+
 /** Full `backgroundImage` for sidebar: beige fill + gingham border strip. */
 export function sidebarBackgroundImage(theme: BorderThemeId): string {
-  return `linear-gradient(${PAGE_FILL}, ${PAGE_FILL}), ${ginghamDataUrl(10, theme)}`;
+  return `linear-gradient(${PAGE_FILL}, ${PAGE_FILL}), ${ginghamDataUrl(SIDEBAR_GINGHAM_CELL_PX, theme)}`;
 }
 
 export function readStoredBorderTheme(): BorderThemeId {
@@ -75,12 +79,16 @@ export function readStoredBorderTheme(): BorderThemeId {
   return "red";
 }
 
-/** Apply page border (body) — matches previous index.css behavior. */
+/** Apply page border (body) — matches index.css default until theme runs. */
 export function applyBodyBorderTheme(theme: BorderThemeId): void {
+  const cell = BODY_GINGHAM_CELL_PX;
+  const tile = cell * 2;
   document.body.style.backgroundColor = PAGE_FILL;
-  document.body.style.backgroundImage = ginghamDataUrl(15, theme);
-  document.body.style.backgroundSize = "45px 45px";
-  document.body.style.backgroundAttachment = "fixed";
+  document.body.style.backgroundImage = ginghamDataUrl(cell, theme);
+  document.body.style.backgroundSize = `${tile}px ${tile}px`;
+  document.body.style.backgroundRepeat = "round";
+  document.body.style.backgroundAttachment = "scroll";
+  document.body.style.backgroundPosition = "0 0";
 }
 
 /** Sidebar nav “active” + app title link — Tailwind class strings. */
@@ -102,15 +110,21 @@ export const sidebarTitleLinkClasses: Record<BorderThemeId, string> = {
   pink: "text-pink-600 hover:text-pink-700",
 };
 
-/** Small preview swatches for the picker (dark / light). */
-export const themePreviewColors: Record<BorderThemeId, [string, string]> = {
-  red: ["#d21404", "#fc6b5f"],
-  blue: ["#1d4ed8", "#7dd3fc"],
-  green: ["#15803d", "#4ade80"],
-  yellow: ["#facc15", "#fef9c3"],
-  purple: ["#7e22ce", "#d8b4fe"],
-  pink: ["#be185d", "#fbcfe8"],
-};
+/** Account theme buttons: mini gingham using one accent hue + white (same tile logic as the page border). */
+export function themePreviewSurface(theme: BorderThemeId): {
+  backgroundColor: string;
+  backgroundImage: string;
+  backgroundSize: string;
+  backgroundRepeat: string;
+} {
+  const cell = PREVIEW_GINGHAM_CELL_PX;
+  return {
+    backgroundColor: PAGE_FILL,
+    backgroundImage: ginghamDataUrl(cell, theme),
+    backgroundSize: `${cell * 2}px ${cell * 2}px`,
+    backgroundRepeat: "round",
+  };
+}
 
 /** Cookbook grid cards: rotate through pastels per cookbook id. */
 export const cookbookCardBgClasses: Record<BorderThemeId, string[]> = {
