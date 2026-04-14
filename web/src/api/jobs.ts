@@ -22,15 +22,18 @@ export async function enqueueTextJob(text: string): Promise<JobSummary> {
   return parseJsonResponse<JobSummary>(response, "Failed to queue text import");
 }
 
-export async function enqueueOcrJob(image: File): Promise<JobSummary> {
+export async function enqueueImageJob(image: File, contextText?: string): Promise<JobSummary> {
   const formData = new FormData();
   formData.append("image", image);
+  if (contextText && contextText.trim()) {
+    formData.append("context_text", contextText);
+  }
 
-  const response = await authFetch(`${API_BASE}/ocr`, {
+  const response = await authFetch(`${API_BASE}/image`, {
     method: "POST",
     body: formData,
   });
-  return parseJsonResponse<JobSummary>(response, "Failed to queue OCR import");
+  return parseJsonResponse<JobSummary>(response, "Failed to queue image import");
 }
 
 export async function listJobs(): Promise<JobSummary[]> {

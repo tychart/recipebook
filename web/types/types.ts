@@ -119,7 +119,7 @@ export interface SemanticSearchResult {
 }
 
 export type JobStatus = "queued" | "running" | "succeeded" | "failed";
-export type JobSource = "text" | "ocr";
+export type JobSource = "text" | "image";
 
 export interface GeneratedRecipeDraft {
   name: string;

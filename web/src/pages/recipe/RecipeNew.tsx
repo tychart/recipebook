@@ -5,11 +5,11 @@ import { createRecipeWithImage } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { getCookbook, listCookbooks } from "../../api/cookbooks";
-import { enqueueOcrJob, enqueueTextJob, getJob } from "../../api/jobs";
+import { enqueueImageJob, enqueueTextJob, getJob } from "../../api/jobs";
 
 type QueueNotice = {
   jobId: string;
-  source: "text" | "ocr";
+  source: "text" | "image";
 };
 
 function buildInitialRecipeData(cookbookId: number | undefined, creatorId: number | undefined): RecipeInput {
@@ -42,6 +42,7 @@ export default function RecipeNew() {
   const [isDraftLoading, setIsDraftLoading] = useState(false);
   const [isTextImportOpen, setIsTextImportOpen] = useState(false);
   const [textImportValue, setTextImportValue] = useState("");
+  const [imageImportValue, setImageImportValue] = useState("");
   const [queueNotice, setQueueNotice] = useState<QueueNotice | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [importedRawText, setImportedRawText] = useState<string>("");
@@ -132,7 +133,7 @@ export default function RecipeNew() {
     };
   }, [numericCookbookId, searchParams, user]);
 
-  const handleOCRUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -141,10 +142,11 @@ export default function RecipeNew() {
     setQueueNotice(null);
 
     try {
-      const queuedJob = await enqueueOcrJob(file);
-      setQueueNotice({ jobId: queuedJob.job_id, source: "ocr" });
+      const queuedJob = await enqueueImageJob(file, imageImportValue);
+      setQueueNotice({ jobId: queuedJob.job_id, source: "image" });
+      setImageImportValue("");
     } catch (error) {
-      console.error("OCR enqueue error:", error);
+      console.error("Image enqueue error:", error);
       alert("Failed to queue image import.");
     } finally {
       setIsProcessing(false);
@@ -153,8 +155,7 @@ export default function RecipeNew() {
   };
 
   const handleTextImport = async () => {
-    const trimmed = textImportValue.trim();
-    if (!trimmed) {
+    if (!textImportValue.trim()) {
       return;
     }
 
@@ -163,7 +164,7 @@ export default function RecipeNew() {
     setQueueNotice(null);
 
     try {
-      const queuedJob = await enqueueTextJob(trimmed);
+      const queuedJob = await enqueueTextJob(textImportValue);
       setQueueNotice({ jobId: queuedJob.job_id, source: "text" });
       setIsTextImportOpen(false);
       setTextImportValue("");
@@ -225,7 +226,7 @@ export default function RecipeNew() {
             disabled={isProcessing || isDraftLoading}
             className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 hover:bg-amber-100 disabled:opacity-50"
           >
-            {isProcessing ? "Queueing..." : "✨ Scan from Image"}
+            {isProcessing ? "Queueing..." : "✨ Import from Image"}
           </button>
           <button
             onClick={() => setIsTextImportOpen((prev) => !prev)}
@@ -237,7 +238,7 @@ export default function RecipeNew() {
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleOCRUpload}
+            onChange={handleImageUpload}
             className="hidden"
             accept="image/*"
           />
@@ -255,7 +256,7 @@ export default function RecipeNew() {
         <div className="mx-auto mb-6 flex max-w-4xl items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
           <div>
             <p className="font-semibold">
-              {queueNotice.source === "ocr" ? "Image import queued." : "Text import queued."}
+              {queueNotice.source === "image" ? "Image import queued." : "Text import queued."}
             </p>
             <p className="mt-1">
               The request finished quickly and the background worker is processing your recipe now.
@@ -275,6 +276,21 @@ export default function RecipeNew() {
           {draftError}
         </div>
       ) : null}
+
+      <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+        <label className="mb-2 block text-sm font-medium text-stone-700">
+          Optional image import notes
+        </label>
+        <textarea
+          value={imageImportValue}
+          onChange={(event) => setImageImportValue(event.target.value)}
+          placeholder="Add a missing title, clarify handwriting, or tell the importer anything the image does not show clearly..."
+          className="min-h-28 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
+        />
+        <p className="mt-2 text-xs text-stone-500">
+          These notes are sent alongside the image and are also preserved in the raw import trace for debugging.
+        </p>
+      </div>
 
       {isTextImportOpen ? (
         <div className="mx-auto mb-8 max-w-4xl rounded-2xl border border-stone-200 bg-stone-50 p-4">

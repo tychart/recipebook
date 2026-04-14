@@ -1,329 +1,114 @@
-import asyncio
-import json
 import logging
-import os
 import time
 from base64 import b64decode
-from io import BytesIO
 from typing import Any, Protocol
-from urllib import error as urllib_error
-from urllib import request as urllib_request
 
-import pytesseract
 from fastapi import HTTPException
 from fastapi import UploadFile
-from openai import OpenAI
-from PIL import Image
-from pydantic import BaseModel, Field
 
 from core.config import Settings
-from inference.embedding import embed_text, format_recipe_for_embedding, get_embedding_model
+from inference.embedding import embed_text, get_embedding_model
+from inference.recipe_import import RecipeImportExtraction
 from schemas.auth import CurrentUser
 from schemas.generate import GenerateSearchRequest, GenerateSearchResult
 from schemas.job import GenerateTextRequest, JobResult, JobSource
-from schemas.recipe import RecipeMetadata
 from services.job_service import JobService
 from services.recipe_service import RecipeService
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
-LLM_MODEL = os.getenv("LLM_MODEL", "lfm2.5-thinking")
 
-OCR_PARSER_PROMPT = """
-You are an expert at extracting structured data from messy OCR text.
-Ignore noise and formatting errors. For ingredients, strictly separate
-the numeric quantity from the unit of measurement.
-"""
-
-RAW_TEXT_PARSER_PROMPT = """
-You are an expert at extracting structured recipe data from raw pasted text.
-The input may include a recipe title, author, ingredient list, and instructions.
-Ignore conversational filler and unrelated notes. Extract only the recipe content.
-For ingredients, strictly separate the numeric quantity from the unit of measurement.
-For instructions, return each step as a separate string in the correct order.
-If the author is not present, return an empty string for recipe_author.
-"""
-
-if OPENAI_API_KEY == "ollama":
-    llm_client = OpenAI(
-        base_url=OLLAMA_URL,
-        api_key="ollama",
-    )
-else:
-    llm_client = OpenAI(api_key=OPENAI_API_KEY)
-
-
-class Ingredient(BaseModel):
-    name: str = Field(description="The name of the ingredient, e.g., 'all-purpose flour'")
-    amount: float = Field(description="The numeric value only, e.g., 2.5")
-    unit: str = Field(description="The measurement unit, e.g., 'cups', 'grams', or 'tsp'")
-
-
-class RecipeExtraction(BaseModel):
-    recipe_name: str
-    recipe_author: str | None = Field(default="", description="The author's name, or blank if not found")
-    ingredients: list[Ingredient]
-    instructions: list[str]
-
-
-class LLMProvider(Protocol):
-    async def process_text(self, text: str) -> dict[str, Any]:
+class RecipeImporter(Protocol):
+    async def parse_text(self, text: str) -> RecipeImportExtraction:
         ...
 
-    async def process_ocr(self, payload: dict[str, Any]) -> dict[str, Any]:
+    async def parse_image(
+        self,
+        image_bytes: bytes,
+        filename: str,
+        content_type: str,
+        context_text: str | None = None,
+    ) -> RecipeImportExtraction:
         ...
-
-
-class ProviderNotConfiguredError(RuntimeError):
-    pass
-
-
-class NoopLLMProvider:
-    async def process_text(self, text: str) -> dict[str, Any]:
-        raise ProviderNotConfiguredError("LLM provider is not configured")
-
-    async def process_ocr(self, payload: dict[str, Any]) -> dict[str, Any]:
-        raise ProviderNotConfiguredError("LLM provider is not configured")
-
-
-class OpenAICompatibleLLMProvider:
-    def __init__(self, settings: Settings):
-        if not settings.llm_base_url or not settings.llm_model:
-            raise ProviderNotConfiguredError("LLM provider requires LLM_BASE_URL and LLM_MODEL")
-        self.base_url = settings.llm_base_url.rstrip("/")
-        self.api_key = settings.llm_api_key or "ollama"
-        self.model = settings.llm_model
-        self.timeout = settings.llm_request_timeout
-
-    async def process_text(self, text: str) -> dict[str, Any]:
-        prompt = (
-            "Extract recipe information from the user input and return JSON with keys "
-            "name, description, notes, servings, category, tags, ingredients, instructions. "
-            "ingredients should be a list of objects with amount, unit, name. "
-            "instructions should be a list of objects with instruction_number and instruction_text.\n\n"
-            f"User input:\n{text}"
-        )
-        response = await self._request_chat_completion(prompt)
-        return {
-            "draft": self._extract_json(response),
-            "provider": "openai-compatible",
-        }
-
-    async def process_ocr(self, payload: dict[str, Any]) -> dict[str, Any]:
-        source = payload.get("image_url") or payload.get("filename") or "uploaded image"
-        prompt = (
-            "The OCR job system is wired, but OCR parsing is not implemented yet. "
-            "Return JSON acknowledging the placeholder state and the source input."
-        )
-        response = await self._request_chat_completion(f"{prompt}\n\nSource: {source}")
-        return {
-            "draft": self._extract_json(response),
-            "provider": "openai-compatible",
-        }
-
-    async def _request_chat_completion(self, prompt: str) -> str:
-        body = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a recipe extraction assistant that returns JSON only.",
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ]
-        }
-        return await asyncio.to_thread(self._post_json, body)
-
-    def _post_json(self, body: dict[str, Any]) -> str:
-        req = urllib_request.Request(
-            f"{self.base_url}/chat/completions",
-            data=json.dumps(body).encode("utf-8"),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            },
-            method="POST",
-        )
-        try:
-            with urllib_request.urlopen(req, timeout=self.timeout) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-        except urllib_error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="ignore")
-            raise RuntimeError(f"Provider request failed: {detail or exc.reason}") from exc
-        except urllib_error.URLError as exc:
-            raise RuntimeError(f"Provider request failed: {exc.reason}") from exc
-
-        choices = payload.get("choices") or []
-        if not choices:
-            raise RuntimeError("Provider returned no choices")
-        message = choices[0].get("message") or {}
-        content = message.get("content")
-        if isinstance(content, list):
-            return "".join(
-                str(part.get("text", ""))
-                for part in content
-                if isinstance(part, dict)
-            )
-        if not isinstance(content, str):
-            raise RuntimeError("Provider returned unexpected content")
-        return content
-
-    def _extract_json(self, content: str) -> dict[str, Any]:
-        stripped = content.strip()
-        if stripped.startswith("```"):
-            stripped = stripped.strip("`")
-            if "\n" in stripped:
-                stripped = stripped.split("\n", 1)[1]
-        if stripped.endswith("```"):
-            stripped = stripped[:-3]
-        try:
-            return json.loads(stripped)
-        except json.JSONDecodeError:
-            return {"raw": content}
-
-
-def create_llm_provider(settings: Settings) -> LLMProvider:
-    if settings.llm_provider in {"openai", "ollama", "openai-compatible"}:
-        try:
-            return OpenAICompatibleLLMProvider(settings)
-        except ProviderNotConfiguredError as exc:
-            print(f"LLM provider configuration incomplete: {exc}")
-            return NoopLLMProvider()
-    return NoopLLMProvider()
 
 
 class GenerateService:
     def __init__(
         self,
         job_service: JobService,
-        provider: LLMProvider,
+        recipe_import_client: RecipeImporter,
         settings: Settings,
         recipe_service: RecipeService | None = None,
     ):
         self.job_service = job_service
-        self.provider = provider
+        self.recipe_import_client = recipe_import_client
         self.settings = settings
         self.recipe_service = recipe_service
 
-    def _recipe_extraction_to_draft(self, structured_recipe: RecipeExtraction) -> dict[str, Any]:
-        notes = ""
-        if structured_recipe.recipe_author:
-            notes = f"Imported author: {structured_recipe.recipe_author}"
-
+    def _recipe_extraction_to_draft(self, structured_recipe: RecipeImportExtraction) -> dict[str, Any]:
         return {
-            "name": structured_recipe.recipe_name,
-            "description": "",
-            "servings": 1,
-            "instructions": list(structured_recipe.instructions),
-            "notes": notes,
+            "name": structured_recipe.name.strip() or "Imported Recipe",
+            "description": structured_recipe.description.strip(),
+            "servings": max(1, structured_recipe.servings),
+            "instructions": [step.strip() for step in structured_recipe.instructions if step.strip()],
+            "notes": structured_recipe.notes.strip(),
             "ingredients": [
                 {
-                    "name": ingredient.name,
+                    "name": ingredient.name.strip(),
                     "amount": ingredient.amount,
-                    "unit": ingredient.unit,
+                    "unit": ingredient.unit.strip(),
                 }
                 for ingredient in structured_recipe.ingredients
+                if ingredient.name.strip()
             ],
-            "category": "Main",
-            "tags": [],
+            "category": structured_recipe.category.strip() or "Main",
+            "tags": [tag.strip() for tag in structured_recipe.tags if tag.strip()],
         }
 
     async def enqueue_text_job(self, body: GenerateTextRequest, current_user: CurrentUser):
-        text = body.text.strip()
-        if not text:
+        if not body.text.strip():
             raise HTTPException(status_code=400, detail="Text input is required")
         return await self.job_service.enqueue(
             JobSource.text,
-            {"text": text},
+            {"text": body.text},
             owner_id=current_user.id,
         )
 
-    async def enqueue_ocr_upload(self, image: UploadFile, current_user: CurrentUser):
+    async def enqueue_image_upload(
+        self,
+        image: UploadFile,
+        current_user: CurrentUser,
+        context_text: str | None = None,
+    ):
         contents = await image.read()
         if not contents:
             raise HTTPException(status_code=400, detail="Image upload is required")
 
+        normalized_context = context_text if context_text and context_text.strip() else None
         return await self.job_service.enqueue(
-            JobSource.ocr,
+            JobSource.image,
             {
                 "image_bytes": contents,
                 "filename": image.filename or "<unknown>",
                 "content_type": image.content_type or "application/octet-stream",
+                "context_text": normalized_context,
             },
             owner_id=current_user.id,
         )
 
-    def _parse_recipe_with_llm_sync(self, system_prompt: str, raw_text: str) -> RecipeExtraction:
-        response = llm_client.beta.chat.completions.parse(
-            model=LLM_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-                {"role": "user", "content": raw_text},
-            ],
-            response_format=RecipeExtraction,
-        )
-
-        if not response.choices[0].message.parsed:
-            raise ValueError("LLM failed to parse the recipe text.")
-
-        return response.choices[0].message.parsed
-
-    async def parse_recipe_with_llm(self, system_prompt: str, raw_text: str) -> RecipeExtraction:
-        return await asyncio.to_thread(self._parse_recipe_with_llm_sync, system_prompt, raw_text)
-
-    def _parse_image_bytes_with_ocr_sync(self, image_bytes: bytes) -> str:
-        img = Image.open(BytesIO(image_bytes))
-        return pytesseract.image_to_string(
-            image=img,
-            output_type=pytesseract.Output.STRING,
-        )
-
-    async def parse_image_bytes_with_ocr(self, image_bytes: bytes, filename: str, content_type: str) -> str:
-        file_name = filename or "<unknown>"
-        content_type = content_type or "<unknown>"
-
-        logger.info(
-            "OCR request received filename=%s content_type=%s",
-            file_name,
-            content_type,
-        )
-
-        raw_text = await asyncio.to_thread(self._parse_image_bytes_with_ocr_sync, image_bytes)
-
-        logger.info(
-            "OCR text extracted filename=%s text_length=%s",
-            file_name,
-            len(raw_text),
-        )
-
-        logger.debug("OCR parsed text: %s", raw_text)
-
-        return raw_text
-
     async def run_text_job(self, payload: dict[str, Any]) -> JobResult:
         request_started = time.perf_counter()
-        raw_text = str(payload.get("text", "")).strip()
+        raw_text = str(payload.get("text", ""))
 
         logger.info("Text import job received text_length=%s", len(raw_text))
-        if not raw_text:
+        if not raw_text.strip():
             raise RuntimeError("Text input is required")
 
         try:
-            logger.info("Text import starting LLM parse model=%s", LLM_MODEL)
-            structured_recipe = await self.parse_recipe_with_llm(
-                RAW_TEXT_PARSER_PROMPT,
-                raw_text,
-            )
+            logger.info("Text import starting Responses API parse")
+            structured_recipe = await self.recipe_import_client.parse_text(raw_text)
             logger.info(
-                "Text import LLM parse complete ingredient_count=%s instruction_count=%s duration_ms=%.2f",
+                "Text import parse complete ingredient_count=%s instruction_count=%s duration_ms=%.2f",
                 len(structured_recipe.ingredients),
                 len(structured_recipe.instructions),
                 (time.perf_counter() - request_started) * 1000,
@@ -331,7 +116,10 @@ class GenerateService:
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
                 raw_text=raw_text,
-                metadata={"source": JobSource.text.value},
+                metadata={
+                    "source": JobSource.text.value,
+                    "transcription": structured_recipe.transcription,
+                },
             )
         except Exception:
             logger.exception(
@@ -341,30 +129,41 @@ class GenerateService:
             )
             raise
 
-    async def run_ocr_job(self, payload: dict[str, Any]) -> JobResult:
+    def _build_image_raw_text(self, context_text: str | None, transcription: str) -> str:
+        sections: list[str] = []
+        if context_text and context_text.strip():
+            sections.append(f"User context:\n{context_text}")
+            sections.append(f"Image transcription:\n{transcription}")
+            return "\n\n".join(sections)
+        return transcription
+
+    async def run_image_job(self, payload: dict[str, Any]) -> JobResult:
         request_started = time.perf_counter()
         file_name = str(payload.get("filename") or "<unknown>")
         content_type = str(payload.get("content_type") or "<unknown>")
+        context_text = payload.get("context_text")
+        if context_text is not None and not isinstance(context_text, str):
+            context_text = str(context_text)
         image_bytes = payload.get("image_bytes")
 
         if isinstance(image_bytes, str):
             image_bytes = b64decode(image_bytes)
         if not isinstance(image_bytes, (bytes, bytearray)) or not image_bytes:
-            raise RuntimeError("OCR image payload is missing")
+            raise RuntimeError("Image payload is missing")
 
         try:
-            ocr_text = await self.parse_image_bytes_with_ocr(bytes(image_bytes), file_name, content_type)
-            if not ocr_text.strip():
-                logger.warning("OCR produced no text filename=%s", file_name)
-                raise RuntimeError("No text detected in image")
-
-            logger.info("OCR starting LLM parse filename=%s model=%s", file_name, LLM_MODEL)
-            structured_recipe = await self.parse_recipe_with_llm(
-                OCR_PARSER_PROMPT,
-                ocr_text,
+            logger.info("Image import starting Responses API parse filename=%s", file_name)
+            structured_recipe = await self.recipe_import_client.parse_image(
+                bytes(image_bytes),
+                file_name,
+                content_type,
+                context_text,
             )
+            transcription = structured_recipe.transcription.strip()
+            if not transcription:
+                raise RuntimeError("Model returned no transcription for the image")
             logger.info(
-                "OCR LLM parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
+                "Image import parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
                 file_name,
                 len(structured_recipe.ingredients),
                 len(structured_recipe.instructions),
@@ -372,16 +171,18 @@ class GenerateService:
             )
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
-                raw_text=ocr_text,
+                raw_text=self._build_image_raw_text(context_text, transcription),
                 metadata={
-                    "source": JobSource.ocr.value,
+                    "source": JobSource.image.value,
                     "filename": file_name,
                     "content_type": content_type,
+                    "context_text": context_text,
+                    "transcription": transcription,
                 },
             )
         except Exception:
             logger.exception(
-                "OCR job failed filename=%s content_type=%s duration_ms=%.2f",
+                "Image import job failed filename=%s content_type=%s duration_ms=%.2f",
                 file_name,
                 content_type,
                 (time.perf_counter() - request_started) * 1000,
@@ -443,22 +244,15 @@ class GenerateService:
     async def retry_job(self, job_id: str, current_user: CurrentUser):
         return await self.job_service.retry_job(job_id, owner_id=current_user.id)
 
-    async def get_debug_recipe(self, recipe_id: int = 1):
-        if self.recipe_service is None:
-            raise HTTPException(status_code=500, detail="Recipe service is not available")
-
-        recipe = await self.recipe_service.get_recipe(recipe_id)
-        logger.debug("Debug recipe loaded recipe_id=%s", recipe_id)
-        logger.debug("Formatted recipe: %s", format_recipe_for_embedding(recipe))
-
-        return recipe
-
     async def process_job(self, source: JobSource, payload: dict[str, Any]) -> JobResult:
         if source == JobSource.text:
             return await self.run_text_job(payload)
-        if source == JobSource.ocr:
-            return await self.run_ocr_job(payload)
+        if source == JobSource.image:
+            return await self.run_image_job(payload)
         raise RuntimeError(f"Unsupported job source: {source}")
 
     async def run_scheduled_maintenance(self) -> int:
-        return 0
+        removed = await self.job_service.prune_finished_jobs(self.settings.job_retention_seconds)
+        if removed:
+            logger.info("Pruned completed jobs count=%s", removed)
+        return removed
