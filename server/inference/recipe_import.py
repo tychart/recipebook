@@ -32,50 +32,25 @@ Answer directly.
 </output>
 """.strip()
 
-IMAGE_TRANSCRIPTION_INSTRUCTIONS = """
-You read a recipe image and return a faithful plain-text transcription.
+IMAGE_IMPORT_INSTRUCTIONS = """
+You extract structured recipe data from a recipe image and optional user guidance.
 
 <task>
-Transcribe the visible recipe content from the image.
+Use the image as the main source and fill every response field.
 </task>
 
 <user_guidance>
 User guidance may clarify missing or ambiguous recipe details.
-Do not copy user guidance into the transcription.
-</user_guidance>
-
-<normalization>
-- Include recipe titles, ingredients, instructions, servings, notes, and other recipe text that is visibly present.
-- Keep source order when possible.
-- Exclude decorative branding, watermarks, and unrelated page text unless it appears to be part of the recipe itself.
-</normalization>
-
-<output>
-Return only the schema response.
-No markdown.
-No explanations.
-No reasoning.
-Answer directly.
-</output>
-""".strip()
-
-IMAGE_RECIPE_IMPORT_INSTRUCTIONS = """
-You extract structured recipe data from a transcribed recipe plus optional user guidance.
-
-<task>
-Use the transcribed recipe text as the main source and fill every response field.
-</task>
-
-<user_guidance>
-User guidance may clarify missing or ambiguous recipe details.
-Use it only to resolve ambiguity or fill clearly missing details.
-Prefer the transcribed recipe text when there is a conflict.
+Use it only to resolve ambiguity or add missing details.
+Do not treat user guidance as visible image text.
 </user_guidance>
 
 <normalization>
 - Defaults when absent: description="", notes="", servings=1, category="Main", tags=[].
 - Ingredients: amount is a float; convert fractions to decimals; use 0 when quantity is absent; unit is measurement only or "".
-- Instructions: one step per list item, in source order, without step numbers.
+- Instructions: one step per list item, in recipe order, without step numbers.
+- Transcription: include only visible recipe content from the image.
+- Ignore decorative branding, watermarks, and unrelated page text unless it is part of the recipe.
 </normalization>
 
 <output>
@@ -135,12 +110,10 @@ class TextRecipeImportExtraction(RecipeImportFields):
     pass
 
 
-class ImageRecipeTranscription(BaseModel):
+class ImageRecipeImportExtraction(RecipeImportFields):
     transcription: str = Field(
         description="Plain-text transcription of visible recipe content from the image only. Do not include user guidance."
     )
-
-    model_config = ConfigDict(extra="forbid")
 
 
 class RecipeImportExtraction(RecipeImportFields):
@@ -199,74 +172,49 @@ class RecipeImportClient:
         context_text: str | None = None,
     ) -> RecipeImportExtraction:
         data_url = self._build_data_url(image_bytes, filename, content_type)
-        normalized_context = context_text.strip() if context_text and context_text.strip() else None
-        transcription_result = await asyncio.to_thread(
-            self._parse,
-            IMAGE_TRANSCRIPTION_INSTRUCTIONS,
-            self._build_image_input_payload(data_url, normalized_context),
-            ImageRecipeTranscription,
-            max(self.timeout, _MIN_IMAGE_TIMEOUT_SECONDS),
-        )
-        transcription = transcription_result.transcription.strip()
-        if not transcription:
-            raise RuntimeError("LLM returned no transcription for the image")
 
-        parsed = await asyncio.to_thread(
-            self._parse,
-            IMAGE_RECIPE_IMPORT_INSTRUCTIONS,
-            self._build_image_recipe_text_payload(transcription, normalized_context),
-            TextRecipeImportExtraction,
-            self.timeout,
-        )
-        return RecipeImportExtraction(**parsed.model_dump(), transcription=transcription)
-
-    def _build_data_url(self, image_bytes: bytes, filename: str, content_type: str) -> str:
-        normalized_type = _normalize_image_content_type(filename, content_type)
-        encoded = base64.b64encode(image_bytes).decode("utf-8")
-        return f"data:{normalized_type};base64,{encoded}"
-
-    def _build_image_input_payload(self, data_url: str, context_text: str | None) -> list[dict[str, Any]]:
         content: list[dict[str, Any]] = [
             {
                 "type": "input_text",
-                "text": "<recipe_image>\nTranscribe the recipe from this image.\n</recipe_image>",
+                "text": "<recipe_image>\nExtract the recipe from this image.\n</recipe_image>",
             }
         ]
-        if context_text:
+
+        if context_text and context_text.strip():
             content.append(
                 {
                     "type": "input_text",
-                    "text": f"<user_guidance>\n{context_text}\n</user_guidance>",
+                    "text": f"<user_guidance>\n{context_text.strip()}\n</user_guidance>",
                 }
             )
+
         content.append(
             {
                 "type": "input_image",
                 "image_url": data_url,
             }
         )
-        return [{"role": "user", "content": content}]
 
-    def _build_image_recipe_text_payload(
-        self,
-        transcription: str,
-        context_text: str | None,
-    ) -> list[dict[str, Any]]:
-        parts = [f"<transcribed_recipe>\n{transcription}\n</transcribed_recipe>"]
-        if context_text:
-            parts.append(f"<user_guidance>\n{context_text}\n</user_guidance>")
-        combined_text = "\n\n".join(parts)
-        return [
+        input_payload = [
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": combined_text,
-                    }
-                ],
+                "content": content,
             }
         ]
+
+        parsed = await asyncio.to_thread(
+            self._parse,
+            IMAGE_IMPORT_INSTRUCTIONS,
+            input_payload,
+            ImageRecipeImportExtraction,
+            max(self.timeout, _MIN_IMAGE_TIMEOUT_SECONDS),
+        )
+        return RecipeImportExtraction(**parsed.model_dump())
+
+    def _build_data_url(self, image_bytes: bytes, filename: str, content_type: str) -> str:
+        normalized_type = _normalize_image_content_type(filename, content_type)
+        encoded = base64.b64encode(image_bytes).decode("utf-8")
+        return f"data:{normalized_type};base64,{encoded}"
 
     def _parse(
         self,

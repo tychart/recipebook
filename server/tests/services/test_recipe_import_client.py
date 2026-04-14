@@ -3,10 +3,9 @@ from types import SimpleNamespace
 
 from core.config import Settings
 from inference.recipe_import import (
-    IMAGE_RECIPE_IMPORT_INSTRUCTIONS,
-    IMAGE_TRANSCRIPTION_INSTRUCTIONS,
+    IMAGE_IMPORT_INSTRUCTIONS,
     TEXT_IMPORT_INSTRUCTIONS,
-    ImageRecipeTranscription,
+    ImageRecipeImportExtraction,
     ImportedIngredient,
     RecipeImportClient,
     TextRecipeImportExtraction,
@@ -14,18 +13,18 @@ from inference.recipe_import import (
 
 
 class FakeResponses:
-    def __init__(self, parsed_results):
-        self.parsed_results = list(parsed_results)
+    def __init__(self, parsed_result):
+        self.parsed_result = parsed_result
         self.calls: list[dict] = []
 
     def parse(self, **kwargs):
         self.calls.append(kwargs)
-        return SimpleNamespace(output_parsed=self.parsed_results.pop(0))
+        return SimpleNamespace(output_parsed=self.parsed_result)
 
 
 class FakeOpenAIClient:
-    def __init__(self, parsed_results):
-        self.responses = FakeResponses(parsed_results)
+    def __init__(self, parsed_result):
+        self.responses = FakeResponses(parsed_result)
 
 
 def make_settings() -> Settings:
@@ -57,18 +56,16 @@ def test_parse_text_uses_compact_schema_and_preserves_original_text(monkeypatch)
 
         monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
         fake_client = FakeOpenAIClient(
-            [
-                TextRecipeImportExtraction(
-                    name="Brownies",
-                    description="",
-                    notes="",
-                    servings=8,
-                    category="Dessert",
-                    tags=["sweet"],
-                    ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
-                    instructions=["Mix"],
-                )
-            ]
+            TextRecipeImportExtraction(
+                name="Brownies",
+                description="",
+                notes="",
+                servings=8,
+                category="Dessert",
+                tags=["sweet"],
+                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                instructions=["Mix"],
+            )
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
@@ -91,19 +88,17 @@ def test_parse_image_uses_visible_image_transcription_schema_and_guidance_block(
 
         monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
         fake_client = FakeOpenAIClient(
-            [
-                ImageRecipeTranscription(transcription="Brownies\n1 cup sugar\nMix"),
-                TextRecipeImportExtraction(
-                    name="Brownies",
-                    description="",
-                    notes="",
-                    servings=8,
-                    category="Dessert",
-                    tags=["sweet"],
-                    ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
-                    instructions=["Mix"],
-                ),
-            ]
+            ImageRecipeImportExtraction(
+                name="Brownies",
+                description="",
+                notes="",
+                servings=8,
+                category="Dessert",
+                tags=["sweet"],
+                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                instructions=["Mix"],
+                transcription="Brownies\n1 cup sugar\nMix",
+            )
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
@@ -116,46 +111,13 @@ def test_parse_image_uses_visible_image_transcription_schema_and_guidance_block(
 
         assert result.transcription == "Brownies\n1 cup sugar\nMix"
 
-        transcription_call = fake_client.responses.calls[0]
-        assert transcription_call["instructions"] == IMAGE_TRANSCRIPTION_INSTRUCTIONS
-        assert transcription_call["text_format"] is ImageRecipeTranscription
-        assert transcription_call["timeout"] == 300.0
-        assert (
-            transcription_call["input"][0]["content"][0]["text"]
-            == "<recipe_image>\nTranscribe the recipe from this image.\n</recipe_image>"
-        )
-        assert transcription_call["input"][0]["content"][1]["text"] == "<user_guidance>\nUse the title Cosmic Brownies\n</user_guidance>"
-        assert transcription_call["input"][0]["content"][2]["type"] == "input_image"
-        assert transcription_call["input"][0]["content"][2]["image_url"].startswith("data:image/png;base64,")
-
-        recipe_call = fake_client.responses.calls[1]
-        assert recipe_call["instructions"] == IMAGE_RECIPE_IMPORT_INSTRUCTIONS
-        assert recipe_call["text_format"] is TextRecipeImportExtraction
-        assert recipe_call["timeout"] == 60.0
-        assert recipe_call["input"][0]["content"][0]["text"] == (
-            "<transcribed_recipe>\nBrownies\n1 cup sugar\nMix\n</transcribed_recipe>\n\n"
-            "<user_guidance>\nUse the title Cosmic Brownies\n</user_guidance>"
-        )
-
-    asyncio.run(run())
-
-
-def test_parse_image_raises_when_transcription_is_blank(monkeypatch):
-    async def run():
-        async def immediate_to_thread(func, *args):
-            return func(*args)
-
-        monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
-        fake_client = FakeOpenAIClient([ImageRecipeTranscription(transcription="   ")])
-        client = RecipeImportClient(make_settings(), client=fake_client)
-
-        try:
-            await client.parse_image(b"png-bytes", "brownies.png", "image/png")
-        except RuntimeError as exc:
-            assert str(exc) == "LLM returned no transcription for the image"
-            assert len(fake_client.responses.calls) == 1
-            return
-
-        raise AssertionError("Expected RuntimeError for blank image transcription")
+        call = fake_client.responses.calls[0]
+        assert call["instructions"] == IMAGE_IMPORT_INSTRUCTIONS
+        assert call["text_format"] is ImageRecipeImportExtraction
+        assert call["timeout"] == 300.0
+        assert call["input"][0]["content"][0]["text"] == "<recipe_image>\nExtract the recipe from this image.\n</recipe_image>"
+        assert call["input"][0]["content"][1]["text"] == "<user_guidance>\nUse the title Cosmic Brownies\n</user_guidance>"
+        assert call["input"][0]["content"][2]["type"] == "input_image"
+        assert call["input"][0]["content"][2]["image_url"].startswith("data:image/png;base64,")
 
     asyncio.run(run())
