@@ -21,7 +21,6 @@ class Settings:
     s3_secret: str | None
     s3_bucket: str
     s3_region: str
-    llm_provider: str
     llm_base_url: str | None
     llm_api_key: str | None
     llm_model: str | None
@@ -72,7 +71,6 @@ def get_settings() -> Settings:
         s3_secret=os.getenv("S3_SECRET"),
         s3_bucket=os.getenv("S3_BUCKET", "recipe-images"),
         s3_region=os.getenv("S3_REGION", "us-east-1"),
-        llm_provider=os.getenv("LLM_PROVIDER", "").strip().lower(),
         llm_base_url=os.getenv("LLM_BASE_URL"),
         llm_api_key=os.getenv("LLM_API_KEY"),
         llm_model=os.getenv("LLM_MODEL"),

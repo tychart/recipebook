@@ -19,8 +19,10 @@ services:
     container_name: recipebook-server
     environment:
       DATABASE_URL: postgresql://${PG_USER}:${PG_PASSWORD}@recipebook-db:5432/recipebook
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
       LLM_MODEL: ${LLM_MODEL}
+      LLM_REQUEST_TIMEOUT: ${LLM_REQUEST_TIMEOUT}
       EMBEDDING_MODEL: ${EMBEDDING_MODEL}
       EMBEDDING_VECTOR_SIZE: ${EMBEDDING_VECTOR_SIZE}
       LOG_LEVEL: ${LOG_LEVEL}

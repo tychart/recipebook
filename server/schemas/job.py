@@ -14,17 +14,11 @@ class JobStatus(str, Enum):
 
 class JobSource(str, Enum):
     text = "text"
-    ocr = "ocr"
+    image = "image"
 
 
 class GenerateTextRequest(BaseModel):
     text: str
-
-
-class GenerateOcrRequest(BaseModel):
-    image_url: str | None = None
-    image_base64: str | None = None
-    filename: str | None = None
 
 
 class JobResult(BaseModel):

@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from core.logging_config import configure_logging
 from db.connection import close_pool, init_pool
+from inference.recipe_import import create_recipe_import_client
 from routers import recipes, auth, cookbooks, generate, storage
-from services.generate_service import GenerateService, create_llm_provider
+from services.generate_service import GenerateService
 from services.job_service import JobManager, JobService
 from services.storage_service import get_storage_service
 from workers.job_worker import start_job_workers, stop_job_workers
@@ -29,15 +30,15 @@ async def lifespan(app: FastAPI):
         await init_pool()
 
         job_manager = JobManager()
-        generation_provider = create_llm_provider(settings)
+        recipe_import_client = create_recipe_import_client(settings)
         background_generate_service = GenerateService(
             job_service=JobService(job_manager),
-            provider=generation_provider,
+            recipe_import_client=recipe_import_client,
             settings=settings,
         )
 
         app.state.job_manager = job_manager
-        app.state.generation_provider = generation_provider
+        app.state.recipe_import_client = recipe_import_client
 
         worker_tasks = start_job_workers(
             job_manager,

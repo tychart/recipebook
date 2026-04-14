@@ -4,20 +4,47 @@ from unittest.mock import AsyncMock
 from fastapi import HTTPException
 
 from core.config import Settings
+from inference.recipe_import import ImportedIngredient, RecipeImportExtraction
 from schemas.auth import CurrentUser
 from schemas.generate import GenerateSearchRequest
 from schemas.job import GenerateTextRequest, JobSource, JobStatus
-from services.generate_service import GenerateService, NoopLLMProvider
+from services.generate_service import GenerateService
 from services.job_service import JobManager, JobService
 from workers.job_worker import worker_loop
 
 
-class FakeProvider:
-    async def process_text(self, text: str):
-        return {"draft": {"name": text}}
+class FakeRecipeImportClient:
+    async def parse_text(self, text: str) -> RecipeImportExtraction:
+        return RecipeImportExtraction(
+            name="Brownies",
+            description="",
+            notes="",
+            servings=8,
+            category="Dessert",
+            tags=["sweet"],
+            ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+            instructions=["Mix"],
+            transcription=text,
+        )
 
-    async def process_ocr(self, payload):
-        return {"draft": {"source": payload.get("image_url")}}
+    async def parse_image(
+        self,
+        image_bytes: bytes,
+        filename: str,
+        content_type: str,
+        context_text: str | None = None,
+    ) -> RecipeImportExtraction:
+        return RecipeImportExtraction(
+            name="Brownies",
+            description="",
+            notes="",
+            servings=8,
+            category="Dessert",
+            tags=["sweet"],
+            ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+            instructions=["Mix"],
+            transcription="Brownies\n1 cup sugar\nMix",
+        )
 
 
 def make_settings() -> Settings:
@@ -30,10 +57,9 @@ def make_settings() -> Settings:
         s3_secret=None,
         s3_bucket="recipe-images",
         s3_region="us-east-1",
-        llm_provider="",
-        llm_base_url=None,
-        llm_api_key=None,
-        llm_model=None,
+        llm_base_url="http://localhost:11434/v1",
+        llm_api_key="ollama",
+        llm_model="qwen3-vl:8b",
         embedding_model=None,
         embedding_vector_size=1536,
         llm_request_timeout=60.0,
@@ -43,24 +69,26 @@ def make_settings() -> Settings:
     )
 
 
-def test_generate_service_enqueues_text_job():
+def test_generate_service_enqueues_text_job_without_stripping_original_text():
     async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
         class User:
             id = 7
 
-        job = await service.enqueue_text_job(GenerateTextRequest(text="Brownies"), User())
+        job = await service.enqueue_text_job(GenerateTextRequest(text="  Brownies  "), User())
 
         assert job.source == JobSource.text
         assert job.status == JobStatus.queued
+        stored = await service.job_service.get_job(job.job_id, owner_id=7)
+        assert stored.result is None
 
     asyncio.run(run())
 
 
-def test_generate_service_enqueues_ocr_job():
+def test_generate_service_enqueues_image_job_with_optional_context():
     async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
         class User:
             id = 7
@@ -75,9 +103,9 @@ def test_generate_service_enqueues_ocr_job():
             },
         )()
 
-        job = await service.enqueue_ocr_upload(upload, User())
+        job = await service.enqueue_image_upload(upload, User(), "Use the title Cosmic Brownies")
 
-        assert job.source == JobSource.ocr
+        assert job.source == JobSource.image
         assert job.status == JobStatus.queued
 
     asyncio.run(run())
@@ -87,7 +115,7 @@ def test_worker_marks_job_failed_after_automatic_retry(monkeypatch):
     async def run():
         manager = JobManager()
         job_service = JobService(manager)
-        service = GenerateService(job_service, NoopLLMProvider(), make_settings())
+        service = GenerateService(job_service, FakeRecipeImportClient(), make_settings())
         job = await job_service.enqueue(JobSource.text, {"text": "Brownies"})
         monkeypatch.setattr(
             service,
@@ -109,9 +137,9 @@ def test_worker_marks_job_failed_after_automatic_retry(monkeypatch):
     asyncio.run(run())
 
 
-def test_run_text_job_returns_400_when_text_is_blank():
+def test_run_text_job_returns_error_when_text_is_blank():
     async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
         try:
             await service.run_text_job({"text": "   "})
@@ -124,39 +152,99 @@ def test_run_text_job_returns_400_when_text_is_blank():
     asyncio.run(run())
 
 
-def test_run_text_job_returns_parsed_recipe(monkeypatch):
+def test_run_text_job_preserves_exact_submitted_text():
     async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
-        monkeypatch.setattr(
-            service,
-            "parse_recipe_with_llm",
-            AsyncMock(
-                return_value=type(
-                    "RecipeExtractionStub",
-                    (),
-                    {
-                        "ingredients": [type("IngredientStub", (), {"name": "sugar", "amount": 1, "unit": "cup"})()],
-                        "instructions": ["Mix"],
-                        "recipe_name": "Brownies",
-                        "recipe_author": "Grandma",
-                    },
-                )()
-            ),
-        )
-
-        response = await service.run_text_job({"text": "Brownies\n1 cup sugar\nMix"})
+        response = await service.run_text_job({"text": "  Brownies\n1 cup sugar\nMix  "})
 
         assert response.draft["name"] == "Brownies"
-        assert response.draft["notes"] == "Imported author: Grandma"
-        assert response.raw_text == "Brownies\n1 cup sugar\nMix"
+        assert response.draft["category"] == "Dessert"
+        assert response.raw_text == "  Brownies\n1 cup sugar\nMix  "
+        assert response.metadata == {
+            "source": "text",
+            "transcription": "  Brownies\n1 cup sugar\nMix  ",
+        }
+
+    asyncio.run(run())
+
+
+def test_run_image_job_returns_combined_raw_text_and_metadata():
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
+
+        response = await service.run_image_job(
+            {
+                "image_bytes": b"png-bytes",
+                "filename": "brownies.png",
+                "content_type": "image/png",
+                "context_text": "Title should be Cosmic Brownies",
+            }
+        )
+
+        assert response.draft["name"] == "Brownies"
+        assert response.raw_text == (
+            "User context:\nTitle should be Cosmic Brownies\n\n"
+            "Image transcription:\nBrownies\n1 cup sugar\nMix"
+        )
+        assert response.metadata == {
+            "source": "image",
+            "filename": "brownies.png",
+            "content_type": "image/png",
+            "context_text": "Title should be Cosmic Brownies",
+            "transcription": "Brownies\n1 cup sugar\nMix",
+        }
+
+    asyncio.run(run())
+
+
+def test_run_image_job_requires_image_payload():
+    async def run():
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
+
+        try:
+            await service.run_image_job({"image_bytes": b""})
+        except RuntimeError as exc:
+            assert str(exc) == "Image payload is missing"
+            return
+
+        raise AssertionError("Expected RuntimeError for missing image payload")
+
+    asyncio.run(run())
+
+
+def test_run_image_job_requires_transcription():
+    async def run():
+        client = FakeRecipeImportClient()
+        client.parse_image = AsyncMock(
+            return_value=RecipeImportExtraction(
+                name="Brownies",
+                description="",
+                notes="",
+                servings=8,
+                category="Dessert",
+                tags=[],
+                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                instructions=["Mix"],
+                transcription="   ",
+            )
+        )
+        service = GenerateService(JobService(JobManager()), client, make_settings())
+
+        try:
+            await service.run_image_job({"image_bytes": b"png-bytes"})
+        except RuntimeError as exc:
+            assert str(exc) == "Model returned no transcription for the image"
+            return
+
+        raise AssertionError("Expected RuntimeError for blank transcription")
 
     asyncio.run(run())
 
 
 def test_process_search_query_requires_non_blank_query():
     async def run():
-        service = GenerateService(JobService(JobManager()), FakeProvider(), make_settings())
+        service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
         current_user = CurrentUser(id=7, username="chef", email="chef@example.com")
 
         try:
@@ -212,7 +300,7 @@ def test_process_search_query_embeds_then_searches(monkeypatch):
         )()
         service = GenerateService(
             JobService(JobManager()),
-            FakeProvider(),
+            FakeRecipeImportClient(),
             make_settings(),
             fake_recipe_service,
         )
@@ -247,7 +335,7 @@ def test_reembed_user_recipes_delegates_to_recipe_service():
         )()
         service = GenerateService(
             JobService(JobManager()),
-            FakeProvider(),
+            FakeRecipeImportClient(),
             make_settings(),
             fake_recipe_service,
         )
@@ -257,5 +345,51 @@ def test_reembed_user_recipes_delegates_to_recipe_service():
 
         fake_recipe_service.reembed_recipes_for_user.assert_awaited_once_with(current_user)
         assert result == {"processed_count": 4, "updated_count": 4}
+
+    asyncio.run(run())
+
+
+def test_run_scheduled_maintenance_prunes_finished_jobs():
+    async def run():
+        manager = JobManager()
+        job_service = JobService(manager)
+        settings = make_settings()
+        settings = Settings(
+            **{
+                **settings.__dict__,
+                "job_retention_seconds": 0,
+            }
+        )
+        service = GenerateService(job_service, FakeRecipeImportClient(), settings)
+
+        job = await job_service.enqueue(JobSource.text, {"text": "hello"})
+        await manager.mark_succeeded(job.job_id, {"draft": {}, "raw_text": "hello"}, "done")
+
+        removed = await service.run_scheduled_maintenance()
+
+        assert removed == 1
+
+    asyncio.run(run())
+
+
+def test_run_image_job_surfaces_timeout_with_clear_message():
+    async def run():
+        client = FakeRecipeImportClient()
+        client.parse_image = AsyncMock(side_effect=RuntimeError("LLM request timed out after 300s."))
+        service = GenerateService(JobService(JobManager()), client, make_settings())
+
+        try:
+            await service.run_image_job(
+                {
+                    "image_bytes": b"png-bytes",
+                    "filename": "brownies.png",
+                    "content_type": "image/png",
+                }
+            )
+        except RuntimeError as exc:
+            assert "timed out" in str(exc)
+            return
+
+        raise AssertionError("Expected RuntimeError for timed-out image import")
 
     asyncio.run(run())

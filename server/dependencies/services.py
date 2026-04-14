@@ -2,6 +2,7 @@ from fastapi import Depends, Request
 
 from core.config import get_settings
 from db.connection import get_db
+from inference.recipe_import import RecipeImportClient
 from repositories.auth_repo import AuthRepository
 from repositories.cookbook_repo import CookbookRepository
 from repositories.recipe_repo import RecipeRepository
@@ -50,11 +51,11 @@ def get_job_service(request: Request) -> JobService:
     return JobService(get_job_manager(request))
 
 
-def get_generation_provider(request: Request):
-    provider = getattr(request.app.state, "generation_provider", None)
-    if provider is None:
-        raise RuntimeError("Generation provider has not been initialized")
-    return provider
+def get_recipe_import_client(request: Request) -> RecipeImportClient:
+    recipe_import_client = getattr(request.app.state, "recipe_import_client", None)
+    if recipe_import_client is None:
+        raise RuntimeError("Recipe import client has not been initialized")
+    return recipe_import_client
 
 
 async def get_generate_service(
@@ -63,7 +64,7 @@ async def get_generate_service(
 ) -> GenerateService:
     return GenerateService(
         job_service=JobService(get_job_manager(request)),
-        provider=get_generation_provider(request),
+        recipe_import_client=get_recipe_import_client(request),
         settings=get_settings(),
         recipe_service=recipe_service,
     )

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from dependencies.auth import get_current_user_dep
 from dependencies.services import get_generate_service
@@ -12,10 +12,6 @@ router = APIRouter(
     tags=["generate"],
 )
 
-@router.post("/test")
-async def do_stuff(generate_service: GenerateService = Depends(get_generate_service)):
-    return await generate_service.get_debug_recipe(1)
-
 @router.post("/text", status_code=202)
 async def generate_text(
     body: GenerateTextRequest,
@@ -25,13 +21,14 @@ async def generate_text(
     return await generate_service.enqueue_text_job(body, current_user)
 
 
-@router.post("/ocr", status_code=202)
-async def generate_ocr(
+@router.post("/image", status_code=202)
+async def generate_image(
     image: UploadFile = File(...),
+    context_text: str | None = Form(None),
     generate_service: GenerateService = Depends(get_generate_service),
     current_user: CurrentUser = Depends(get_current_user_dep),
 ):
-    return await generate_service.enqueue_ocr_upload(image, current_user)
+    return await generate_service.enqueue_image_upload(image, current_user, context_text)
 
 
 @router.post("/search")

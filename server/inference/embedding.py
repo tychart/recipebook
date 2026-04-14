@@ -1,21 +1,8 @@
 import asyncio
-import os
 
-from openai import OpenAI
-
+from core.config import get_settings
+from inference.openai_client import get_openai_client
 from schemas.recipe import RecipeMetadata
-
-OLLAMA_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "ollama")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL")
-
-if OPENAI_API_KEY == "ollama":
-    embedding_client = OpenAI(
-        base_url=OLLAMA_URL,
-        api_key="ollama",
-    )
-else:
-    embedding_client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 def format_recipe_for_embedding(recipe: RecipeMetadata) -> str:
@@ -51,18 +38,14 @@ def format_recipe_for_embedding(recipe: RecipeMetadata) -> str:
 
 
 def get_embedding_model() -> str:
-    model = EMBEDDING_MODEL
+    model = get_settings().embedding_model
     if model is None or not model.strip():
         raise RuntimeError("EMBEDDING_MODEL is not configured")
     return model.strip()
 
 
 def get_embedding_vector_size() -> int:
-    raw = os.getenv("EMBEDDING_VECTOR_SIZE", "1536").strip()
-    try:
-        size = int(raw)
-    except ValueError as exc:
-        raise RuntimeError("EMBEDDING_VECTOR_SIZE must be an integer") from exc
+    size = get_settings().embedding_vector_size
     if size <= 0:
         raise RuntimeError("EMBEDDING_VECTOR_SIZE must be greater than zero")
     return size
@@ -78,7 +61,7 @@ def _validate_embedding(embedding: list[float]) -> list[float]:
 
 
 def _embed(model: str, text: str) -> list[float]:
-    response = embedding_client.embeddings.create(model=model, input=text)
+    response = get_openai_client().embeddings.create(model=model, input=text)
     if not response.data:
         raise RuntimeError("Embedding provider returned no embeddings")
     return _validate_embedding([float(value) for value in response.data[0].embedding])

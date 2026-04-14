@@ -67,11 +67,11 @@ class FakeGenerateService:
             "error": None,
         }
 
-    async def enqueue_ocr_upload(self, image, current_user):
+    async def enqueue_image_upload(self, image, current_user, context_text=None):
         return {
-            "job_id": "job-ocr-1",
+            "job_id": "job-image-1",
             "status": "queued",
-            "source": "ocr",
+            "source": "image",
             "created_at": "2026-01-01T00:00:00Z",
             "started_at": None,
             "completed_at": None,
@@ -299,7 +299,7 @@ def test_recipe_edit_route_keeps_existing_path_and_response_shape():
     asyncio.run(run())
 
 
-def test_generate_ocr_route_queues_job():
+def test_generate_image_route_queues_job():
     async def run():
         app = FastAPI()
         app.include_router(generate_router.router)
@@ -322,17 +322,18 @@ def test_generate_ocr_route_queues_job():
             base_url="http://testserver",
         ) as client:
             response = await client.post(
-                "/api/generate/ocr",
+                "/api/generate/image",
                 files={
                     "image": ("brownies.png", b"png-bytes", "image/png"),
+                    "context_text": (None, "Use the title Cosmic Brownies"),
                 },
             )
 
         assert response.status_code == 202
         assert response.json() == {
-            "job_id": "job-ocr-1",
+            "job_id": "job-image-1",
             "status": "queued",
-            "source": "ocr",
+            "source": "image",
             "created_at": "2026-01-01T00:00:00Z",
             "started_at": None,
             "completed_at": None,

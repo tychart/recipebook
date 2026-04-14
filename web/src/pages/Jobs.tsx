@@ -21,7 +21,7 @@ function statusClasses(status: JobStatus): string {
 }
 
 function sourceLabel(source: JobSource): string {
-  return source === "ocr" ? "Image import" : "Text import";
+  return source === "image" ? "Image import" : "Text import";
 }
 
 export default function Jobs() {
@@ -147,7 +147,7 @@ export default function Jobs() {
             </p>
             <h1 className="mt-1 text-3xl font-semibold text-stone-900">Jobs</h1>
             <p className="mt-2 text-sm text-stone-500">
-              OCR and text imports run here in the background.
+              Image and text imports run here in the background.
             </p>
           </div>
 
