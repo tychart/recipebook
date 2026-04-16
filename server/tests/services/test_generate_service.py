@@ -26,10 +26,11 @@ class FakeRecipeImportClient:
                 ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
                 instructions=["Mix"],
             ),
-            intermediate_markdown="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            first_stage_output="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
             metadata={
                 "source": "text",
                 "original_text": text,
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
             },
         )
 
@@ -51,13 +52,13 @@ class FakeRecipeImportClient:
                 ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
                 instructions=["Mix"],
             ),
-            intermediate_markdown="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            first_stage_output="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
             metadata={
                 "source": "image",
                 "filename": filename,
                 "content_type": content_type,
                 "context_text": context_text,
-                "image_transcription": "Brownies\n1 cup sugar\nMix",
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
             },
         )
 
@@ -167,6 +168,7 @@ def test_worker_persists_partial_result_after_stage_two_failure(monkeypatch):
                 {
                     "source": "text",
                     "original_text": "Brownies",
+                    "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
                 },
             ),
         )
@@ -186,8 +188,9 @@ def test_worker_persists_partial_result_after_stage_two_failure(monkeypatch):
         assert stored.result.metadata == {
             "source": "text",
             "original_text": "Brownies",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
         }
-        assert any("captured intermediate recipe markdown" in log for log in stored.logs)
+        assert any("captured first-stage output" in log for log in stored.logs)
 
     asyncio.run(run())
 
@@ -207,7 +210,7 @@ def test_run_text_job_returns_error_when_text_is_blank():
     asyncio.run(run())
 
 
-def test_run_text_job_returns_intermediate_markdown_and_original_text_metadata():
+def test_run_text_job_returns_first_stage_output_and_original_text_metadata():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
@@ -219,12 +222,13 @@ def test_run_text_job_returns_intermediate_markdown_and_original_text_metadata()
         assert response.metadata == {
             "source": "text",
             "original_text": "  Brownies\n1 cup sugar\nMix  ",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
         }
 
     asyncio.run(run())
 
 
-def test_run_image_job_returns_intermediate_markdown_and_metadata():
+def test_run_image_job_returns_first_stage_output_and_metadata():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
@@ -244,7 +248,7 @@ def test_run_image_job_returns_intermediate_markdown_and_metadata():
             "filename": "brownies.png",
             "content_type": "image/png",
             "context_text": "Title should be Cosmic Brownies",
-            "image_transcription": "Brownies\n1 cup sugar\nMix",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
         }
 
     asyncio.run(run())
@@ -275,6 +279,7 @@ def test_run_text_job_wraps_stage_two_failure_with_partial_result():
                 {
                     "source": "text",
                     "original_text": "Brownies",
+                    "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
                 },
             )
         )
@@ -289,6 +294,7 @@ def test_run_text_job_wraps_stage_two_failure_with_partial_result():
             assert exc.partial_result.metadata == {
                 "source": "text",
                 "original_text": "Brownies",
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
             }
             return
 

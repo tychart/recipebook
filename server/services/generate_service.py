@@ -83,10 +83,10 @@ class GenerateService:
             "tags": [],
         }
 
-    def _build_partial_failure_result(self, intermediate_markdown: str, metadata: dict[str, Any]) -> JobResult:
+    def _build_partial_failure_result(self, first_stage_output: str, metadata: dict[str, Any]) -> JobResult:
         return JobResult(
             draft=self._empty_draft(),
-            raw_text=intermediate_markdown,
+            raw_text=first_stage_output,
             metadata=metadata,
         )
 
@@ -141,7 +141,7 @@ class GenerateService:
             )
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
-                raw_text=import_result.intermediate_markdown,
+                raw_text=import_result.first_stage_output,
                 metadata=import_result.metadata,
             )
         except RecipeImportStageError as exc:
@@ -153,7 +153,7 @@ class GenerateService:
             raise JobProcessingError(
                 str(exc),
                 partial_result=self._build_partial_failure_result(
-                    exc.intermediate_markdown,
+                    exc.first_stage_output,
                     exc.metadata,
                 ),
             ) from exc
@@ -197,7 +197,7 @@ class GenerateService:
             )
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
-                raw_text=import_result.intermediate_markdown,
+                raw_text=import_result.first_stage_output,
                 metadata=import_result.metadata,
             )
         except RecipeImportStageError as exc:
@@ -210,7 +210,7 @@ class GenerateService:
             raise JobProcessingError(
                 str(exc),
                 partial_result=self._build_partial_failure_result(
-                    exc.intermediate_markdown,
+                    exc.first_stage_output,
                     exc.metadata,
                 ),
             ) from exc

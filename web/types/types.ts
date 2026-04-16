@@ -144,7 +144,7 @@ export interface JobSummary {
 
 export interface JobResult {
   draft: GeneratedRecipeDraft;
-  raw_text: string; // Intermediate recipe markdown shown to the user for debugging
+  raw_text: string; // Full first-stage agent output shown to the user for debugging
   metadata?: Record<string, unknown> | null;
 }
 

@@ -51,7 +51,9 @@ Title: Brownies
 </few_shot>
 
 <output>
-Return only the markdown field content.
+Return only a rough, human-readable recipe extraction.
+Prefer markdown-style sections when helpful, but stay flexible if the source is messy.
+It is okay to include extra context that helps a later formatter understand the recipe.
 No explanations.
 No reasoning.
 </output>
@@ -76,9 +78,9 @@ Prefer this loose canonical markdown shape when possible:
   
 # Recipe
 Title: ...
-Description: ...
-Servings: ...
-Category: ...
+Description: ... (Okay if empty or blank or absent)
+Servings: ... (Okay if empty or blank or absent)
+Category: ... (Okay if empty or blank or absent)
 Tags: tag1, tag2
   
 ## Ingredients
@@ -104,17 +106,19 @@ If the image shows a title, ingredients, and steps, the markdown should group th
 </few_shot>
   
 <output>
-Return the full recipe text in a rough markdown format for another agent to read and understand.
-Also return a full transcription of any relevant text to the recipe that would be useful for the later LLM
+Keep the reasoning to a minimum, speed is more important than 100 percent accuracy every time
+Return a rough, human-readable recipe extraction for another agent to read and understand.
+Prefer markdown-style sections when helpful, but keep the format lax and easy to produce.
+It is okay to include an additional transcription-style section if that helps preserve visible recipe text.
 </output>
 """.strip()
 
 
 STRUCTURED_RECIPE_INSTRUCTIONS = """
-You convert clean recipe markdown into strict JSON structured recipe data.
+You convert first-stage recipe extraction text into strict JSON structured recipe data.
 
 <task>
-Read the recipe markdown and fill every response field using the context provided.
+Read the first-stage recipe extraction text and fill every response field using only the context provided.
 </task>
 
 <normalization>

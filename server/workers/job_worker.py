@@ -20,7 +20,7 @@ async def worker_loop(manager: JobManager, generate_service: GenerateService, wo
             if partial_result is not None and partial_result.raw_text.strip():
                 await manager.append_log(
                     job_id,
-                    f"{worker_name}: captured intermediate recipe markdown before failure\n{partial_result.raw_text}",
+                    f"{worker_name}: captured first-stage output before failure\n{partial_result.raw_text}",
                 )
             should_retry = await manager.schedule_automatic_retry(
                 job_id,

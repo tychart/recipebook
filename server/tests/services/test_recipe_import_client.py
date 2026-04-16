@@ -1,14 +1,13 @@
 import asyncio
+import logging
 from types import SimpleNamespace
 
 from core.config import Settings
 from inference.recipe_import import (
-    ImageRecipeMarkdownExtraction,
     ImportedIngredient,
     RecipeImportClient,
     RecipeImportExtraction,
     RecipeImportStageError,
-    RecipeMarkdownExtraction,
 )
 from inference.recipe_import_prompts import (
     IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS,
@@ -18,21 +17,30 @@ from inference.recipe_import_prompts import (
 
 
 class FakeResponses:
-    def __init__(self, parsed_results):
-        self.parsed_results = list(parsed_results)
-        self.calls: list[dict] = []
+    def __init__(self, create_results=None, parse_results=None):
+        self.create_results = list(create_results or [])
+        self.parse_results = list(parse_results or [])
+        self.create_calls: list[dict] = []
+        self.parse_calls: list[dict] = []
 
-    def parse(self, **kwargs):
-        self.calls.append(kwargs)
-        parsed_result = self.parsed_results.pop(0)
-        if isinstance(parsed_result, Exception):
-            raise parsed_result
-        return SimpleNamespace(output_parsed=parsed_result)
+    async def create(self, **kwargs):
+        self.create_calls.append(kwargs)
+        result = self.create_results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return SimpleNamespace(output_text=result)
+
+    async def parse(self, **kwargs):
+        self.parse_calls.append(kwargs)
+        result = self.parse_results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return SimpleNamespace(output_parsed=result)
 
 
 class FakeOpenAIClient:
-    def __init__(self, parsed_results):
-        self.responses = FakeResponses(parsed_results)
+    def __init__(self, create_results=None, parse_results=None):
+        self.responses = FakeResponses(create_results=create_results, parse_results=parse_results)
 
 
 def make_settings() -> Settings:
@@ -59,17 +67,14 @@ def make_settings() -> Settings:
     )
 
 
-def test_parse_text_uses_text_extractor_then_structure_model(monkeypatch):
+def test_parse_text_uses_responses_create_then_parse():
     async def run():
-        async def immediate_to_thread(func, *args):
-            return func(*args)
-
-        monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
+        first_stage_output = (
+            "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
+        )
         fake_client = FakeOpenAIClient(
-            [
-                RecipeMarkdownExtraction(
-                    markdown="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
-                ),
+            create_results=[first_stage_output],
+            parse_results=[
                 RecipeImportExtraction(
                     name="Brownies",
                     description="",
@@ -79,50 +84,56 @@ def test_parse_text_uses_text_extractor_then_structure_model(monkeypatch):
                     tags=["sweet"],
                     ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
                     instructions=["Mix"],
-                ),
-            ]
+                )
+            ],
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
         result = await client.parse_text("  Brownies\n1 cup sugar\nMix  ")
 
-        assert result.intermediate_markdown.startswith("# Recipe")
+        assert result.first_stage_output == first_stage_output
         assert result.metadata == {
             "source": "text",
             "original_text": "  Brownies\n1 cup sugar\nMix  ",
+            "first_stage_output": first_stage_output,
         }
         assert result.recipe.name == "Brownies"
 
-        extract_call, structure_call = fake_client.responses.calls
-        assert extract_call["model"] == "qwen3:4b"
-        assert extract_call["instructions"] == TEXT_MARKDOWN_EXTRACTION_INSTRUCTIONS
-        assert extract_call["text_format"] is RecipeMarkdownExtraction
-        assert extract_call["input"][0]["content"][0]["text"] == "<recipe_text>\n  Brownies\n1 cup sugar\nMix  \n</recipe_text>"
+        create_call = fake_client.responses.create_calls[0]
+        assert create_call["model"] == "qwen3:4b"
+        assert create_call["input"][0] == {
+            "role": "system",
+            "content": TEXT_MARKDOWN_EXTRACTION_INSTRUCTIONS,
+        }
+        assert create_call["input"][1] == {
+            "role": "user",
+            "content": "<recipe_text>\n  Brownies\n1 cup sugar\nMix  \n</recipe_text>",
+        }
 
-        assert structure_call["model"] == "qwen3:4b"
-        assert structure_call["text_format"] is RecipeImportExtraction
-        assert structure_call["input"][0] == {
+        parse_call = fake_client.responses.parse_calls[0]
+        assert parse_call["model"] == "qwen3:4b"
+        assert parse_call["text_format"] is RecipeImportExtraction
+        assert parse_call["input"][0] == {
             "role": "system",
             "content": STRUCTURED_RECIPE_INSTRUCTIONS,
         }
-        assert structure_call["input"][1]["role"] == "user"
-        assert structure_call["input"][1]["content"].startswith("<recipe_markdown>\n# Recipe")
+        assert parse_call["input"][1] == {
+            "role": "user",
+            "content": f"<first_stage_output>\n{first_stage_output}\n</first_stage_output>",
+        }
 
     asyncio.run(run())
 
 
-def test_parse_image_uses_vision_model_then_structure_model(monkeypatch):
+def test_parse_image_uses_unstructured_stage_one_output_and_minimal_metadata():
     async def run():
-        async def immediate_to_thread(func, *args):
-            return func(*args)
-
-        monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
+        first_stage_output = (
+            "# Recipe\nTitle: Cosmic Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
+            "\n\n## Transcription\nBrownies\n1 cup sugar\nMix"
+        )
         fake_client = FakeOpenAIClient(
-            [
-                ImageRecipeMarkdownExtraction(
-                    markdown="# Recipe\nTitle: Cosmic Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
-                    transcription="Brownies\n1 cup sugar\nMix",
-                ),
+            create_results=[first_stage_output],
+            parse_results=[
                 RecipeImportExtraction(
                     name="Cosmic Brownies",
                     description="",
@@ -132,8 +143,8 @@ def test_parse_image_uses_vision_model_then_structure_model(monkeypatch):
                     tags=["sweet"],
                     ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
                     instructions=["Mix"],
-                ),
-            ]
+                )
+            ],
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
@@ -144,52 +155,44 @@ def test_parse_image_uses_vision_model_then_structure_model(monkeypatch):
             "Use the title Cosmic Brownies",
         )
 
-        assert result.intermediate_markdown.startswith("# Recipe")
+        assert result.first_stage_output == first_stage_output
         assert result.metadata == {
             "source": "image",
             "filename": "brownies.png",
             "content_type": "image/png",
             "context_text": "Use the title Cosmic Brownies",
-            "image_transcription": "Brownies\n1 cup sugar\nMix",
+            "first_stage_output": first_stage_output,
         }
         assert result.recipe.name == "Cosmic Brownies"
 
-        extract_call, structure_call = fake_client.responses.calls
-        assert extract_call["model"] == "qwen3-vl:4b"
-        assert extract_call["instructions"] == IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS
-        assert extract_call["text_format"] is ImageRecipeMarkdownExtraction
-        assert extract_call["timeout"] == 300.0
-        assert extract_call["input"][0]["content"][0]["text"] == "<recipe_image>\nExtract the recipe from this image.\n</recipe_image>"
-        assert extract_call["input"][0]["content"][1]["text"] == "<user_guidance>\nUse the title Cosmic Brownies\n</user_guidance>"
-        assert extract_call["input"][0]["content"][2]["type"] == "input_image"
-        assert extract_call["input"][0]["content"][2]["image_url"].startswith("data:image/png;base64,")
-
-        assert structure_call["model"] == "qwen3:4b"
-        assert structure_call["input"][0] == {
+        create_call = fake_client.responses.create_calls[0]
+        assert create_call["model"] == "qwen3-vl:4b"
+        assert create_call["input"][0] == {
             "role": "system",
-            "content": STRUCTURED_RECIPE_INSTRUCTIONS,
+            "content": IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS,
         }
-        assert structure_call["input"][1]["content"] == (
-            "<recipe_markdown>\n"
-            "# Recipe\nTitle: Cosmic Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix\n"
-            "</recipe_markdown>"
+        assert create_call["input"][1]["role"] == "user"
+        assert create_call["input"][1]["content"][0]["text"] == "<recipe_image>\nExtract the recipe from this image.\n</recipe_image>"
+        assert create_call["input"][1]["content"][1]["text"] == "<user_guidance>\nUse the title Cosmic Brownies\n</user_guidance>"
+        assert create_call["input"][1]["content"][2]["type"] == "input_image"
+        assert create_call["input"][1]["content"][2]["image_url"].startswith("data:image/png;base64,")
+
+        parse_call = fake_client.responses.parse_calls[0]
+        assert parse_call["input"][1]["content"] == (
+            "<first_stage_output>\n"
+            f"{first_stage_output}\n"
+            "</first_stage_output>"
         )
 
     asyncio.run(run())
 
 
-def test_parse_image_only_passes_user_guidance_to_stage_one(monkeypatch):
+def test_parse_image_only_passes_user_guidance_to_stage_one():
     async def run():
-        async def immediate_to_thread(func, *args):
-            return func(*args)
-
-        monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
+        first_stage_output = "# Recipe\nTitle: Brownies"
         fake_client = FakeOpenAIClient(
-            [
-                ImageRecipeMarkdownExtraction(
-                    markdown="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
-                    transcription="Brownies\n1 cup sugar\nMix",
-                ),
+            create_results=[first_stage_output],
+            parse_results=[
                 RecipeImportExtraction(
                     name="Brownies",
                     description="",
@@ -199,32 +202,25 @@ def test_parse_image_only_passes_user_guidance_to_stage_one(monkeypatch):
                     tags=[],
                     ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
                     instructions=["Mix"],
-                ),
-            ]
+                )
+            ],
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
         await client.parse_image(b"png-bytes", "brownies.png", "image/png", "Please prefer grandma title")
 
-        assert "Please prefer grandma title" in fake_client.responses.calls[0]["input"][0]["content"][1]["text"]
-        assert "Please prefer grandma title" not in fake_client.responses.calls[1]["input"][1]["content"]
+        assert "Please prefer grandma title" in fake_client.responses.create_calls[0]["input"][1]["content"][1]["text"]
+        assert "Please prefer grandma title" not in fake_client.responses.parse_calls[0]["input"][1]["content"]
 
     asyncio.run(run())
 
 
-def test_parse_text_raises_stage_error_with_intermediate_markdown(monkeypatch):
+def test_parse_text_raises_stage_error_with_first_stage_output():
     async def run():
-        async def immediate_to_thread(func, *args):
-            return func(*args)
-
-        monkeypatch.setattr("inference.recipe_import.asyncio.to_thread", immediate_to_thread)
+        first_stage_output = "# Recipe\nTitle: Brownies"
         fake_client = FakeOpenAIClient(
-            [
-                RecipeMarkdownExtraction(
-                    markdown="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
-                ),
-                RuntimeError("Formatter exploded"),
-            ]
+            create_results=[first_stage_output],
+            parse_results=[RuntimeError("Formatter exploded")],
         )
         client = RecipeImportClient(make_settings(), client=fake_client)
 
@@ -232,13 +228,43 @@ def test_parse_text_raises_stage_error_with_intermediate_markdown(monkeypatch):
             await client.parse_text("Brownies")
         except RecipeImportStageError as exc:
             assert str(exc) == "Formatter exploded"
-            assert exc.intermediate_markdown.startswith("# Recipe")
+            assert exc.first_stage_output == first_stage_output
             assert exc.metadata == {
                 "source": "text",
                 "original_text": "Brownies",
+                "first_stage_output": first_stage_output,
             }
             return
 
         raise AssertionError("Expected RecipeImportStageError")
+
+    asyncio.run(run())
+
+
+def test_parse_text_logs_first_stage_output_at_debug(caplog):
+    async def run():
+        first_stage_output = "# Recipe\nTitle: Brownies"
+        fake_client = FakeOpenAIClient(
+            create_results=[first_stage_output],
+            parse_results=[
+                RecipeImportExtraction(
+                    name="Brownies",
+                    description="",
+                    notes="",
+                    servings=8,
+                    category="Dessert",
+                    tags=[],
+                    ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                    instructions=["Mix"],
+                )
+            ],
+        )
+        client = RecipeImportClient(make_settings(), client=fake_client)
+
+        with caplog.at_level(logging.DEBUG):
+            await client.parse_text("Brownies")
+
+        assert "Recipe import text stage 1 output" in caplog.text
+        assert first_stage_output in caplog.text
 
     asyncio.run(run())
