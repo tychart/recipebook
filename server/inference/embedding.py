@@ -1,5 +1,3 @@
-import asyncio
-
 from core.config import get_settings
 from inference.openai_client import get_openai_client
 from schemas.recipe import RecipeMetadata
@@ -60,8 +58,8 @@ def _validate_embedding(embedding: list[float]) -> list[float]:
     return embedding
 
 
-def _embed(model: str, text: str) -> list[float]:
-    response = get_openai_client().embeddings.create(model=model, input=text)
+async def _embed(model: str, text: str) -> list[float]:
+    response = await get_openai_client().embeddings.create(model=model, input=text)
     if not response.data:
         raise RuntimeError("Embedding provider returned no embeddings")
     return _validate_embedding([float(value) for value in response.data[0].embedding])
@@ -69,4 +67,4 @@ def _embed(model: str, text: str) -> list[float]:
 
 async def embed_text(text: str, model: str | None = None) -> list[float]:
     resolved_model = model or get_embedding_model()
-    return await asyncio.to_thread(_embed, resolved_model, text)
+    return await _embed(resolved_model, text)

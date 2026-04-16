@@ -8,7 +8,7 @@ from fastapi import UploadFile
 
 from core.config import Settings
 from inference.embedding import embed_text, get_embedding_model
-from inference.recipe_import import RecipeImportExtraction
+from inference.recipe_import import RecipeImportExtraction, RecipeImportResult, RecipeImportStageError
 from schemas.auth import CurrentUser
 from schemas.generate import GenerateSearchRequest, GenerateSearchResult
 from schemas.job import GenerateTextRequest, JobResult, JobSource
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class RecipeImporter(Protocol):
-    async def parse_text(self, text: str) -> RecipeImportExtraction:
+    async def parse_text(self, text: str) -> RecipeImportResult:
         ...
 
     async def parse_image(
@@ -28,8 +28,14 @@ class RecipeImporter(Protocol):
         filename: str,
         content_type: str,
         context_text: str | None = None,
-    ) -> RecipeImportExtraction:
+    ) -> RecipeImportResult:
         ...
+
+
+class JobProcessingError(RuntimeError):
+    def __init__(self, message: str, partial_result: JobResult | None = None):
+        super().__init__(message)
+        self.partial_result = partial_result
 
 
 class GenerateService:
@@ -64,6 +70,25 @@ class GenerateService:
             "category": structured_recipe.category.strip() or "Main",
             "tags": [tag.strip() for tag in structured_recipe.tags if tag.strip()],
         }
+
+    def _empty_draft(self) -> dict[str, Any]:
+        return {
+            "name": "",
+            "description": "",
+            "servings": 1,
+            "instructions": [],
+            "notes": "",
+            "ingredients": [],
+            "category": "Main",
+            "tags": [],
+        }
+
+    def _build_partial_failure_result(self, first_stage_output: str, metadata: dict[str, Any]) -> JobResult:
+        return JobResult(
+            draft=self._empty_draft(),
+            raw_text=first_stage_output,
+            metadata=metadata,
+        )
 
     async def enqueue_text_job(self, body: GenerateTextRequest, current_user: CurrentUser):
         if not body.text.strip():
@@ -105,8 +130,9 @@ class GenerateService:
             raise RuntimeError("Text input is required")
 
         try:
-            logger.info("Text import starting Responses API parse")
-            structured_recipe = await self.recipe_import_client.parse_text(raw_text)
+            logger.info("Text import starting staged parse")
+            import_result = await self.recipe_import_client.parse_text(raw_text)
+            structured_recipe = import_result.recipe
             logger.info(
                 "Text import parse complete ingredient_count=%s instruction_count=%s duration_ms=%.2f",
                 len(structured_recipe.ingredients),
@@ -115,12 +141,22 @@ class GenerateService:
             )
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
-                raw_text=raw_text,
-                metadata={
-                    "source": JobSource.text.value,
-                    "transcription": structured_recipe.transcription,
-                },
+                raw_text=import_result.first_stage_output,
+                metadata=import_result.metadata,
             )
+        except RecipeImportStageError as exc:
+            logger.exception(
+                "Text import structuring failed after intermediate extraction text_length=%s duration_ms=%.2f",
+                len(raw_text),
+                (time.perf_counter() - request_started) * 1000,
+            )
+            raise JobProcessingError(
+                str(exc),
+                partial_result=self._build_partial_failure_result(
+                    exc.first_stage_output,
+                    exc.metadata,
+                ),
+            ) from exc
         except Exception:
             logger.exception(
                 "Text import job failed text_length=%s duration_ms=%.2f",
@@ -128,14 +164,6 @@ class GenerateService:
                 (time.perf_counter() - request_started) * 1000,
             )
             raise
-
-    def _build_image_raw_text(self, context_text: str | None, transcription: str) -> str:
-        sections: list[str] = []
-        if context_text and context_text.strip():
-            sections.append(f"User context:\n{context_text}")
-            sections.append(f"Image transcription:\n{transcription}")
-            return "\n\n".join(sections)
-        return transcription
 
     async def run_image_job(self, payload: dict[str, Any]) -> JobResult:
         request_started = time.perf_counter()
@@ -152,16 +180,14 @@ class GenerateService:
             raise RuntimeError("Image payload is missing")
 
         try:
-            logger.info("Image import starting Responses API parse filename=%s", file_name)
-            structured_recipe = await self.recipe_import_client.parse_image(
+            logger.info("Image import starting staged parse filename=%s", file_name)
+            import_result = await self.recipe_import_client.parse_image(
                 bytes(image_bytes),
                 file_name,
                 content_type,
                 context_text,
             )
-            transcription = structured_recipe.transcription.strip()
-            if not transcription:
-                raise RuntimeError("Model returned no transcription for the image")
+            structured_recipe = import_result.recipe
             logger.info(
                 "Image import parse complete filename=%s ingredient_count=%s instruction_count=%s duration_ms=%.2f",
                 file_name,
@@ -171,15 +197,23 @@ class GenerateService:
             )
             return JobResult(
                 draft=self._recipe_extraction_to_draft(structured_recipe),
-                raw_text=self._build_image_raw_text(context_text, transcription),
-                metadata={
-                    "source": JobSource.image.value,
-                    "filename": file_name,
-                    "content_type": content_type,
-                    "context_text": context_text,
-                    "transcription": transcription,
-                },
+                raw_text=import_result.first_stage_output,
+                metadata=import_result.metadata,
             )
+        except RecipeImportStageError as exc:
+            logger.exception(
+                "Image import structuring failed filename=%s content_type=%s duration_ms=%.2f",
+                file_name,
+                content_type,
+                (time.perf_counter() - request_started) * 1000,
+            )
+            raise JobProcessingError(
+                str(exc),
+                partial_result=self._build_partial_failure_result(
+                    exc.first_stage_output,
+                    exc.metadata,
+                ),
+            ) from exc
         except Exception:
             logger.exception(
                 "Image import job failed filename=%s content_type=%s duration_ms=%.2f",

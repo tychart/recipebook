@@ -105,11 +105,18 @@ class JobManager:
             if message:
                 state.logs.append(message)
 
-    async def mark_failed(self, job_id: str, error: str, message: str | None = None) -> None:
+    async def mark_failed(
+        self,
+        job_id: str,
+        error: str,
+        message: str | None = None,
+        result: JobResult | None = None,
+    ) -> None:
         async with self._lock:
             state = self.jobs[job_id]
             state.status = JobStatus.failed
             state.error = error
+            state.result = result
             state.completed_at = dt.datetime.now(dt.timezone.utc)
             if message:
                 state.logs.append(message)

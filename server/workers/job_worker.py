@@ -16,6 +16,12 @@ async def worker_loop(manager: JobManager, generate_service: GenerateService, wo
             await manager.append_log(job_id, f"{worker_name}: cancelled")
             raise
         except Exception as exc:
+            partial_result = getattr(exc, "partial_result", None)
+            if partial_result is not None and partial_result.raw_text.strip():
+                await manager.append_log(
+                    job_id,
+                    f"{worker_name}: captured first-stage output before failure\n{partial_result.raw_text}",
+                )
             should_retry = await manager.schedule_automatic_retry(
                 job_id,
                 str(exc),
@@ -23,7 +29,12 @@ async def worker_loop(manager: JobManager, generate_service: GenerateService, wo
             )
             if should_retry:
                 continue
-            await manager.mark_failed(job_id, str(exc), f"{worker_name}: failed")
+            await manager.mark_failed(
+                job_id,
+                str(exc),
+                f"{worker_name}: failed",
+                result=partial_result,
+            )
         finally:
             manager.queue.task_done()
 

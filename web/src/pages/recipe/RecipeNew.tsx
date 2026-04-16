@@ -288,7 +288,7 @@ export default function RecipeNew() {
           className="min-h-28 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
         />
         <p className="mt-2 text-xs text-stone-500">
-          These notes are sent alongside the image and are also preserved in the raw import trace for debugging.
+          These notes are sent only during image extraction and are preserved in the job metadata for debugging.
         </p>
       </div>
 
@@ -354,7 +354,7 @@ export default function RecipeNew() {
         <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-stone-200 bg-white/80 px-5 py-4 shadow-sm">
           <details>
             <summary className="cursor-pointer text-sm font-semibold text-stone-700">
-              View imported raw text
+              View imported recipe text
             </summary>
             <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-stone-50 p-4 text-xs whitespace-pre-wrap text-stone-700">
               {importedRawText}

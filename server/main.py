@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import get_settings
 from core.logging_config import configure_logging
 from db.connection import close_pool, init_pool
+from inference.openai_client import close_openai_client, create_openai_client, set_openai_client
 from inference.recipe_import import create_recipe_import_client
 from routers import recipes, auth, cookbooks, generate, storage
 from services.generate_service import GenerateService
@@ -30,7 +31,9 @@ async def lifespan(app: FastAPI):
         await init_pool()
 
         job_manager = JobManager()
-        recipe_import_client = create_recipe_import_client(settings)
+        openai_client = create_openai_client(settings)
+        set_openai_client(openai_client)
+        recipe_import_client = create_recipe_import_client(settings, client=openai_client)
         background_generate_service = GenerateService(
             job_service=JobService(job_manager),
             recipe_import_client=recipe_import_client,
@@ -38,6 +41,7 @@ async def lifespan(app: FastAPI):
         )
 
         app.state.job_manager = job_manager
+        app.state.openai_client = openai_client
         app.state.recipe_import_client = recipe_import_client
 
         worker_tasks = start_job_workers(
@@ -60,6 +64,7 @@ async def lifespan(app: FastAPI):
             await stop_scheduler(scheduler_task)
         if "worker_tasks" in locals():
             await stop_job_workers(worker_tasks)
+        await close_openai_client()
         await close_pool()
         logger.info("Backend shutdown complete")
 

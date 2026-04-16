@@ -4,27 +4,34 @@ from unittest.mock import AsyncMock
 from fastapi import HTTPException
 
 from core.config import Settings
-from inference.recipe_import import ImportedIngredient, RecipeImportExtraction
+from inference.recipe_import import ImportedIngredient, RecipeImportExtraction, RecipeImportResult, RecipeImportStageError
 from schemas.auth import CurrentUser
 from schemas.generate import GenerateSearchRequest
 from schemas.job import GenerateTextRequest, JobSource, JobStatus
-from services.generate_service import GenerateService
+from services.generate_service import GenerateService, JobProcessingError
 from services.job_service import JobManager, JobService
 from workers.job_worker import worker_loop
 
 
 class FakeRecipeImportClient:
-    async def parse_text(self, text: str) -> RecipeImportExtraction:
-        return RecipeImportExtraction(
-            name="Brownies",
-            description="",
-            notes="",
-            servings=8,
-            category="Dessert",
-            tags=["sweet"],
-            ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
-            instructions=["Mix"],
-            transcription=text,
+    async def parse_text(self, text: str) -> RecipeImportResult:
+        return RecipeImportResult(
+            recipe=RecipeImportExtraction(
+                name="Brownies",
+                description="",
+                notes="",
+                servings=8,
+                category="Dessert",
+                tags=["sweet"],
+                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                instructions=["Mix"],
+            ),
+            first_stage_output="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            metadata={
+                "source": "text",
+                "original_text": text,
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            },
         )
 
     async def parse_image(
@@ -33,17 +40,26 @@ class FakeRecipeImportClient:
         filename: str,
         content_type: str,
         context_text: str | None = None,
-    ) -> RecipeImportExtraction:
-        return RecipeImportExtraction(
-            name="Brownies",
-            description="",
-            notes="",
-            servings=8,
-            category="Dessert",
-            tags=["sweet"],
-            ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
-            instructions=["Mix"],
-            transcription="Brownies\n1 cup sugar\nMix",
+    ) -> RecipeImportResult:
+        return RecipeImportResult(
+            recipe=RecipeImportExtraction(
+                name="Brownies",
+                description="",
+                notes="",
+                servings=8,
+                category="Dessert",
+                tags=["sweet"],
+                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
+                instructions=["Mix"],
+            ),
+            first_stage_output="# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            metadata={
+                "source": "image",
+                "filename": filename,
+                "content_type": content_type,
+                "context_text": context_text,
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            },
         )
 
 
@@ -59,7 +75,9 @@ def make_settings() -> Settings:
         s3_region="us-east-1",
         llm_base_url="http://localhost:11434/v1",
         llm_api_key="ollama",
-        llm_model="qwen3-vl:8b",
+        image_extraction_model="qwen3-vl:4b",
+        text_extraction_model="qwen3:4b",
+        structure_model="qwen3:4b",
         embedding_model=None,
         embedding_vector_size=1536,
         llm_request_timeout=60.0,
@@ -137,6 +155,46 @@ def test_worker_marks_job_failed_after_automatic_retry(monkeypatch):
     asyncio.run(run())
 
 
+def test_worker_persists_partial_result_after_stage_two_failure(monkeypatch):
+    async def run():
+        manager = JobManager()
+        job_service = JobService(manager)
+        service = GenerateService(job_service, FakeRecipeImportClient(), make_settings())
+        job = await job_service.enqueue(JobSource.text, {"text": "Brownies"})
+        failure = JobProcessingError(
+            "Formatter exploded",
+            partial_result=service._build_partial_failure_result(
+                "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+                {
+                    "source": "text",
+                    "original_text": "Brownies",
+                    "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+                },
+            ),
+        )
+        monkeypatch.setattr(service, "run_text_job", AsyncMock(side_effect=failure))
+
+        task = asyncio.create_task(worker_loop(manager, service, "test-worker"))
+        await manager.queue.join()
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+
+        stored = await job_service.get_job(job.job_id)
+
+        assert stored.status == JobStatus.failed
+        assert stored.error == "Formatter exploded"
+        assert stored.result is not None
+        assert stored.result.raw_text.startswith("# Recipe")
+        assert stored.result.metadata == {
+            "source": "text",
+            "original_text": "Brownies",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+        }
+        assert any("captured first-stage output" in log for log in stored.logs)
+
+    asyncio.run(run())
+
+
 def test_run_text_job_returns_error_when_text_is_blank():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
@@ -152,7 +210,7 @@ def test_run_text_job_returns_error_when_text_is_blank():
     asyncio.run(run())
 
 
-def test_run_text_job_preserves_exact_submitted_text():
+def test_run_text_job_returns_first_stage_output_and_original_text_metadata():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
@@ -160,16 +218,17 @@ def test_run_text_job_preserves_exact_submitted_text():
 
         assert response.draft["name"] == "Brownies"
         assert response.draft["category"] == "Dessert"
-        assert response.raw_text == "  Brownies\n1 cup sugar\nMix  "
+        assert response.raw_text == "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
         assert response.metadata == {
             "source": "text",
-            "transcription": "  Brownies\n1 cup sugar\nMix  ",
+            "original_text": "  Brownies\n1 cup sugar\nMix  ",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
         }
 
     asyncio.run(run())
 
 
-def test_run_image_job_returns_combined_raw_text_and_metadata():
+def test_run_image_job_returns_first_stage_output_and_metadata():
     async def run():
         service = GenerateService(JobService(JobManager()), FakeRecipeImportClient(), make_settings())
 
@@ -183,16 +242,13 @@ def test_run_image_job_returns_combined_raw_text_and_metadata():
         )
 
         assert response.draft["name"] == "Brownies"
-        assert response.raw_text == (
-            "User context:\nTitle should be Cosmic Brownies\n\n"
-            "Image transcription:\nBrownies\n1 cup sugar\nMix"
-        )
+        assert response.raw_text == "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix"
         assert response.metadata == {
             "source": "image",
             "filename": "brownies.png",
             "content_type": "image/png",
             "context_text": "Title should be Cosmic Brownies",
-            "transcription": "Brownies\n1 cup sugar\nMix",
+            "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
         }
 
     asyncio.run(run())
@@ -213,31 +269,36 @@ def test_run_image_job_requires_image_payload():
     asyncio.run(run())
 
 
-def test_run_image_job_requires_transcription():
+def test_run_text_job_wraps_stage_two_failure_with_partial_result():
     async def run():
         client = FakeRecipeImportClient()
-        client.parse_image = AsyncMock(
-            return_value=RecipeImportExtraction(
-                name="Brownies",
-                description="",
-                notes="",
-                servings=8,
-                category="Dessert",
-                tags=[],
-                ingredients=[ImportedIngredient(name="sugar", amount=1, unit="cup")],
-                instructions=["Mix"],
-                transcription="   ",
+        client.parse_text = AsyncMock(
+            side_effect=RecipeImportStageError(
+                "Formatter exploded",
+                "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+                {
+                    "source": "text",
+                    "original_text": "Brownies",
+                    "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+                },
             )
         )
         service = GenerateService(JobService(JobManager()), client, make_settings())
 
         try:
-            await service.run_image_job({"image_bytes": b"png-bytes"})
-        except RuntimeError as exc:
-            assert str(exc) == "Model returned no transcription for the image"
+            await service.run_text_job({"text": "Brownies"})
+        except JobProcessingError as exc:
+            assert str(exc) == "Formatter exploded"
+            assert exc.partial_result is not None
+            assert exc.partial_result.raw_text.startswith("# Recipe")
+            assert exc.partial_result.metadata == {
+                "source": "text",
+                "original_text": "Brownies",
+                "first_stage_output": "# Recipe\nTitle: Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix",
+            }
             return
 
-        raise AssertionError("Expected RuntimeError for blank transcription")
+        raise AssertionError("Expected JobProcessingError for failed structuring stage")
 
     asyncio.run(run())
 
