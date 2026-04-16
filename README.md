@@ -79,6 +79,13 @@ cp .env.example .env
 
 I would then recommend changing the secrets in your new `.env` file
 
+Recipe import now uses three stage-specific model settings:
+- `IMAGE_EXTRACTION_MODEL` for image-to-markdown extraction
+- `TEXT_EXTRACTION_MODEL` for pasted-text cleanup and extraction
+- `STRUCTURE_MODEL` for markdown-to-structured recipe formatting
+
+All three must be configured before the backend will start.
+
 Then to start, run:
 
 ```bash

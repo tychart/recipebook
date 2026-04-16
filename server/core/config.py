@@ -23,13 +23,25 @@ class Settings:
     s3_region: str
     llm_base_url: str | None
     llm_api_key: str | None
-    llm_model: str | None
+    image_extraction_model: str | None
+    text_extraction_model: str | None
+    structure_model: str | None
     embedding_model: str | None
     embedding_vector_size: int
     llm_request_timeout: float
     queue_worker_count: int
     scheduler_interval_seconds: int
     job_retention_seconds: int
+
+    def __post_init__(self) -> None:
+        required_models = {
+            "IMAGE_EXTRACTION_MODEL": self.image_extraction_model,
+            "TEXT_EXTRACTION_MODEL": self.text_extraction_model,
+            "STRUCTURE_MODEL": self.structure_model,
+        }
+        for env_name, value in required_models.items():
+            if not (value or "").strip():
+                raise ValueError(f"{env_name} is not configured")
 
 
 def _parse_csv_env(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
@@ -73,7 +85,9 @@ def get_settings() -> Settings:
         s3_region=os.getenv("S3_REGION", "us-east-1"),
         llm_base_url=os.getenv("LLM_BASE_URL"),
         llm_api_key=os.getenv("LLM_API_KEY"),
-        llm_model=os.getenv("LLM_MODEL"),
+        image_extraction_model=os.getenv("IMAGE_EXTRACTION_MODEL"),
+        text_extraction_model=os.getenv("TEXT_EXTRACTION_MODEL"),
+        structure_model=os.getenv("STRUCTURE_MODEL"),
         embedding_model=os.getenv("EMBEDDING_MODEL"),
         embedding_vector_size=max(1, _get_int_env("EMBEDDING_VECTOR_SIZE", 1536)),
         llm_request_timeout=_get_float_env("LLM_REQUEST_TIMEOUT", 60.0),

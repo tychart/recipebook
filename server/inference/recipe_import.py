@@ -1,66 +1,19 @@
 import asyncio
 import base64
 import mimetypes
+from dataclasses import dataclass
 from typing import Any, TypeVar
 
-from openai import OpenAI
-from openai import APITimeoutError
+from openai import APITimeoutError, OpenAI
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.config import Settings
 from inference.openai_client import create_openai_client
-
-TEXT_IMPORT_INSTRUCTIONS = """
-You extract structured recipe data from plain text.
-
-<task>
-Read the recipe text and fill every response field.
-</task>
-
-<normalization>
-- Defaults when absent: description="", notes="", servings=1, category="Main", tags=[].
-- Ingredients: amount is a float; convert fractions to decimals; use 0 when quantity is absent; unit is measurement only or "".
-- Instructions: one step per list item, in source order, without step numbers.
-</normalization>
-
-<output>
-Return only the schema response.
-No markdown.
-No explanations.
-No reasoning.
-Answer directly.
-</output>
-""".strip()
-
-IMAGE_IMPORT_INSTRUCTIONS = """
-You extract structured recipe data from a recipe image and optional user guidance.
-
-<task>
-Use the image as the main source and fill every response field.
-</task>
-
-<user_guidance>
-User guidance may clarify missing or ambiguous recipe details.
-Use it only to resolve ambiguity or add missing details.
-Do not treat user guidance as visible image text.
-</user_guidance>
-
-<normalization>
-- Defaults when absent: description="", notes="", servings=1, category="Main", tags=[].
-- Ingredients: amount is a float; convert fractions to decimals; use 0 when quantity is absent; unit is measurement only or "".
-- Instructions: one step per list item, in recipe order, without step numbers.
-- Transcription: include only visible recipe content from the image.
-- Ignore decorative branding, watermarks, and unrelated page text unless it is part of the recipe.
-</normalization>
-
-<output>
-Return only the schema response.
-No markdown.
-No explanations.
-No reasoning.
-Answer directly.
-</output>
-""".strip()
+from inference.recipe_import_prompts import (
+    IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS,
+    STRUCTURED_RECIPE_INSTRUCTIONS,
+    TEXT_MARKDOWN_EXTRACTION_INSTRUCTIONS,
+)
 
 _MIN_IMAGE_TIMEOUT_SECONDS = 300.0
 ParseModelT = TypeVar("ParseModelT", bound=BaseModel)
@@ -79,7 +32,7 @@ class ImportedIngredient(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class RecipeImportFields(BaseModel):
+class RecipeImportExtraction(BaseModel):
     name: str = Field(description="Recipe title. Prefer an explicit title. If missing, use a short descriptive title.")
     description: str = Field(
         default="",
@@ -106,20 +59,32 @@ class RecipeImportFields(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class TextRecipeImportExtraction(RecipeImportFields):
-    pass
+class RecipeMarkdownExtraction(BaseModel):
+    markdown: str = Field(
+        description="Clean, recipe-only markdown using readable sections like title, ingredients, instructions, notes, tags, and servings."
+    )
+
+    model_config = ConfigDict(extra="forbid")
 
 
-class ImageRecipeImportExtraction(RecipeImportFields):
+class ImageRecipeMarkdownExtraction(RecipeMarkdownExtraction):
     transcription: str = Field(
         description="Plain-text transcription of visible recipe content from the image only. Do not include user guidance."
     )
 
 
-class RecipeImportExtraction(RecipeImportFields):
-    transcription: str = Field(
-        description="Plain-text transcription shown to the user for debugging. For text imports this is the original submitted text. For image imports this is visible image-derived recipe text."
-    )
+@dataclass(frozen=True)
+class RecipeImportResult:
+    recipe: RecipeImportExtraction
+    intermediate_markdown: str
+    metadata: dict[str, Any]
+
+
+class RecipeImportStageError(RuntimeError):
+    def __init__(self, message: str, intermediate_markdown: str, metadata: dict[str, Any] | None = None):
+        super().__init__(message)
+        self.intermediate_markdown = intermediate_markdown
+        self.metadata = dict(metadata or {})
 
 
 def _normalize_image_content_type(filename: str, content_type: str) -> str:
@@ -136,18 +101,17 @@ def _normalize_image_content_type(filename: str, content_type: str) -> str:
 
 class RecipeImportClient:
     def __init__(self, settings: Settings, client: OpenAI | None = None):
-        model = (settings.llm_model or "").strip()
-        if not model:
-            raise RuntimeError("LLM_MODEL is not configured")
-
         self.client = client or create_openai_client(settings)
-        self.model = model
+        self.image_extraction_model = settings.image_extraction_model.strip()
+        self.text_extraction_model = settings.text_extraction_model.strip()
+        self.structure_model = settings.structure_model.strip()
         self.timeout = settings.llm_request_timeout
 
-    async def parse_text(self, text: str) -> RecipeImportExtraction:
-        parsed = await asyncio.to_thread(
+    async def parse_text(self, text: str) -> RecipeImportResult:
+        intermediate = await asyncio.to_thread(
             self._parse,
-            TEXT_IMPORT_INSTRUCTIONS,
+            self.text_extraction_model,
+            TEXT_MARKDOWN_EXTRACTION_INSTRUCTIONS,
             [
                 {
                     "role": "user",
@@ -159,10 +123,24 @@ class RecipeImportClient:
                     ],
                 }
             ],
-            TextRecipeImportExtraction,
+            RecipeMarkdownExtraction,
             self.timeout,
         )
-        return RecipeImportExtraction(**parsed.model_dump(), transcription=text)
+        markdown = intermediate.markdown.strip()
+        if not markdown:
+            raise RuntimeError("LLM returned no intermediate recipe markdown")
+
+        metadata = {
+            "source": "text",
+            "original_text": text,
+        }
+
+        try:
+            recipe = await self._structure_recipe_markdown(markdown)
+        except Exception as exc:
+            raise RecipeImportStageError(str(exc), markdown, metadata) from exc
+
+        return RecipeImportResult(recipe=recipe, intermediate_markdown=markdown, metadata=metadata)
 
     async def parse_image(
         self,
@@ -170,7 +148,7 @@ class RecipeImportClient:
         filename: str,
         content_type: str,
         context_text: str | None = None,
-    ) -> RecipeImportExtraction:
+    ) -> RecipeImportResult:
         data_url = self._build_data_url(image_bytes, filename, content_type)
 
         content: list[dict[str, Any]] = [
@@ -180,11 +158,12 @@ class RecipeImportClient:
             }
         ]
 
-        if context_text and context_text.strip():
+        normalized_context = (context_text or "").strip()
+        if normalized_context:
             content.append(
                 {
                     "type": "input_text",
-                    "text": f"<user_guidance>\n{context_text.strip()}\n</user_guidance>",
+                    "text": f"<user_guidance>\n{normalized_context}\n</user_guidance>",
                 }
             )
 
@@ -195,29 +174,70 @@ class RecipeImportClient:
             }
         )
 
-        input_payload = [
-            {
-                "role": "user",
-                "content": content,
-            }
-        ]
-
-        parsed = await asyncio.to_thread(
+        intermediate = await asyncio.to_thread(
             self._parse,
-            IMAGE_IMPORT_INSTRUCTIONS,
-            input_payload,
-            ImageRecipeImportExtraction,
+            self.image_extraction_model,
+            IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS,
+            [
+                {
+                    "role": "user",
+                    "content": content,
+                }
+            ],
+            ImageRecipeMarkdownExtraction,
             max(self.timeout, _MIN_IMAGE_TIMEOUT_SECONDS),
         )
-        return RecipeImportExtraction(**parsed.model_dump())
+
+        markdown = intermediate.markdown.strip()
+        transcription = intermediate.transcription.strip()
+        if not markdown:
+            raise RuntimeError("LLM returned no intermediate recipe markdown")
+        if not transcription:
+            raise RuntimeError("Model returned no transcription for the image")
+
+        metadata = {
+            "source": "image",
+            "filename": filename,
+            "content_type": content_type,
+            "context_text": normalized_context or None,
+            "image_transcription": transcription,
+        }
+
+        try:
+            recipe = await self._structure_recipe_markdown(markdown)
+        except Exception as exc:
+            raise RecipeImportStageError(str(exc), markdown, metadata) from exc
+
+        return RecipeImportResult(recipe=recipe, intermediate_markdown=markdown, metadata=metadata)
 
     def _build_data_url(self, image_bytes: bytes, filename: str, content_type: str) -> str:
         normalized_type = _normalize_image_content_type(filename, content_type)
         encoded = base64.b64encode(image_bytes).decode("utf-8")
         return f"data:{normalized_type};base64,{encoded}"
 
+    async def _structure_recipe_markdown(self, markdown: str) -> RecipeImportExtraction:
+        return await asyncio.to_thread(
+            self._parse,
+            self.structure_model,
+            STRUCTURED_RECIPE_INSTRUCTIONS,
+            [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"<recipe_markdown>\n{markdown}\n</recipe_markdown>",
+                        }
+                    ],
+                }
+            ],
+            RecipeImportExtraction,
+            self.timeout,
+        )
+
     def _parse(
         self,
+        model: str,
         instructions: str,
         input_payload: list[dict[str, Any]],
         text_format: type[ParseModelT],
@@ -225,7 +245,7 @@ class RecipeImportClient:
     ) -> ParseModelT:
         try:
             response = self.client.responses.parse(
-                model=self.model,
+                model=model,
                 instructions=instructions,
                 input=input_payload,
                 text_format=text_format,
@@ -238,6 +258,7 @@ class RecipeImportClient:
                 "The model may still be too slow for this image; try a smaller image, a faster model, "
                 "or increase LLM_REQUEST_TIMEOUT."
             ) from exc
+
         parsed = response.output_parsed
         if parsed is None:
             raise RuntimeError("LLM returned no structured recipe output")
