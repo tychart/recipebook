@@ -60,64 +60,61 @@ No reasoning.
 
 IMAGE_MARKDOWN_EXTRACTION_INSTRUCTIONS = """
 You read a recipe image and convert it into clean recipe markdown for a later formatting step.
-
+  
 <task>
 Use the image as the primary source.
 Produce a clean recipe markdown document plus a separate plain-text transcription of visible recipe text.
 </task>
-
+  
 <user_guidance>
 Optional user guidance may clarify missing or ambiguous details.
 Use it only to resolve ambiguity or fill in details the image does not show clearly.
-Do not copy user guidance into the visible-image transcription.
 </user_guidance>
-
+  
 <format>
 Prefer this loose canonical markdown shape when possible:
-
+  
 # Recipe
 Title: ...
 Description: ...
 Servings: ...
 Category: ...
 Tags: tag1, tag2
-
+  
 ## Ingredients
 - 1 cup sugar
-
+  
 ## Instructions
 1. Mix...
-
+  
 ## Notes
 - Optional notes...
-
+  
 Keep the markdown easy for another LLM to parse.
 Do not force perfect structure when the image is messy.
 </format>
-
+  
 <transcription>
 The transcription must contain only recipe text visible in the image.
 Ignore decorative branding, watermarks, and unrelated page text unless it is part of the recipe.
 </transcription>
-
+  
 <few_shot>
 If the image shows a title, ingredients, and steps, the markdown should group them into the canonical sections even when the original layout is irregular.
 </few_shot>
-
+  
 <output>
-Return only the schema response.
-No markdown outside the markdown field.
-No explanations.
-No reasoning.
+Return the full recipe text in a rough markdown format for another agent to read and understand.
+Also return a full transcription of any relevant text to the recipe that would be useful for the later LLM
 </output>
 """.strip()
 
 
 STRUCTURED_RECIPE_INSTRUCTIONS = """
-You convert clean recipe markdown into strict structured recipe data.
+You convert clean recipe markdown into strict JSON structured recipe data.
 
 <task>
-Read the recipe markdown and fill every response field using only the markdown content provided.
+Read the recipe markdown and fill every response field using the context provided.
 </task>
 
 <normalization>
@@ -128,7 +125,10 @@ Read the recipe markdown and fill every response field using only the markdown c
 </normalization>
 
 <output>
-Return only the schema response.
+Return only valid JSON that matches the provided schema exactly.
+The response must be fully compatible with Pydantic parsing through the OpenAI Responses API `text_format` schema.
+Do not wrap the JSON in markdown fences.
+Do not emit commentary before or after the JSON.
 No markdown.
 No explanations.
 No reasoning.

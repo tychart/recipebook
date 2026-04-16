@@ -217,23 +217,41 @@ class RecipeImportClient:
 
     async def _structure_recipe_markdown(self, markdown: str) -> RecipeImportExtraction:
         return await asyncio.to_thread(
-            self._parse,
-            self.structure_model,
-            STRUCTURED_RECIPE_INSTRUCTIONS,
-            [
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": f"<recipe_markdown>\n{markdown}\n</recipe_markdown>",
-                        }
-                    ],
-                }
-            ],
-            RecipeImportExtraction,
-            self.timeout,
+            self._parse_structured_recipe_markdown,
+            markdown,
         )
+
+    def _parse_structured_recipe_markdown(self, markdown: str) -> RecipeImportExtraction:
+        try:
+            response = self.client.responses.parse(
+                model=self.structure_model,
+                input=[
+                    {
+                        "role": "system",
+                        "content": STRUCTURED_RECIPE_INSTRUCTIONS,
+                    },
+                    {
+                        "role": "user",
+                        "content": f"<recipe_markdown>\n{markdown}\n</recipe_markdown>",
+                    },
+                ],
+                text_format=RecipeImportExtraction,
+                temperature=0.0,
+                timeout=self.timeout,
+            )
+        except APITimeoutError as exc:
+            raise RuntimeError(
+                f"LLM request timed out after {self.timeout:.0f}s. "
+                "The model may still be too slow for this image; try a smaller image, a faster model, "
+                "or increase LLM_REQUEST_TIMEOUT."
+            ) from exc
+
+        parsed = response.output_parsed
+        if parsed is None:
+            raise RuntimeError("LLM returned no structured recipe output")
+        return parsed
+
+    
 
     def _parse(
         self,

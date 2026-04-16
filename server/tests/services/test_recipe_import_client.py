@@ -100,9 +100,13 @@ def test_parse_text_uses_text_extractor_then_structure_model(monkeypatch):
         assert extract_call["input"][0]["content"][0]["text"] == "<recipe_text>\n  Brownies\n1 cup sugar\nMix  \n</recipe_text>"
 
         assert structure_call["model"] == "qwen3:4b"
-        assert structure_call["instructions"] == STRUCTURED_RECIPE_INSTRUCTIONS
         assert structure_call["text_format"] is RecipeImportExtraction
-        assert structure_call["input"][0]["content"][0]["text"].startswith("<recipe_markdown>\n# Recipe")
+        assert structure_call["input"][0] == {
+            "role": "system",
+            "content": STRUCTURED_RECIPE_INSTRUCTIONS,
+        }
+        assert structure_call["input"][1]["role"] == "user"
+        assert structure_call["input"][1]["content"].startswith("<recipe_markdown>\n# Recipe")
 
     asyncio.run(run())
 
@@ -161,8 +165,11 @@ def test_parse_image_uses_vision_model_then_structure_model(monkeypatch):
         assert extract_call["input"][0]["content"][2]["image_url"].startswith("data:image/png;base64,")
 
         assert structure_call["model"] == "qwen3:4b"
-        assert structure_call["instructions"] == STRUCTURED_RECIPE_INSTRUCTIONS
-        assert structure_call["input"][0]["content"][0]["text"] == (
+        assert structure_call["input"][0] == {
+            "role": "system",
+            "content": STRUCTURED_RECIPE_INSTRUCTIONS,
+        }
+        assert structure_call["input"][1]["content"] == (
             "<recipe_markdown>\n"
             "# Recipe\nTitle: Cosmic Brownies\n\n## Ingredients\n- 1 cup sugar\n\n## Instructions\n1. Mix\n"
             "</recipe_markdown>"
@@ -200,7 +207,7 @@ def test_parse_image_only_passes_user_guidance_to_stage_one(monkeypatch):
         await client.parse_image(b"png-bytes", "brownies.png", "image/png", "Please prefer grandma title")
 
         assert "Please prefer grandma title" in fake_client.responses.calls[0]["input"][0]["content"][1]["text"]
-        assert "Please prefer grandma title" not in fake_client.responses.calls[1]["input"][0]["content"][0]["text"]
+        assert "Please prefer grandma title" not in fake_client.responses.calls[1]["input"][1]["content"]
 
     asyncio.run(run())
 
