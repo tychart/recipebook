@@ -1,4 +1,6 @@
 .app-shell {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   min-height: 100dvh;
   padding: 0.9rem;
@@ -11,8 +13,9 @@
 }
 
 .routes-root {
-  min-height: calc(100vh - 1.8rem);
-  min-height: calc(100dvh - 1.8rem);
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
   border-radius: 2rem;
   overflow: clip;
 }

@@ -12,7 +12,7 @@ export default function PwaInstallPrompt() {
   }
 
   return (
-    <div className="rounded-[1.4rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4 text-left shadow-[var(--shadow-card)]">
+    <div className="rounded-[1.4rem] border border-[var(--interactive-border)] bg-[var(--interactive-soft)] p-4 text-left shadow-[var(--shadow-card)]">
       <p className="text-sm font-semibold text-[var(--text-primary)]">
         Install RecipeBook
       </p>

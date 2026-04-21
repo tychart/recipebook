@@ -3,13 +3,17 @@ import { cn } from "../lib/cn";
 export default function Logo({
   size = "large",
   withTagline = false,
+  showEyebrow = true,
 }: {
   size?: "large" | "medium";
   withTagline?: boolean;
+  showEyebrow?: boolean;
 }) {
   return (
     <div className="inline-flex flex-col items-start">
-      <span className="app-eyebrow mb-2">Self-hosted recipe library</span>
+      {showEyebrow ? (
+        <span className="app-eyebrow mb-2">Self-hosted recipe library</span>
+      ) : null}
       <span
         className={cn(
           "font-[var(--font-display)] font-semibold tracking-tight text-[var(--text-primary)]",

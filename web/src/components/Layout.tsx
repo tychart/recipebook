@@ -7,9 +7,6 @@ import { SidebarShell } from "./SidebarShell";
 import { useAuth } from "../context/AuthContext";
 import Logo from "./Logo";
 
-/** Matches mobile header height for backdrop / drawer offset */
-const MOBILE_HEADER_TOP_CLASS = "top-[5.25rem]";
-
 export default function Layout() {
   const { user } = useAuth();
   const location = useLocation();
@@ -31,16 +28,19 @@ export default function Layout() {
 
   useEffect(() => {
     if (!mobileNavOpen) return;
-    const prev = document.body.style.overflow;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
     };
   }, [mobileNavOpen]);
 
   if (user) {
     return (
-      <div className="relative flex min-h-0 w-full flex-1 flex-col gap-4 p-3 md:flex-row md:p-4">
+      <div className="relative flex min-h-0 h-full w-full flex-1 flex-col gap-4 p-3 md:flex-row md:p-4">
         <header className="app-panel no-print flex min-h-[4.75rem] shrink-0 items-center gap-3 px-3 py-2 md:hidden">
           <button
             type="button"
@@ -58,33 +58,43 @@ export default function Layout() {
               <Menu className="size-6" strokeWidth={2} aria-hidden />
             )}
           </button>
-          <Link to="/" className="min-w-0 flex-1">
-            <Logo size="medium" />
+          <Link
+            to="/"
+            className={`min-w-0 flex-1 transition ${
+              mobileNavOpen ? "pointer-events-none opacity-0" : "opacity-100"
+            }`}
+          >
+            <Logo size="medium" showEyebrow={false} />
           </Link>
         </header>
 
         <Sidebar />
 
-        <main className="min-h-min min-w-0 flex-1 p-1 sm:p-2 md:p-3">
+        <main className="min-h-0 min-w-0 flex-1 p-1 sm:p-2 md:p-3">
           <Outlet />
         </main>
 
         {mobileNavOpen ? (
           <>
             <div
-              className={`absolute ${MOBILE_HEADER_TOP_CLASS} bottom-0 left-0 right-0 z-40 cursor-pointer bg-black/40 md:hidden`}
+              className="fixed inset-0 z-40 cursor-pointer bg-black/45 backdrop-blur-sm md:hidden"
               aria-hidden
               onClick={() => setMobileNavOpen(false)}
             />
             <div
-              className={`absolute bottom-0 left-0 z-50 md:hidden ${MOBILE_HEADER_TOP_CLASS}`}
+              className="fixed inset-y-0 left-0 z-50 w-[min(20rem,calc(100vw-1rem))] py-3 pr-3 md:hidden"
               id="mobile-nav-drawer"
               role="dialog"
               aria-modal="true"
               aria-label="Navigation menu"
             >
-              <SidebarShell className="h-full w-[min(20rem,100%)] overflow-y-auto rounded-r-[1.75rem] rounded-l-none shadow-2xl">
-                <SidebarContent onNavigate={() => setMobileNavOpen(false)} />
+              <SidebarShell className="h-full overflow-hidden rounded-r-[1.75rem] rounded-l-none px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl">
+                <div className="h-full overflow-y-auto overscroll-contain pr-1">
+                  <SidebarContent
+                    onNavigate={() => setMobileNavOpen(false)}
+                    onClose={() => setMobileNavOpen(false)}
+                  />
+                </div>
               </SidebarShell>
             </div>
           </>

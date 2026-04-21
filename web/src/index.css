@@ -35,6 +35,9 @@
   --shell-glow: color-mix(in srgb, var(--accent-100) 14%, transparent);
   --body-glow-top: color-mix(in srgb, var(--accent-300) 16%, transparent);
   --body-glow-bottom: color-mix(in srgb, var(--accent-500) 9%, transparent);
+  --dark-interactive-accent-400: #5f85c2;
+  --dark-interactive-accent-500: #3f6698;
+  --dark-interactive-accent-600: #314f78;
   --sidebar-surface: linear-gradient(
     180deg,
     color-mix(in srgb, var(--surface) 98%, white 2%),
@@ -74,25 +77,29 @@
   --text-muted: #8293aa;
   --shadow-soft: 0 28px 84px rgba(3, 8, 14, 0.52);
   --shadow-card: 0 16px 40px rgba(3, 8, 14, 0.36);
-  --interactive-accent-400: #5f85c2;
-  --interactive-accent-500: #3f6698;
-  --interactive-accent-600: #314f78;
-  --interactive-soft: rgba(84, 124, 192, 0.15);
-  --interactive-border: rgba(112, 151, 216, 0.34);
-  --focus-ring: rgba(93, 140, 214, 0.28);
-  --link-color: #8fb1eb;
-  --link-hover: #b1c8f2;
-  --shell-glow: rgba(72, 102, 149, 0.12);
-  --body-glow-top: rgba(66, 95, 146, 0.18);
-  --body-glow-bottom: rgba(33, 54, 90, 0.22);
+  --interactive-accent-400: var(--dark-interactive-accent-400);
+  --interactive-accent-500: var(--dark-interactive-accent-500);
+  --interactive-accent-600: var(--dark-interactive-accent-600);
+  --interactive-soft: color-mix(in srgb, var(--interactive-accent-500) 16%, transparent);
+  --interactive-border: color-mix(in srgb, var(--interactive-accent-400) 34%, transparent);
+  --focus-ring: color-mix(in srgb, var(--interactive-accent-400) 28%, transparent);
+  --link-color: color-mix(in srgb, var(--interactive-accent-400) 80%, white 20%);
+  --link-hover: color-mix(in srgb, var(--interactive-accent-400) 66%, white 34%);
+  --shell-glow: color-mix(in srgb, var(--interactive-accent-400) 16%, transparent);
+  --body-glow-top: color-mix(in srgb, var(--interactive-accent-400) 18%, transparent);
+  --body-glow-bottom: color-mix(in srgb, var(--interactive-accent-500) 20%, transparent);
   --sidebar-surface: linear-gradient(180deg, rgba(18, 24, 32, 0.98), rgba(20, 28, 38, 0.98));
   --sidebar-user-surface: rgba(24, 32, 42, 0.94);
-  --sidebar-hover-bg: rgba(82, 120, 186, 0.14);
+  --sidebar-hover-bg: color-mix(in srgb, var(--interactive-accent-500) 14%, transparent);
   --sidebar-hover-text: #f7fbff;
-  --sidebar-active-bg: linear-gradient(135deg, #395c8b, #2b466d);
-  --sidebar-active-border: rgba(126, 163, 226, 0.38);
+  --sidebar-active-bg: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--interactive-accent-400) 88%, black 12%),
+    color-mix(in srgb, var(--interactive-accent-500) 92%, black 8%)
+  );
+  --sidebar-active-border: color-mix(in srgb, var(--interactive-accent-400) 36%, transparent);
   --sidebar-active-text: #f8fbff;
-  --sidebar-active-shadow: 0 16px 34px rgba(17, 35, 61, 0.45);
+  --sidebar-active-shadow: 0 16px 34px color-mix(in srgb, var(--interactive-accent-500) 34%, transparent);
 }
 
 html {
