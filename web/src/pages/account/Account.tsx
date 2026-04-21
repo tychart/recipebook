@@ -2,6 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useBorderTheme } from "../../context/BorderThemeContext";
+import { ThemeSelector } from "../../components/ui/ThemeSelector";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { SectionCard } from "../../components/ui/SectionCard";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { listCookbooks } from "../../api/cookbooks";
 import { listRecipes } from "../../api/recipes";
 import {
@@ -12,22 +16,22 @@ import {
 
 function fieldBox(label: string, children: ReactNode) {
   return (
-    <div className="rounded-lg border border-black/10 bg-stone-50 p-6 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-2">
+    <div className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-5">
+      <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)] mb-2">
         {label}
       </p>
-      <div className="text-lg text-black break-all">{children}</div>
+      <div className="text-lg text-[var(--text-primary)] break-all">{children}</div>
     </div>
   );
 }
 
 function statBox(label: string, display: string | number) {
   return (
-    <div className="rounded-lg border border-black/10 bg-stone-50 shadow-sm w-full h-20 px-3 flex flex-col items-center justify-center text-center">
-      <p className="text-xs font-medium uppercase tracking-wide text-stone-500 leading-tight">
+    <div className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] w-full min-h-28 px-4 py-4 flex flex-col items-center justify-center text-center">
+      <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)] leading-tight">
         {label}
       </p>
-      <p className="text-2xl font-semibold text-black mt-0.5 tabular-nums leading-none">
+      <p className="text-3xl font-semibold text-[var(--text-primary)] mt-1 tabular-nums leading-none">
         {display}
       </p>
     </div>
@@ -88,11 +92,11 @@ export default function Account() {
   if (!user) {
     return (
       <div className="py-6">
-        <p className="mb-4">Please log in to view your account details.</p>
-        <Link
-          to="/login"
-          className="text-red-500 font-medium hover:text-red-600 underline"
-        >
+        <EmptyState
+          title="Please log in to view your account."
+          description="Your account details, theme settings, and library stats will appear here once you sign in."
+        />
+        <Link to="/login" className="app-link mt-4 inline-flex font-semibold">
           Go to login
         </Link>
       </div>
@@ -100,49 +104,62 @@ export default function Account() {
   }
 
   return (
-    <div className="py-6 w-full max-w-6xl">
-      <h1 className="text-2xl font-semibold mb-6">Account Details</h1>
+    <div className="space-y-6 py-6 w-full max-w-6xl">
+      <PageHeader
+        eyebrow="Settings"
+        title="Account Details"
+        description="Manage your profile, choose how RecipeBook looks, and see a quick summary of your shared library."
+      />
 
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-8 w-full">
-        <div className="min-w-0 w-full max-w-lg flex flex-col gap-4">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <div className="space-y-6">
+          <SectionCard title="Profile">
           {fieldBox("Username", user.username)}
           {fieldBox("Email", user.email)}
+          </SectionCard>
 
-          <div className="rounded-lg border border-black/10 bg-stone-50 p-6 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-stone-500 mb-1">
-              Page border
+          <SectionCard
+            title="Theme"
+            description="Default to your system theme, or choose a dedicated light or dark experience."
+          >
+            <ThemeSelector />
+          </SectionCard>
+
+          <SectionCard
+            title="Accent palette"
+            description="Pick the warm accent color used for highlights, calls to action, and subtle decorative motifs."
+          >
+            <p className="text-xs font-medium uppercase tracking-[0.22em] text-[var(--text-muted)] mb-4">
+              Accent palette
             </p>
-            <p className="text-sm text-stone-600 mb-4">
-              Choose a gingham border color for your account page.
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {BORDER_THEME_IDS.map((id) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => setBorderTheme(id)}
-                  className={`rounded-lg border-2 p-2 flex flex-col items-center gap-2 transition ${
+                  className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-[1.5rem] border p-3 text-center transition ${
                     borderTheme === id
-                      ? "border-black ring-2 ring-black/20 ring-offset-2"
-                      : "border-black/15 hover:border-black/35"
+                      ? "border-[var(--accent-border)] bg-[var(--accent-soft)]"
+                      : "border-[var(--border-muted)] bg-[var(--surface-soft)] hover:border-[var(--border-strong)]"
                   }`}
                 >
                   <div
-                    className="h-8 w-full rounded border border-black/10"
+                    className="h-10 w-full rounded-2xl"
                     style={themePreviewSurface(id)}
                   />
-                  <span className="text-xs font-medium text-black">
+                  <span className="text-xs font-medium text-[var(--text-primary)]">
                     {BORDER_THEME_LABELS[id]}
                   </span>
                 </button>
               ))}
             </div>
-          </div>
+          </SectionCard>
         </div>
 
-        <aside className="w-full lg:w-72 shrink-0 flex flex-col gap-3">
+        <aside className="w-full shrink-0 flex flex-col gap-3">
           {statsError ? (
-            <p className="text-sm text-red-600">{statsError}</p>
+            <p className="text-sm text-rose-600 dark:text-rose-200">{statsError}</p>
           ) : null}
           {statBox(
             "Contributor cookbooks",

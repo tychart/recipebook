@@ -6,6 +6,10 @@ import { useAuth } from "../../context/AuthContext";
 import { useEffect, useRef, useState } from "react";
 import { getCookbook, listCookbooks } from "../../api/cookbooks";
 import { enqueueImageJob, enqueueTextJob, getJob } from "../../api/jobs";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { AppButton } from "../../components/ui/AppButton";
+import { StatusBanner } from "../../components/ui/StatusBanner";
+import { SectionCard } from "../../components/ui/SectionCard";
 
 type QueueNotice = {
   jobId: string;
@@ -205,55 +209,61 @@ export default function RecipeNew() {
   };
 
   return (
-    <>
-      <div className="mx-auto mb-8 flex max-w-4xl items-center justify-between">
+    <div className="space-y-6 py-6">
+      <PageHeader
+        eyebrow="Create"
+        title="New Recipe"
+        description={
+          numericCookbookId
+            ? `Adding to ${cookbook ? cookbook.name : "this cookbook"} with the new mobile-friendly recipe editor.`
+            : "Create a recipe from scratch or queue an import from text or image."
+        }
+        actions={
+          <>
+            <AppButton
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing || isDraftLoading}
+              variant="primary"
+            >
+              {isProcessing ? "Queueing..." : "Import from Image"}
+            </AppButton>
+            <AppButton
+              onClick={() => setIsTextImportOpen((prev) => !prev)}
+              disabled={isProcessing || isDraftLoading}
+            >
+              Import from Text
+            </AppButton>
+            <Link to={numericCookbookId ? `/cookbook/${numericCookbookId}` : "/cookbooks"}>
+              <AppButton variant="ghost">Cancel</AppButton>
+            </Link>
+          </>
+        }
+      />
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImageUpload}
+        className="hidden"
+        accept="image/*"
+      />
+
+      <div className="mx-auto w-full max-w-5xl">
         <div>
-          <h1 className="text-3xl font-semibold text-stone-800">New Recipe</h1>
           {numericCookbookId ? (
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Adding to: {cookbook ? cookbook.name : "Loading..."}
             </p>
           ) : (
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
               Choose a cookbook after you review the draft.
             </p>
           )}
         </div>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isProcessing || isDraftLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-amber-700 hover:bg-amber-100 disabled:opacity-50"
-          >
-            {isProcessing ? "Queueing..." : "✨ Import from Image"}
-          </button>
-          <button
-            onClick={() => setIsTextImportOpen((prev) => !prev)}
-            disabled={isProcessing || isDraftLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-stone-100 px-4 py-2 text-stone-700 hover:bg-stone-200 disabled:opacity-50"
-          >
-            Import from Text
-          </button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImageUpload}
-            className="hidden"
-            accept="image/*"
-          />
-
-          <Link
-            to={numericCookbookId ? `/cookbook/${numericCookbookId}` : "/cookbooks"}
-            className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-4 py-2 text-stone-700 transition-all duration-200 hover:bg-stone-100"
-          >
-            ← Cancel
-          </Link>
-        </div>
       </div>
 
       {queueNotice ? (
-        <div className="mx-auto mb-6 flex max-w-4xl items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
+        <div className="mx-auto max-w-5xl">
+        <StatusBanner tone="success" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-semibold">
               {queueNotice.source === "image" ? "Image import queued." : "Text import queued."}
@@ -262,72 +272,74 @@ export default function RecipeNew() {
               The request finished quickly and the background worker is processing your recipe now.
             </p>
           </div>
-          <Link
-            to="/jobs"
-            className="inline-flex items-center rounded-xl border border-emerald-300 bg-white px-4 py-2 font-semibold text-emerald-800 hover:bg-emerald-100"
-          >
-            View Jobs
+          <Link to="/jobs">
+            <AppButton variant="secondary">View Jobs</AppButton>
           </Link>
+        </StatusBanner>
         </div>
       ) : null}
 
       {draftError ? (
-        <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-          {draftError}
+        <div className="mx-auto max-w-5xl">
+          <StatusBanner tone="danger">{draftError}</StatusBanner>
         </div>
       ) : null}
 
-      <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-        <label className="mb-2 block text-sm font-medium text-stone-700">
+      <div className="mx-auto max-w-5xl">
+      <SectionCard title="Optional import notes" description="These notes help the image importer when the photo or scan needs extra context.">
+        <label className="app-label">
           Optional image import notes
         </label>
         <textarea
           value={imageImportValue}
           onChange={(event) => setImageImportValue(event.target.value)}
           placeholder="Add a missing title, clarify handwriting, or tell the importer anything the image does not show clearly..."
-          className="min-h-28 w-full rounded-xl border border-amber-200 bg-white px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
+          className="app-textarea"
         />
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="mt-2 text-xs text-[var(--text-muted)]">
           These notes are sent only during image extraction and are preserved in the job metadata for debugging.
         </p>
+      </SectionCard>
       </div>
 
       {isTextImportOpen ? (
-        <div className="mx-auto mb-8 max-w-4xl rounded-2xl border border-stone-200 bg-stone-50 p-4">
-          <label className="mb-2 block text-sm font-medium text-stone-700">
+        <div className="mx-auto max-w-5xl">
+        <SectionCard title="Paste recipe text" description="Queue a text import from a blog excerpt, transcription, or copied recipe card.">
+          <label className="app-label">
             Paste recipe text
           </label>
           <textarea
             value={textImportValue}
             onChange={(event) => setTextImportValue(event.target.value)}
             placeholder="Paste a recipe, blog excerpt, or handwritten transcription here..."
-            className="min-h-48 w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
+            className="app-textarea min-h-48"
           />
           <div className="mt-3 flex gap-3">
-            <button
+            <AppButton
               onClick={handleTextImport}
               disabled={isProcessing || !textImportValue.trim()}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-white hover:bg-amber-600 disabled:opacity-50"
+              variant="primary"
             >
               {isProcessing ? "Queueing..." : "Queue Text Import"}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               onClick={() => {
                 setIsTextImportOpen(false);
                 setTextImportValue("");
               }}
               disabled={isProcessing}
-              className="inline-flex items-center gap-2 rounded-xl border border-stone-300 px-4 py-2 text-stone-700 hover:bg-stone-100 disabled:opacity-50"
             >
               Cancel
-            </button>
+            </AppButton>
           </div>
+        </SectionCard>
         </div>
       ) : null}
 
       {!numericCookbookId ? (
-        <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-stone-200 bg-white/80 px-5 py-4 shadow-sm">
-          <label className="mb-2 block text-sm font-medium text-stone-700">
+        <div className="mx-auto max-w-5xl">
+        <SectionCard title="Save destination" description="Pick the cookbook that should own this new recipe.">
+          <label className="app-label">
             Save to cookbook
           </label>
           <select
@@ -338,7 +350,7 @@ export default function RecipeNew() {
                 cookbook_id: Number(event.target.value),
               }))
             }
-            className="w-full rounded-xl border border-stone-300 bg-stone-50 px-4 py-3 text-stone-800 focus:outline-none focus:ring-2 focus:ring-amber-200"
+            className="app-select"
           >
             <option value={0}>Select a cookbook</option>
             {availableCookbooks.map((book) => (
@@ -347,24 +359,27 @@ export default function RecipeNew() {
               </option>
             ))}
           </select>
+        </SectionCard>
         </div>
       ) : null}
 
       {importedRawText ? (
-        <div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-stone-200 bg-white/80 px-5 py-4 shadow-sm">
+        <div className="mx-auto max-w-5xl">
+        <SectionCard title="Imported recipe text" description="Use the original extracted text to compare against the generated draft.">
           <details>
-            <summary className="cursor-pointer text-sm font-semibold text-stone-700">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
               View imported recipe text
             </summary>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-xl bg-stone-50 p-4 text-xs whitespace-pre-wrap text-stone-700">
+            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-4 text-xs whitespace-pre-wrap text-[var(--text-secondary)]">
               {importedRawText}
             </pre>
           </details>
+        </SectionCard>
         </div>
       ) : null}
 
       {isDraftLoading ? (
-        <p className="mx-auto mb-6 max-w-4xl text-sm text-stone-500">Loading completed job draft...</p>
+        <p className="mx-auto max-w-5xl text-sm text-[var(--text-secondary)]">Loading completed job draft...</p>
       ) : null}
 
       <RecipeForm
@@ -374,6 +389,6 @@ export default function RecipeNew() {
         submitLabel="Create Recipe"
         categories={cookbook?.categories}
       />
-    </>
+    </div>
   );
 }

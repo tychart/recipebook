@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { Recipe, RecipeInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
 import { getRecipe, updateRecipe } from "../../api/recipes";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { AppButton } from "../../components/ui/AppButton";
 
 export default function RecipeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -31,9 +33,9 @@ export default function RecipeEdit() {
 
 
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
-  if (!recipe) return <p>Recipe not found</p>;
+  if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading recipe...</p>;
+  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (!recipe) return <p className="py-6 text-sm text-[var(--text-secondary)]">Recipe not found</p>;
 
   // Backend returns instructions as array of { instruction_number, instruction_text }; form expects string[]
   const instructionsArr = Array.isArray(recipe.instructions)
@@ -77,11 +79,17 @@ export default function RecipeEdit() {
   };
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-8 max-w-4xl mx-auto">
-        <h1 className="text-3xl font-semibold">Edit Recipe</h1>
-        <Link to={`/recipe/${id}`}>Cancel</Link>
-      </div>
+    <div className="space-y-6 py-6">
+      <PageHeader
+        eyebrow="Edit"
+        title="Edit Recipe"
+        description="Update the recipe details, ingredients, and instructions without changing how the recipe behaves elsewhere in the app."
+        actions={
+          <Link to={`/recipe/${id}`}>
+            <AppButton>Cancel</AppButton>
+          </Link>
+        }
+      />
 
       <RecipeForm
         initialData={recipeInput}
@@ -89,6 +97,6 @@ export default function RecipeEdit() {
         submitLabel="Save Changes"
         categories={undefined}
       />
-    </>
+    </div>
   );
 }

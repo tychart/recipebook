@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { getCookbook, editCookbook } from "../../api/cookbooks";
 import type { Cookbook } from "../../../types/types";
 import CookbookForm from "../../components/CookbookForm";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { AppButton } from "../../components/ui/AppButton";
 
 export default function CookbookEdit() {
   const { id } = useParams<{ id: string }>();
@@ -49,21 +51,22 @@ export default function CookbookEdit() {
   }
 };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
-  if (!cookbook) return <p>Cookbook not found</p>;
+  if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading cookbook...</p>;
+  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (!cookbook) return <p className="py-6 text-sm text-[var(--text-secondary)]">Cookbook not found</p>;
 
   return (
-    <div className="py-6 max-w-lg mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Edit Cookbook</h1>
-        <Link
-          to={`/cookbook/${id}`}
-          className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
-        >
-          Cancel
-        </Link>
-      </div>
+    <div className="py-6 max-w-4xl mx-auto space-y-6">
+      <PageHeader
+        eyebrow="Edit"
+        title="Edit Cookbook"
+        description="Update the cookbook name or categories without changing its recipes or sharing rules."
+        actions={
+          <Link to={`/cookbook/${id}`}>
+            <AppButton>Cancel</AppButton>
+          </Link>
+        }
+      />
 
       <CookbookForm
         initialData={cookbook}

@@ -5,15 +5,13 @@ import Sidebar from "./Sidebar";
 import { SidebarContent } from "./SidebarContent";
 import { SidebarShell } from "./SidebarShell";
 import { useAuth } from "../context/AuthContext";
-import { useBorderTheme } from "../context/BorderThemeContext";
-import { sidebarTitleLinkClasses } from "../theme/borderTheme";
+import Logo from "./Logo";
 
 /** Matches mobile header height for backdrop / drawer offset */
-const MOBILE_HEADER_TOP_CLASS = "top-14";
+const MOBILE_HEADER_TOP_CLASS = "top-[5.25rem]";
 
 export default function Layout() {
   const { user } = useAuth();
-  const { borderTheme } = useBorderTheme();
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -42,11 +40,11 @@ export default function Layout() {
 
   if (user) {
     return (
-      <div className="relative flex min-h-0 w-full flex-1 flex-col md:flex-row">
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-stone-300/50 bg-[#eee9e0] px-2 no-print md:hidden">
+      <div className="relative flex min-h-0 w-full flex-1 flex-col gap-4 p-3 md:flex-row md:p-4">
+        <header className="app-panel no-print flex min-h-[4.75rem] shrink-0 items-center gap-3 px-3 py-2 md:hidden">
           <button
             type="button"
-            className="-m-2 w-auto shrink-0 rounded-md p-2 text-stone-800 hover:bg-stone-200/80"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] text-[var(--text-primary)]"
             aria-expanded={mobileNavOpen}
             aria-controls="mobile-nav-drawer"
             aria-label={
@@ -60,21 +58,14 @@ export default function Layout() {
               <Menu className="size-6" strokeWidth={2} aria-hidden />
             )}
           </button>
-          <Link
-            to="/"
-            className={`min-w-0 flex-1 truncate text-center text-2xl font-semibold tracking-tight transition ${sidebarTitleLinkClasses[borderTheme]}`}
-          >
-            RecipeBook
+          <Link to="/" className="min-w-0 flex-1">
+            <Logo size="medium" />
           </Link>
-          <div
-            className="hidden w-10 shrink-0 min-[450px]:block"
-            aria-hidden
-          />
         </header>
 
         <Sidebar />
 
-        <main className="min-h-min min-w-0 flex-1 p-4 md:p-8">
+        <main className="min-h-min min-w-0 flex-1 p-1 sm:p-2 md:p-3">
           <Outlet />
         </main>
 
@@ -92,7 +83,7 @@ export default function Layout() {
               aria-modal="true"
               aria-label="Navigation menu"
             >
-              <SidebarShell className="h-full w-[min(18rem,100%)] overflow-y-auto rounded-none shadow-2xl">
+              <SidebarShell className="h-full w-[min(20rem,100%)] overflow-y-auto rounded-r-[1.75rem] rounded-l-none shadow-2xl">
                 <SidebarContent onNavigate={() => setMobileNavOpen(false)} />
               </SidebarShell>
             </div>
@@ -103,8 +94,8 @@ export default function Layout() {
   }
 
   return (
-    <div className="flex min-h-0 w-full flex-1 items-center justify-center p-8">
-      <div className="w-full max-w-md">
+    <div className="flex min-h-0 w-full flex-1 items-center justify-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-6xl">
         <Outlet />
       </div>
     </div>

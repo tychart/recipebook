@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Ingredient, RecipeInput } from "../../../types/types";
 import RecipeImage from "./RecipeImage";
+import { AppButton } from "../ui/AppButton";
+import { SectionCard } from "../ui/SectionCard";
 
 interface RecipeFormProps {
   initialData: RecipeInput;
@@ -118,9 +120,8 @@ export default function RecipeForm({
 
 
   return (
-    <div className="py-10 max-w-4xl mx-auto">
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm p-8 border border-stone-200 space-y-8">
-        {/* Image */}
+    <div className="py-6 max-w-5xl mx-auto">
+      <div className="space-y-6">
         <RecipeImage
           imageUrl={recipe.image_url}
           editable
@@ -151,44 +152,37 @@ export default function RecipeForm({
           }}
         />
 
-        {/* Name */}
-        <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Recipe Name
-          </label>
+        <SectionCard title="Recipe details" description="Capture the headline information people need before they start cooking.">
+          <div className="grid gap-5 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <label className="app-label">Recipe Name</label>
           <input
             type="text"
             name="name"
             value={recipe.name}
             onChange={handleChange}
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-input"
           />
         </div>
 
-        {/* Description */}
-        <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Description
-          </label>
+        <div className="md:col-span-2">
+          <label className="app-label">Description</label>
           <textarea
             name="description"
             value={recipe.description ?? ""}
             onChange={handleChange}
             rows={3}
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-textarea"
           />
         </div>
 
-        {/* Category */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Category
-          </label>
+          <label className="app-label">Category</label>
           <select
             name="category"
             value={recipe.category || ""}
             onChange={handleChange}
-            className="w-48 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-select"
           >
             <option value="" disabled>
               Select a category
@@ -201,54 +195,48 @@ export default function RecipeForm({
           </select>
         </div>
 
-        {/* Tags */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Tags (comma separated)
-          </label>
+          <label className="app-label">Tags (comma separated)</label>
           <input
             type="text"
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             placeholder="e.g. gluten-free, quick"
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-input"
           />
         </div>
 
-        {/* Servings */}
         <div>
-          <label className="block mb-2 font-medium text-stone-700">
-            Servings
-          </label>
+          <label className="app-label">Servings</label>
           <input
             type="number"
             name="servings"
             min="0"
             value={recipe.servings}
             onChange={handleChange}
-            className="w-32 p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-input max-w-32"
           />
         </div>
+          </div>
+        </SectionCard>
 
-        {/* Ingredients */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-stone-800">
-              Ingredients
-            </h2>
-
-            <button
+        <SectionCard
+          title="Ingredients"
+          description="List the ingredients in a way that stays easy to scan on a phone or tablet."
+          actions={
+            <AppButton
               type="button"
               onClick={handleAddIngredient}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold hover:bg-amber-600 transition"
+              variant="primary"
             >
-              +
-            </button>
-          </div>
+              Add Ingredient
+            </AppButton>
+          }
+        >
 
           <div className="space-y-3">
             {recipe.ingredients.map((ingredient, index) => (
-              <div key={index} className="flex gap-3 items-center">
+              <div key={index} className="grid gap-3 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4 md:grid-cols-[7rem_8rem_minmax(0,1fr)_auto] md:items-center">
                 <input
                   type="number"
                   min="0"
@@ -261,7 +249,7 @@ export default function RecipeForm({
                     )
                   }
                   placeholder="Amount"
-                  className="w-24 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+                  className="app-input"
                 />
 
                 <input
@@ -271,7 +259,7 @@ export default function RecipeForm({
                     handleIngredientChange(index, "unit", e.target.value)
                   }
                   placeholder="Unit"
-                  className="w-28 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+                  className="app-input"
                 />
 
                 <input
@@ -281,47 +269,41 @@ export default function RecipeForm({
                     handleIngredientChange(index, "name", e.target.value)
                   }
                   placeholder="Ingredient"
-                  className="flex-1 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+                  className="app-input"
                 />
 
-                <button
-                  type="button"
-                  onClick={() => handleRemoveIngredient(index)}
-                  className="text-red-500 hover:text-red-700 text-xl"
-                >
-                  ×
-                </button>
+                <AppButton type="button" variant="ghost" onClick={() => handleRemoveIngredient(index)}>
+                  Remove
+                </AppButton>
               </div>
             ))}
 
             {recipe.ingredients.length === 0 && (
-              <p className="text-stone-400 text-sm">
+              <p className="text-sm text-[var(--text-muted)]">
                 Click + to add your first ingredient
               </p>
             )}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Instructions */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-stone-800">
-              Instructions
-            </h2>
-
-            <button
+        <SectionCard
+          title="Instructions"
+          description="Break the method into simple steps that stay comfortable to edit from smaller devices."
+          actions={
+            <AppButton
               type="button"
               onClick={handleAddInstruction}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-amber-500 text-black font-bold hover:bg-amber-600 transition"
+              variant="primary"
             >
-              +
-            </button>
-          </div>
+              Add Step
+            </AppButton>
+          }
+        >
 
           <div className="space-y-3">
             {(recipe.instructions ?? []).map((step, index) => (
-              <div key={index} className="flex gap-3 items-center">
-                <span className="text-stone-500 font-medium w-8 shrink-0">
+              <div key={index} className="grid gap-3 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:items-center">
+                <span className="flex size-9 items-center justify-center rounded-full bg-[var(--accent-soft)] font-medium text-[var(--text-primary)]">
                   {index + 1}.
                 </span>
                 <input
@@ -331,47 +313,38 @@ export default function RecipeForm({
                     handleInstructionChange(index, e.target.value)
                   }
                   placeholder={`Step ${index + 1}`}
-                  className="flex-[3] min-w-0 p-2 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+                  className="app-input"
                 />
 
-                <button
-                  type="button"
-                  onClick={() => handleRemoveInstruction(index)}
-                  className="flex-1 text-red-500 hover:text-red-700 text-xl min-w-0 flex items-center justify-center"
-                >
-                  ×
-                </button>
+                <AppButton type="button" variant="ghost" onClick={() => handleRemoveInstruction(index)}>
+                  Remove
+                </AppButton>
               </div>
             ))}
 
             {(recipe.instructions ?? []).length === 0 && (
-              <p className="text-stone-400 text-sm">
+              <p className="text-sm text-[var(--text-muted)]">
                 Click + to add your first instruction
               </p>
             )}
           </div>
-        </div>
+        </SectionCard>
 
-        {/* Notes */}
-        <div>
-          <label className="block mb-2 font-medium text-stone-700">Notes</label>
+        <SectionCard title="Notes" description="Optional notes are great for family tweaks, substitutions, or serving reminders.">
+          <label className="app-label">Notes</label>
           <textarea
             name="notes"
             value={recipe.notes ?? ""}
             onChange={handleChange}
             rows={3}
-            className="w-full p-3 rounded-lg border border-stone-300 bg-stone-50 focus:ring-2 focus:ring-amber-300"
+            className="app-textarea"
           />
-        </div>
+        </SectionCard>
 
-        <div className="pt-4">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="px-6 py-3 rounded-xl bg-amber-500 text-black font-medium hover:bg-amber-600 transition shadow-sm"
-          >
+        <div className="pt-2">
+          <AppButton type="button" onClick={handleSubmit} variant="primary">
             {submitLabel}
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>

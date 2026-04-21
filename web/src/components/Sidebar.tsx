@@ -8,7 +8,7 @@ export default function Sidebar() {
   if (!user) return null;
 
   return (
-    <SidebarShell className="hidden w-64 self-stretch rounded-lg md:flex">
+    <SidebarShell className="hidden w-72 self-stretch md:flex">
       <SidebarContent />
     </SidebarShell>
   );

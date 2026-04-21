@@ -1,100 +1,247 @@
 @import "tailwindcss";
 
 :root {
-  /* Gingham “frame”: inset from viewport where the tiled body background shows */
-  --page-edge-padding: 0px;
-  /* Inner cream panel — 45px ≈ three 15px gingham half-cells across the frame strip */
-  --content-outer-margin: 45px;
-  /* Matches #root: use this instead of min-h-screen (100vh) so framed layout doesn’t overflow */
-  --app-main-min-height: calc(
-    100vh - 2 * var(--content-outer-margin) - 2 * var(--page-edge-padding)
-  );
-
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: "Inter", "Avenir Next", "Segoe UI", sans-serif;
+  --app-bg: #f8f2e8;
+  --app-bg-strong: #f2e5d1;
+  --panel: rgba(255, 252, 247, 0.82);
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-soft: rgba(255, 255, 255, 0.64);
+  --surface-muted: rgba(136, 108, 74, 0.08);
+  --border-muted: rgba(93, 70, 45, 0.15);
+  --border-strong: rgba(93, 70, 45, 0.24);
+  --text-primary: #211710;
+  --text-secondary: #5d4634;
+  --text-muted: #866b55;
+  --shadow-soft: 0 24px 70px rgba(113, 64, 23, 0.12);
+  --shadow-card: 0 16px 42px rgba(113, 64, 23, 0.1);
+  --accent-50: #fff1ea;
+  --accent-100: #ffd8c8;
+  --accent-300: #f19b74;
+  --accent-500: #cb5c35;
+  --accent-600: #ac421c;
+  --accent-700: #903316;
+  --accent-soft: color-mix(in srgb, var(--accent-300) 18%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent-500) 38%, white);
+  font-family: var(--font-body);
+  font-synthesis: none;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: light;
-  color: #213547;
-  background-color: #eee9e0;
-
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme="dark"] {
+  --app-bg: #18130f;
+  --app-bg-strong: #231a14;
+  --panel: rgba(34, 25, 19, 0.9);
+  --surface: rgba(41, 31, 24, 0.86);
+  --surface-soft: rgba(37, 28, 22, 0.72);
+  --surface-muted: rgba(255, 225, 201, 0.06);
+  --border-muted: rgba(255, 228, 204, 0.14);
+  --border-strong: rgba(255, 228, 204, 0.22);
+  --text-primary: #f8efe4;
+  --text-secondary: #d8c6b4;
+  --text-muted: #b49a86;
+  --shadow-soft: 0 28px 90px rgba(0, 0, 0, 0.45);
+  --shadow-card: 0 18px 54px rgba(0, 0, 0, 0.36);
+  --accent-50: #301810;
+  --accent-100: #4b2415;
+  --accent-300: #d48d67;
+  --accent-500: #f0a278;
+  --accent-600: #f5b38f;
+  --accent-700: #ffd0b5;
+  --accent-soft: color-mix(in srgb, var(--accent-500) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent-500) 30%, white);
+}
+
 html {
+  min-height: 100%;
+  background: var(--app-bg);
   box-sizing: border-box;
-  min-height: 100vh;
-  min-height: 100dvh;
   overflow-x: hidden;
 }
 
 body {
-  margin: 0;
-  display: flow-root; /* prevents margin collapse with #root so the gingham ring stays even */
   min-height: 100vh;
   min-height: 100dvh;
-  box-sizing: border-box;
-
-  padding: var(--page-edge-padding);
-
-  background-color: #eee9e0; /* main page color */
-  /* Default red gingham (2-yarn check); JS theme overwrites to match picker */
-  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2230%22%20height%3D%2230%22%3E%3Crect%20x%3D%220%22%20y%3D%220%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%220%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23d95950%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%2215%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23d95950%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%2215%22%20width%3D%2215%22%20height%3D%2215%22%20fill%3D%22%23ad1003%22%2F%3E%3C%2Fsvg%3E");
-  background-size: 30px 30px;
-  /* Integer tile count in the painting area; scrolls with page so the frame ends with content */
-  background-repeat: round;
-  background-attachment: scroll;
-  background-position: 0 0;
+  margin: 0;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--accent-300) 20%, transparent), transparent 32%),
+    radial-gradient(circle at bottom right, color-mix(in srgb, var(--accent-500) 12%, transparent), transparent 30%),
+    linear-gradient(180deg, var(--app-bg), var(--app-bg-strong));
+  color: var(--text-primary);
 }
 
-@supports (height: 100dvh) {
-  :root {
-    --app-main-min-height: calc(
-      100dvh - 2 * var(--content-outer-margin) - 2 * var(--page-edge-padding)
-    );
-  }
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  color: inherit;
 }
 
-@layer base {
-  button {
-    @apply block w-full px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer;
-  }
+img {
+  display: block;
+  max-width: 100%;
 }
 
-/* button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #f9f9f9;
-  cursor: pointer;
-  transition: border-color 0.25s;
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
-
-button:hover {
-  border-color: #f83434;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-} */
 
 button:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Native search clear button: show pointer on hover */
-input[type="search"]::-webkit-search-cancel-button {
-  cursor: pointer;
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+@layer components {
+  .app-shell-surface {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--panel) 100%, transparent), color-mix(in srgb, var(--surface) 100%, transparent)),
+      linear-gradient(135deg, color-mix(in srgb, var(--accent-100) 12%, transparent), transparent 28%);
+    border: 1px solid var(--border-muted);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(22px);
+  }
+
+  .app-panel {
+    @apply rounded-[1.75rem] p-5 sm:p-6;
+    background: var(--surface);
+    border: 1px solid var(--border-muted);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(18px);
+  }
+
+  .app-card {
+    @apply rounded-[1.75rem] transition;
+    background: var(--surface);
+    border: 1px solid var(--border-muted);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(18px);
+  }
+
+  .app-button {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition duration-200;
+    width: auto;
+    border: 1px solid transparent;
+  }
+
+  .app-button-primary {
+    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+    color: white;
+    border-color: color-mix(in srgb, var(--accent-700) 40%, transparent);
+    box-shadow: 0 18px 32px color-mix(in srgb, var(--accent-500) 24%, transparent);
+  }
+
+  .app-button-primary:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+  }
+
+  .app-button-secondary {
+    background: var(--surface-soft);
+    color: var(--text-primary);
+    border-color: var(--border-muted);
+  }
+
+  .app-button-secondary:hover:not(:disabled),
+  .app-button-ghost:hover:not(:disabled) {
+    background: var(--surface-muted);
+    border-color: var(--border-strong);
+  }
+
+  .app-button-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--border-muted);
+  }
+
+  .app-button-danger {
+    background: color-mix(in srgb, #e11d48 14%, var(--surface));
+    color: #be123c;
+    border-color: color-mix(in srgb, #e11d48 26%, transparent);
+  }
+
+  :root[data-theme="dark"] .app-button-danger {
+    color: #fecdd3;
+  }
+
+  .app-input,
+  .app-select,
+  .app-textarea {
+    @apply w-full rounded-2xl px-4 py-3 text-sm transition outline-none;
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    color: var(--text-primary);
+    border: 1px solid var(--border-muted);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .app-textarea {
+    @apply min-h-32 resize-y;
+  }
+
+  .app-input::placeholder,
+  .app-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .app-input:focus,
+  .app-select:focus,
+  .app-textarea:focus {
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-500) 12%, transparent);
+  }
+
+  .app-label {
+    @apply mb-2 block text-xs font-semibold uppercase tracking-[0.24em];
+    color: var(--text-muted);
+  }
+
+  .app-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.32em];
+    color: var(--accent-600);
+  }
+
+  .app-tag {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium;
+    background: color-mix(in srgb, var(--accent-300) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-500) 16%, transparent);
+    color: var(--text-secondary);
+  }
+
+  .app-link {
+    @apply transition;
+    color: var(--accent-600);
+  }
+
+  .app-link:hover {
+    color: var(--accent-700);
+  }
+
+  .app-pattern {
+    background-image:
+      linear-gradient(135deg, color-mix(in srgb, var(--accent-300) 18%, transparent) 25%, transparent 25%),
+      linear-gradient(225deg, color-mix(in srgb, var(--accent-300) 18%, transparent) 25%, transparent 25%);
+    background-size: 18px 18px;
+    background-position: 0 0, 9px 9px;
+  }
+}
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
 }

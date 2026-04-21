@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { listCookbooks } from "../../api/cookbooks";
 import { useAuth } from "../../context/AuthContext";
-import { useBorderTheme } from "../../context/BorderThemeContext";
 import type { Cookbook } from "../../../types/types";
-import { sidebarActiveNavClasses } from "../../theme/borderTheme";
+import { AppButton } from "../ui/AppButton";
 
 interface CopyRecipeDialogProps {
   recipeId: number;
@@ -18,7 +17,6 @@ export default function CopyRecipeDialog({
   onCopy,
 }: CopyRecipeDialogProps) {
   const { user } = useAuth();
-  const { borderTheme } = useBorderTheme();
   const [availableCookbooks, setAvailableCookbooks] = useState<Cookbook[]>([]);
   const [selectedCookbookId, setSelectedCookbookId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,30 +58,30 @@ export default function CopyRecipeDialog({
 
   if (!isOpen) return null;
 
-  const primaryButtonClass = sidebarActiveNavClasses[borderTheme];
-
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-      <div className="bg-white border border-black rounded-[10px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+      <div className="app-panel max-h-[90vh] w-full max-w-md overflow-y-auto">
         
         <div className="mb-6">
-          <h3 className="text-2xl font-semibold leading-tight">Copy Recipe</h3>
+          <h3 className="font-[var(--font-display)] text-2xl font-semibold leading-tight text-[var(--text-primary)]">
+            Copy Recipe
+          </h3>
         </div>
 
         <div className="space-y-6">
-          <p className="text-gray-600">
+          <p className="text-[var(--text-secondary)]">
             Select a cookbook to copy this recipe to:
           </p>
 
           <div>
-            <label className="block text-xs uppercase tracking-wide font-bold mb-2 text-stone-500">
+            <label className="app-label">
               Destination Cookbook
             </label>
             <select
               value={selectedCookbookId}
               onChange={(e) => setSelectedCookbookId(e.target.value)}
               disabled={cookbooksLoading || loading}
-              className="w-full h-11 rounded-md border border-black bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-black/10 disabled:opacity-50 appearance-none transition-all cursor-pointer"
+              className="app-select cursor-pointer appearance-none disabled:opacity-50"
               style={{ 
                 backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")', 
                 backgroundRepeat: 'no-repeat', 
@@ -104,24 +102,24 @@ export default function CopyRecipeDialog({
             </select>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 pt-2">
-            <button
+            <AppButton
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 px-4 py-2 rounded-md text-sm font-medium transition border border-black bg-white text-black hover:bg-stone-100 disabled:opacity-50"
+              className="flex-1 justify-center"
             >
               Cancel
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               type="button"
               onClick={handleCopy}
               disabled={!selectedCookbookId || loading || cookbooksLoading}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition border disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${primaryButtonClass}`}
+              variant="primary"
+              className="flex-1 justify-center"
             >
               {loading ? "Copying..." : "Copy Recipe"}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>

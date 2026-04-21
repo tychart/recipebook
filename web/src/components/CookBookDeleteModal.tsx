@@ -2,6 +2,7 @@ import {
   deleteCookbook
 } from "../api/cookbooks";
 import { useNavigate } from "react-router-dom";
+import { AppButton } from "./ui/AppButton";
 
 type CookBookDeleteModalProps = {
   cookbookId: string;
@@ -25,36 +26,30 @@ export default function CookBookDeleteModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[#EEE9E0] dark:bg-gray-800 rounded-xl p-6 w-full max-w-xl shadow-lg"
+        className="app-panel w-full max-w-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-xl font-semibold mb-4 text-red-500 text-center">
+        <h2 className="mb-4 text-center font-[var(--font-display)] text-2xl font-semibold text-rose-600 dark:text-rose-200">
           Are you sure you want to delete this cookbook?
         </h2>
 
         <div className="flex flex-col items-center text-center">
-          <p className="mb-4 font-bold">
+          <p className="mb-6 text-sm font-medium leading-6 text-[var(--text-secondary)]">
             Deleting this cookbook will also delete all recipes in this cookbook. This action is not reversible.
           </p>
 
           <div className="flex gap-4 w-full">
-            <button
-              onClick={deleteCookbookModal}
-              className="px-4 py-2 w-full bg-red-500 text-white rounded-lg"
-            >
+            <AppButton onClick={deleteCookbookModal} variant="danger" className="w-full justify-center">
               Delete anyways
-            </button>
+            </AppButton>
 
-            <button
-              onClick={onClose}
-              className="px-4 py-2 w-full border rounded-lg"
-            >
+            <AppButton onClick={onClose} className="w-full justify-center">
               Cancel
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>

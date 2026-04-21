@@ -23,25 +23,25 @@ export default function RecipeImage({
 
   return (
     <div className="space-y-4 mb-6">
-      <div className="relative w-full min-h-48 max-h-80 overflow-hidden rounded-xl border border-stone-300 bg-stone-100 flex items-center justify-center">
+      <div className="relative flex min-h-64 max-h-[28rem] w-full items-center justify-center overflow-hidden rounded-[1.75rem] border border-[var(--border-muted)] bg-[var(--surface-soft)]">
         {preview ? (
           <img
             src={preview}
             alt={alt}
-            className="w-full max-h-80 object-contain rounded-xl"
+            className="h-full w-full object-cover"
           />
         ) : (
-          <span className="text-stone-400 text-center">
+          <span className="px-6 text-center text-sm text-[var(--text-muted)]">
             No image selected
           </span>
         )}
 
         {editable && (
-          <div className="absolute bottom-3 right-3 flex gap-2">
+          <div className="absolute bottom-4 right-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onEditClick}
-              className="px-3 py-1 text-sm bg-red-500 text-black rounded-lg shadow hover:bg-red-600"
+              className="app-button app-button-primary"
             >
               {preview ? "Edit" : "Add Image"}
             </button>
@@ -50,7 +50,7 @@ export default function RecipeImage({
               <button
                 type="button"
                 onClick={onRemoveClick}
-                className="px-3 py-1 text-sm bg-red-500 text-black rounded-lg shadow hover:bg-red-600"
+                className="app-button app-button-ghost"
               >
                 Remove
               </button>

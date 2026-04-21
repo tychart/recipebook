@@ -5,9 +5,7 @@ import {
   removeCookbookUser,
 } from "../api/cookbooks";
 import type { Cookbook as CookbookType } from "../../types/types";
-import { useBorderTheme } from "../context/BorderThemeContext";
-import { sidebarActiveNavClasses } from "../theme/borderTheme";
-
+import { AppButton } from "./ui/AppButton";
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -25,9 +23,6 @@ export default function CookbookShareModal({
   const [viewersInput, setViewersInput] = useState("");
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
   const [, setLoading] = useState(true);
-
-  const { borderTheme } = useBorderTheme();
-  const primaryButtonClass = sidebarActiveNavClasses[borderTheme];
 
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
 
@@ -136,14 +131,16 @@ export default function CookbookShareModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="bg-white border border-black rounded-xl p-6 w-full max-w-xl shadow-xl"
+        className="app-panel w-full max-w-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-2xl font-semibold mb-6">Manage Cookbook Access</h2>
+        <h2 className="mb-6 font-[var(--font-display)] text-2xl font-semibold text-[var(--text-primary)]">
+          Manage Cookbook Access
+        </h2>
 
         <div className="flex flex-col items-center">
           <div
@@ -153,15 +150,12 @@ export default function CookbookShareModal({
             <input
               readOnly
               value={shareUrl}
-              className="flex-1 h-11 rounded-lg px-4 py-2 border border-black/10 bg-stone-50 focus:outline-none"
+              className="app-input flex-1"
             />
 
-            <button 
-              onClick={copyLink} 
-              className={`px-4 py-2 w-auto rounded-lg font-medium transition border shadow-sm ${primaryButtonClass}`}
-            >
+            <AppButton onClick={copyLink} variant="primary">
               {linkCopied ? "Link Copied!" : "Copy Link"}
-            </button>
+            </AppButton>
           </div>
 
           <div
@@ -169,18 +163,18 @@ export default function CookbookShareModal({
             className="flex flex-col space-x-0 w-full mb-6"
           >
             <div className="w-full">
-              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                 Users with Contributor Access:
               </p>
               {addedContributors.map((email) => (
                 <div
                   key={email}
-                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
+                  className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] p-3"
                 >
                   <span className="text-sm">{email}</span>
                   <button
                     onClick={() => removeContributor(email)}
-                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
+                    className="w-auto text-sm font-bold uppercase text-rose-600 transition-colors hover:text-rose-700 dark:text-rose-200"
                   >
                     Remove
                   </button>
@@ -194,12 +188,12 @@ export default function CookbookShareModal({
                 placeholder="Add email addresses"
                 value={contributorsInput}
                 onChange={(e) => setContributorsInput(e.target.value)}
-                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
+                className="app-input flex-1"
               />
 
-              <button
+              <AppButton
                 onClick={addContributor}
-                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
+                variant="primary"
                 disabled={
                   !contributorsInput ||
                   addedContributors.includes(contributorsInput) ||
@@ -207,7 +201,7 @@ export default function CookbookShareModal({
                 }
               >
                 Add User
-              </button>
+              </AppButton>
             </div>
           </div>
 
@@ -216,18 +210,18 @@ export default function CookbookShareModal({
             className="flex flex-col space-x-0 w-full mb-6"
           >
             <div className="w-full">
-              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
                 Users with Viewer Access:
               </p>
               {addedViewers.map((email) => (
                 <div
                   key={email}
-                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
+                  className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] p-3"
                 >
                   <span className="text-sm">{email}</span>
                   <button
                     onClick={() => removeViewer(email)}
-                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
+                    className="w-auto text-sm font-bold uppercase text-rose-600 transition-colors hover:text-rose-700 dark:text-rose-200"
                   >
                     Remove
                   </button>
@@ -241,12 +235,12 @@ export default function CookbookShareModal({
                 placeholder="Add email addresses"
                 value={viewersInput}
                 onChange={(e) => setViewersInput(e.target.value)}
-                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
+                className="app-input flex-1"
               />
 
-              <button
+              <AppButton
                 onClick={addViewer}
-                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
+                variant="primary"
                 disabled={
                   !viewersInput ||
                   addedViewers.includes(viewersInput) ||
@@ -254,16 +248,13 @@ export default function CookbookShareModal({
                 }
               >
                 Add User
-              </button>
+              </AppButton>
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 border border-black rounded-lg mt-4 bg-white text-black hover:bg-stone-100 transition font-medium"
-          >
+          <AppButton onClick={onClose} className="mt-4 w-full justify-center">
             Close
-          </button>
+          </AppButton>
         </div>
       </div>
     </div>

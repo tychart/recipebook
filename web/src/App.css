@@ -1,107 +1,47 @@
-#root {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  margin: var(--content-outer-margin);
-  /* auto = fill between margins; avoids subpixel gap vs calc(100% − margins) + fixed bg */
-  width: auto;
-  min-height: var(--app-main-min-height);
-  padding: 2rem;
-  /* text-align: center; */
-  background-color: #eee9e0;
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 0.9rem;
 }
 
-/*
- * flex-basis: auto (not 0) so this column grows with page content; body + gingham extend with scroll.
- * flex-basis: 0 + min-height: 0 trapped scroll inside this flex area at ~viewport height.
- */
-.app-shell {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  width: 100%;
+@media (min-width: 640px) {
+  .app-shell {
+    padding: 1.25rem;
+  }
 }
 
 .routes-root {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  width: 100%;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  min-height: calc(100vh - 1.8rem);
+  min-height: calc(100dvh - 1.8rem);
+  border-radius: 2rem;
+  overflow: clip;
 }
 
 @media print {
-  /* Hide interactive UI */
   .no-print {
     display: none !important;
   }
 
-  /* Show print-only elements */
   .print\\:block {
     display: block !important;
   }
 
-  /* Reset page */
   body {
     background: white !important;
     color: black !important;
     font-family: serif;
   }
 
-  /* Layout */
   .print-container {
     max-width: 700px;
     margin: 0 auto;
     padding: 0;
   }
 
-  /* Remove card styles */
-  .bg-white {
-    border: none !important;
-    padding: 0 !important;
-  }
-
-  /* Stack instead of grid */
   .grid {
     display: block !important;
   }
 
-  /* Typography */
   h1 {
     font-size: 26px;
     margin-bottom: 10px;
@@ -120,7 +60,6 @@
     padding-left: 20px;
   }
 
-  /* Prevent awkward page breaks */
   h1,
   h2 {
     page-break-after: avoid;

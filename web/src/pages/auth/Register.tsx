@@ -5,7 +5,6 @@ import FormRow from "../../components/FormRow";
 import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import "../../style/Register.css";
 import Logo from "../../components/Logo";
 
 const AUTH_OVERLAY_DELAY_MS = 280;
@@ -55,7 +54,7 @@ const Register = () => {
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-      navigate("/dashboard");
+      navigate("/cookbooks");
     } catch (err) {
       console.error("Registration failed", err);
       const message =
@@ -67,69 +66,96 @@ const Register = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-6">
-      <Logo size="medium" />
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,30rem)]">
+      <section className="app-panel hidden lg:block">
+        <Logo size="large" withTagline />
+        <p className="mt-8 text-base leading-7 text-[var(--text-secondary)]">
+          Create a shared home for favorite dinners, handwritten family notes, and the cookbooks you build together.
+        </p>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {[
+            "Shared cookbook roles",
+            "Recipe search across your library",
+            "Progressive web app install support",
+            "Designed for phone, tablet, and desktop",
+          ].map((item) => (
+            <div key={item} className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+              {item}
+            </div>
+          ))}
+        </div>
+      </section>
 
+      <div className="flex flex-col gap-5">
+        <div className="lg:hidden">
+          <Logo size="medium" />
+        </div>
       <AuthForm
         title="Create your account"
+        description="Set up your RecipeBook account and start organizing cookbooks with a polished, installable recipe experience."
         onSubmit={handleSubmit}
         isLoading={submitting}
         showLoadingOverlay={showPanOverlay}
         isSubmitDisabled={isSubmitDisabled}
         buttonText="Register"
         loadingMessage="Registering, please wait"
-        containerClass="register-container"
-        formClass="register-form"
         footer={
           <p>
             Already have an account?{" "}
-            <Link to="/login" className="login-link">
-              Login Here
+            <Link to="/login" className="app-link font-semibold">
+              Log in here
             </Link>
           </p>
         }
       >
         <FormRow
-          label="Username:"
+          label="Username"
           id="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
         />
 
         <FormRow
-          label="Email:"
+          label="Email"
           id="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
         />
 
         <FormRow
-          label="Password:"
+          label="Password"
           id="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
         />
 
         <FormRow
-          label="Confirm Password:"
+          label="Confirm Password"
           id="confirm-password"
           type="password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          autoComplete="new-password"
         />
 
         {showPasswordError && (
-          <div className="text-red-500 text-sm mt-2" role="alert">
+          <div className="rounded-2xl border border-rose-300/70 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-200" role="alert">
             Passwords do not match
           </div>
         )}
 
         {confirmPassword.length > 0 && passwordsMatch && (
-          <div className="text-green-600 text-sm mt-2">Passwords match ✓</div>
+          <div className="rounded-2xl border border-emerald-300/70 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200">
+            Passwords match
+          </div>
         )}
       </AuthForm>
+      </div>
     </div>
   );
 };

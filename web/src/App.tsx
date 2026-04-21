@@ -8,7 +8,6 @@ import CookbookNew from "./pages/cookbook/CookbookNew";
 import Cookbook from "./pages/cookbook/Cookbook";
 import RecipeNew from "./pages/recipe/RecipeNew";
 import "./App.css";
-import "./style/shared.css";
 import RecipePage from "./pages/recipe/RecipePage";
 // import { useEffect, useState } from "react";
 import RecipeEdit from "./pages/recipe/RecipeEdit";
@@ -39,7 +38,7 @@ function App() {
       <ToastProvider>
       <BrowserRouter>
         <div className="app-shell">
-          <div className="routes-root">
+          <div className="routes-root app-shell-surface">
             <Routes>
               <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
