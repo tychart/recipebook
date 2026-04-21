@@ -31,13 +31,15 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
         <div className="relative inline-block" ref={menuRef}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
                 className="app-button app-button-ghost size-11 rounded-full p-0"
             >
                 <Ellipsis className="size-5" aria-hidden />
             </button>
 
             <div
-                className={`absolute right-0 z-10 mt-2 w-48 transform rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] shadow-[var(--shadow-card)] backdrop-blur-sm transition-all duration-150 ${isOpen
+                className={`absolute right-0 z-30 mt-2 w-48 transform rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] shadow-[var(--shadow-card)] backdrop-blur-sm transition-all duration-150 ${isOpen
                         ? "opacity-100 scale-100"
                         : "opacity-0 scale-95 pointer-events-none"
                     }`}
@@ -88,5 +90,4 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
         </div>
     );
 }
-
 

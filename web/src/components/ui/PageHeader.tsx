@@ -19,11 +19,13 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "relative overflow-hidden rounded-[2rem] border border-[var(--border-muted)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)] sm:p-8",
+        "relative rounded-[2rem] border border-[var(--border-muted)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)] sm:p-8",
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+        <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_62%)]" />
+      </div>
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           {eyebrow ? <p className="app-eyebrow">{eyebrow}</p> : null}
@@ -36,7 +38,7 @@ export function PageHeader({
             </p>
           ) : null}
         </div>
-        {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
+        {actions ? <div className="relative z-10 flex flex-wrap gap-3">{actions}</div> : null}
       </div>
     </header>
   );
