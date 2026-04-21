@@ -21,7 +21,7 @@ export default function Instructions({ instructions }: InstructionsProps) {
             key={index}
             className="flex gap-4 rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-4 text-sm leading-6 text-[var(--text-secondary)]"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-soft)] text-sm font-semibold text-[var(--text-primary)]">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--interactive-soft)] text-sm font-semibold text-[var(--text-primary)]">
               {index + 1}
             </span>
             <span>{step}</span>

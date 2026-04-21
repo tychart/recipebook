@@ -303,7 +303,7 @@ export default function RecipeForm({
           <div className="space-y-3">
             {(recipe.instructions ?? []).map((step, index) => (
               <div key={index} className="grid gap-3 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4 md:grid-cols-[3rem_minmax(0,1fr)_auto] md:items-center">
-                <span className="flex size-9 items-center justify-center rounded-full bg-[var(--accent-soft)] font-medium text-[var(--text-primary)]">
+                <span className="flex size-9 items-center justify-center rounded-full bg-[var(--interactive-soft)] font-medium text-[var(--text-primary)]">
                   {index + 1}.
                 </span>
                 <input

@@ -23,7 +23,7 @@ export function PageHeader({
         className,
       )}
     >
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_62%)]" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_62%)]" />
       <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
           {eyebrow ? <p className="app-eyebrow">{eyebrow}</p> : null}

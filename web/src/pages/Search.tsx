@@ -63,7 +63,7 @@ export default function Search() {
   return (
     <div className="py-6">
       <section className="relative overflow-hidden rounded-[2rem] border border-[var(--border-muted)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)] sm:p-8">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_60%)]" />
         <div className="relative max-w-4xl">
           <p className="app-eyebrow mb-3">
             Semantic recipe search
@@ -180,7 +180,7 @@ export default function Search() {
                       className="h-full w-full object-contain transition duration-500 group-hover:scale-[1.03]"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_60%)] px-6 text-center text-sm font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)]">
+                    <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_60%)] px-6 text-center text-sm font-semibold uppercase tracking-[0.25em] text-[var(--text-muted)]">
                       No image
                     </div>
                   )}

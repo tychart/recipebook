@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)]">
       <section className="app-panel relative overflow-hidden px-6 py-8 sm:px-10 sm:py-12">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_60%)]" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_60%)]" />
         <div className="relative">
           <Logo size="large" withTagline />
           <p className="mt-8 max-w-2xl text-lg leading-8 text-[var(--text-secondary)]">

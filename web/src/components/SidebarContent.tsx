@@ -28,10 +28,11 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
       <Link
         to={to}
         onClick={() => onNavigate?.()}
-        className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+        aria-current={isActive ? "page" : undefined}
+        className={`sidebar-nav-item ${
           isActive
-            ? "bg-[var(--accent-soft)] text-[var(--text-primary)] shadow-[var(--shadow-soft)]"
-            : "text-[var(--text-secondary)] hover:bg-[var(--surface-soft)] hover:text-[var(--text-primary)]"
+            ? "sidebar-nav-item-active"
+            : ""
         }`}
       >
         {label}
@@ -45,7 +46,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         <Logo size="medium" />
       </Link>
 
-      <div className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4">
+      <div className="sidebar-user-card rounded-[1.5rem] p-4">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
           Signed in
         </p>
@@ -68,7 +69,7 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
         <button
           type="button"
           onClick={handleLogout}
-          className="app-button app-button-ghost justify-start"
+          className="app-button app-button-ghost justify-start border-[var(--border-muted)]"
         >
           Logout
         </button>

@@ -36,7 +36,7 @@ const AuthForm = ({
 
   return (
     <div className={cn("app-panel relative overflow-hidden", containerClass)}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_72%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_72%)]" />
       <form
         className={cn("relative space-y-6", formClass)}
         onSubmit={onSubmit}

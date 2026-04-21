@@ -170,7 +170,7 @@ export default function Jobs() {
                   onClick={() => setSelectedJobId(job.job_id)}
                   className={`rounded-2xl border px-4 py-4 text-left transition ${
                     selectedJobId === job.job_id
-                      ? "border-[var(--accent-border)] bg-[var(--accent-soft)] shadow-sm"
+                      ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-sm"
                       : "border-[var(--border-muted)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
                   }`}
                 >

@@ -22,8 +22,8 @@ export function ThemeSelector() {
             className={cn(
               "flex min-h-28 flex-col items-start rounded-[1.5rem] border p-4 text-left transition",
               isActive
-                ? "border-[var(--accent-border)] bg-[var(--accent-soft)] shadow-[var(--shadow-soft)]"
-                : "border-[var(--border-muted)] bg-[var(--surface-muted)] hover:border-[var(--accent-border)]/60 hover:bg-[var(--surface-soft)]",
+                ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-[var(--shadow-soft)]"
+                : "border-[var(--border-muted)] bg-[var(--surface-muted)] hover:border-[var(--interactive-border)] hover:bg-[var(--surface-soft)]",
             )}
           >
             <span className="text-sm font-semibold text-[var(--text-primary)]">

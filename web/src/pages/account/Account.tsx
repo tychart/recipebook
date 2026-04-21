@@ -138,9 +138,9 @@ export default function Account() {
                   key={id}
                   type="button"
                   onClick={() => setBorderTheme(id)}
-                  className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-[1.5rem] border p-3 text-center transition ${
+                    className={`flex min-h-28 flex-col items-center justify-center gap-3 rounded-[1.5rem] border p-3 text-center transition ${
                     borderTheme === id
-                      ? "border-[var(--accent-border)] bg-[var(--accent-soft)]"
+                      ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)]"
                       : "border-[var(--border-muted)] bg-[var(--surface-soft)] hover:border-[var(--border-strong)]"
                   }`}
                 >

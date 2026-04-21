@@ -32,7 +32,7 @@ const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
           />
         </div>
       ) : (
-        <div className="flex h-52 items-center justify-center bg-[radial-gradient(circle_at_top,var(--accent-soft),transparent_60%)] px-6 text-center text-sm font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
+        <div className="flex h-52 items-center justify-center bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_60%)] px-6 text-center text-sm font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
           No image
         </div>
       )}
