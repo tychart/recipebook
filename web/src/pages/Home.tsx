@@ -49,26 +49,26 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="app-panel app-pattern flex flex-col justify-between gap-6 px-6 py-8 sm:px-8">
+      <section className="app-panel flex flex-col justify-between gap-6 px-6 py-8 sm:px-8">
         <div>
-          <p className="app-eyebrow">Modern recipe workspace</p>
+          <p className="app-eyebrow">Built for real kitchens</p>
           <h2 className="mt-3 font-[var(--font-display)] text-3xl font-semibold text-[var(--text-primary)]">
-            A self-hosted kitchen companion that still feels warm.
+            Save recipes faster, find them later, and share the good ones.
           </h2>
           <p className="mt-4 text-sm leading-7 text-[var(--text-secondary)]">
-            The new interface keeps the original homey spirit, but sharpens hierarchy, readability, and touch comfort for real day-to-day use.
+            RecipeBook helps people collect recipes they actually use, import them from images or copied text, and keep everything organized in one place they can share with friends and family.
           </p>
         </div>
 
         <div className="space-y-3">
           {[
-            "Readable recipe layouts built for active cooking",
-            "Consistent cards, forms, and dialogs across the app",
-            "Installable as a progressive web app for a native-feeling experience",
+            "Import recipes from photos, screenshots, and pasted text.",
+            "Search your library when you only remember a dish, ingredient, or idea.",
+            "Share cookbooks with friends and family without losing control of your collection.",
           ].map((item) => (
             <div
               key={item}
-              className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-secondary)]"
+              className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--text-secondary)]"
             >
               {item}
             </div>

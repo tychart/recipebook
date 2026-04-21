@@ -162,9 +162,7 @@ export default function RecipePage() {
       {recipe.notes && <Notes notes={recipe.notes} />}
 
       {showShare && id && (
-        <div className="no-print">
-          <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
-        </div>
+        <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
       )}
 
       <CopyRecipeDialog

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppButton } from "./ui/AppButton";
+import { AppModal } from "./ui/AppModal";
 
 type RecipeShareModalProps = {
   recipeId: string;
@@ -11,6 +12,7 @@ export default function RecipeShareModal({
   onClose,
 }: RecipeShareModalProps) {
   const [linkCopied, setLinkCopied] = useState(false);
+  const titleId = "recipe-share-modal-title";
 
   const shareUrl = `${window.location.origin}/recipe/${recipeId}`;
 
@@ -21,51 +23,48 @@ export default function RecipeShareModal({
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <AppModal
+      onClose={onClose}
+      labelledBy={titleId}
+      panelClassName="app-panel w-full max-w-md"
     >
-      <div 
-        className="app-panel w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-6">
-          <h3 className="font-[var(--font-display)] text-2xl font-semibold leading-tight text-[var(--text-primary)]">
-            Share Recipe
-          </h3>
+      <div className="mb-6">
+        <h3
+          id={titleId}
+          className="font-[var(--font-display)] text-2xl font-semibold leading-tight text-[var(--text-primary)]"
+        >
+          Share Recipe
+        </h3>
+      </div>
+
+      <div className="space-y-6">
+        <p className="text-[var(--text-secondary)]">
+          Copy the link below to share this recipe with others:
+        </p>
+
+        <div>
+          <label className="app-label">Recipe Link</label>
+          <input
+            readOnly
+            value={shareUrl}
+            className="app-input"
+          />
         </div>
 
-        <div className="space-y-6">
-          <p className="text-[var(--text-secondary)]">
-            Copy the link below to share this recipe with others:
-          </p>
-
-          <div>
-            <label className="app-label">
-              Recipe Link
-            </label>
-            <input
-              readOnly
-              value={shareUrl}
-              className="app-input"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <AppButton type="button" onClick={onClose} className="flex-1 justify-center">
-              Close
-            </AppButton>
-            <AppButton
-              type="button"
-              onClick={copyLink}
-              variant="primary"
-              className="flex-1 justify-center"
-            >
-              {linkCopied ? "Link Copied!" : "Copy Link"}
-            </AppButton>
-          </div>
+        <div className="flex gap-3 pt-2">
+          <AppButton type="button" onClick={onClose} className="flex-1 justify-center">
+            Close
+          </AppButton>
+          <AppButton
+            type="button"
+            onClick={copyLink}
+            variant="primary"
+            className="flex-1 justify-center"
+          >
+            {linkCopied ? "Link Copied!" : "Copy Link"}
+          </AppButton>
         </div>
       </div>
-    </div>
+    </AppModal>
   );
 }
