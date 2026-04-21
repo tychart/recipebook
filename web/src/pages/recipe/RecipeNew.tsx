@@ -1,22 +1,32 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { Cookbook, RecipeInput } from "../../../types/types";
-import RecipeForm from "../../components/recipe/RecipeForm";
 import { createRecipeWithImage } from "../../api/recipes";
-import { useAuth } from "../../context/AuthContext";
-import { useEffect, useRef, useState } from "react";
-import { getCookbook, listCookbooks } from "../../api/cookbooks";
 import { enqueueImageJob, enqueueTextJob, getJob } from "../../api/jobs";
-import { PageHeader } from "../../components/ui/PageHeader";
+import { getCookbook, listCookbooks } from "../../api/cookbooks";
+import RecipeForm from "../../components/recipe/RecipeForm";
+import { useAuth } from "../../context/AuthContext";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { AppButton } from "../../components/ui/AppButton";
-import { StatusBanner } from "../../components/ui/StatusBanner";
+import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
+import { StatusBanner } from "../../components/ui/StatusBanner";
+import { getWritableCookbooks, isWritableCookbookRole } from "../../lib/cookbookAccess";
 
 type QueueNotice = {
   jobId: string;
   source: "text" | "image";
 };
 
-function buildInitialRecipeData(cookbookId: number | undefined, creatorId: number | undefined): RecipeInput {
+type CreateMode = "manual" | "image" | "text";
+
+const LAST_SELECTED_COOKBOOK_KEY = "recipebook:new-recipe:last-cookbook";
+const JOB_COOKBOOK_KEY_PREFIX = "recipebook:new-recipe:job:";
+
+function buildInitialRecipeData(
+  cookbookId: number | undefined,
+  creatorId: number | undefined,
+): RecipeInput {
   return {
     name: "",
     description: "",
@@ -32,25 +42,68 @@ function buildInitialRecipeData(cookbookId: number | undefined, creatorId: numbe
   };
 }
 
+function readSessionNumber(key: string) {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const value = Number(window.sessionStorage.getItem(key));
+  return Number.isInteger(value) && value > 0 ? value : 0;
+}
+
+function writeSessionNumber(key: string, value: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  if (value > 0) {
+    window.sessionStorage.setItem(key, String(value));
+    return;
+  }
+
+  window.sessionStorage.removeItem(key);
+}
+
+function removeSessionKey(key: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(key);
+}
+
 export default function RecipeNew() {
   const { cookbookId } = useParams<{ cookbookId?: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const numericCookbookId = cookbookId ? Number(cookbookId) : undefined;
+  const parsedCookbookId = cookbookId ? Number(cookbookId) : undefined;
+  const numericCookbookId =
+    parsedCookbookId !== undefined && !Number.isNaN(parsedCookbookId)
+      ? parsedCookbookId
+      : undefined;
+  const jobId = searchParams.get("job");
+  const isGlobalCreate = numericCookbookId === undefined;
 
   const [cookbook, setCookbook] = useState<Cookbook | null>(null);
-  const [availableCookbooks, setAvailableCookbooks] = useState<Cookbook[]>([]);
+  const [writableCookbooks, setWritableCookbooks] = useState<Cookbook[]>([]);
+  const [isCookbookLoading, setIsCookbookLoading] = useState(Boolean(numericCookbookId));
+  const [isCookbookOptionsLoading, setIsCookbookOptionsLoading] = useState(isGlobalCreate);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDraftLoading, setIsDraftLoading] = useState(false);
-  const [isTextImportOpen, setIsTextImportOpen] = useState(false);
+  const [createMode, setCreateMode] = useState<CreateMode>("manual");
   const [textImportValue, setTextImportValue] = useState("");
   const [imageImportValue, setImageImportValue] = useState("");
   const [queueNotice, setQueueNotice] = useState<QueueNotice | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
-  const [importedRawText, setImportedRawText] = useState<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [importedRawText, setImportedRawText] = useState("");
+  const [selectedCookbookId, setSelectedCookbookId] = useState<number>(
+    numericCookbookId ?? 0,
+  );
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const imagePickerRef = useRef<HTMLInputElement>(null);
 
   const [recipeData, setRecipeData] = useState<RecipeInput>(() =>
     buildInitialRecipeData(numericCookbookId, user?.id),
@@ -59,42 +112,125 @@ export default function RecipeNew() {
   useEffect(() => {
     setRecipeData((prev) => ({
       ...prev,
-      cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
       creator_id: user?.id || 0,
+      cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
     }));
   }, [numericCookbookId, user?.id]);
 
   useEffect(() => {
     if (!numericCookbookId) {
       setCookbook(null);
+      setIsCookbookLoading(false);
+      setAccessError(null);
       return;
     }
 
-    const fetchCookbook = async () => {
-      try {
-        const data = await getCookbook(numericCookbookId);
+    let active = true;
+    setIsCookbookLoading(true);
+    setAccessError(null);
+
+    getCookbook(numericCookbookId)
+      .then((data) => {
+        if (!active) return;
         setCookbook(data);
-      } catch (error) {
+        if (!isWritableCookbookRole(data.current_user_role)) {
+          setAccessError("You need owner or contributor access to add recipes to this cookbook.");
+        }
+      })
+      .catch((error) => {
         console.error("Failed to fetch cookbook", error);
-      }
+        if (active) {
+          setAccessError("Failed to load that cookbook.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsCookbookLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
     };
-    void fetchCookbook();
   }, [numericCookbookId]);
 
   useEffect(() => {
-    if (!user || numericCookbookId) {
+    if (!user || !isGlobalCreate) {
+      setWritableCookbooks([]);
+      setIsCookbookOptionsLoading(false);
       return;
     }
 
+    let active = true;
+    setIsCookbookOptionsLoading(true);
+
     listCookbooks(user.id)
-      .then(setAvailableCookbooks)
+      .then((cookbooks) => {
+        if (!active) return;
+
+        const nextWritableCookbooks = getWritableCookbooks(cookbooks);
+        setWritableCookbooks(nextWritableCookbooks);
+
+        const rememberedJobCookbookId = jobId
+          ? readSessionNumber(`${JOB_COOKBOOK_KEY_PREFIX}${jobId}`)
+          : 0;
+        const rememberedCookbookId = readSessionNumber(LAST_SELECTED_COOKBOOK_KEY);
+
+        setSelectedCookbookId((currentSelectedCookbookId) => {
+          if (
+            rememberedJobCookbookId > 0 &&
+            nextWritableCookbooks.some((book) => book.id === rememberedJobCookbookId)
+          ) {
+            return rememberedJobCookbookId;
+          }
+
+          if (
+            currentSelectedCookbookId > 0 &&
+            nextWritableCookbooks.some((book) => book.id === currentSelectedCookbookId)
+          ) {
+            return currentSelectedCookbookId;
+          }
+
+          if (nextWritableCookbooks.length === 1) {
+            return nextWritableCookbooks[0].id;
+          }
+
+          if (
+            rememberedCookbookId > 0 &&
+            nextWritableCookbooks.some((book) => book.id === rememberedCookbookId)
+          ) {
+            return rememberedCookbookId;
+          }
+
+          return 0;
+        });
+      })
       .catch((error) => {
         console.error("Failed to fetch cookbooks", error);
+        if (active) {
+          setWritableCookbooks([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsCookbookOptionsLoading(false);
+        }
       });
-  }, [numericCookbookId, user]);
+
+    return () => {
+      active = false;
+    };
+  }, [isGlobalCreate, jobId, user]);
 
   useEffect(() => {
-    const jobId = searchParams.get("job");
+    if (!isGlobalCreate) {
+      return;
+    }
+
+    writeSessionNumber(LAST_SELECTED_COOKBOOK_KEY, selectedCookbookId);
+  }, [isGlobalCreate, selectedCookbookId]);
+
+  useEffect(() => {
     if (!jobId || !user) {
       setDraftError(null);
       return;
@@ -112,12 +248,15 @@ export default function RecipeNew() {
           return;
         }
 
-        setImportedRawText(job.result.raw_text);
+        const result = job.result;
+
+        setImportedRawText(result.raw_text);
+        setCreateMode("manual");
         setRecipeData((prev) => ({
           ...prev,
-          ...job.result?.draft,
-          cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
+          ...result.draft,
           creator_id: user.id,
+          cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
         }));
       })
       .catch((error) => {
@@ -135,11 +274,66 @@ export default function RecipeNew() {
     return () => {
       active = false;
     };
-  }, [numericCookbookId, searchParams, user]);
+  }, [jobId, numericCookbookId, user]);
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const hasWritableCookbooks = writableCookbooks.length > 0;
+  const canCreateInCurrentCookbook = numericCookbookId
+    ? Boolean(cookbook && isWritableCookbookRole(cookbook.current_user_role))
+    : hasWritableCookbooks;
+  const needsGlobalCookbookSelection = isGlobalCreate && selectedCookbookId === 0;
+  const isPageLoading = isCookbookLoading || (isGlobalCreate && isCookbookOptionsLoading);
+
+  const globalCookbookPlaceholder = useMemo(() => {
+    if (writableCookbooks.length === 1) {
+      return writableCookbooks[0].name;
+    }
+
+    return "Select a cookbook";
+  }, [writableCookbooks]);
+
+  const blockedActions = (
+    <>
+      <Link to="/cookbooks/new">
+        <AppButton variant="primary">Create Cookbook</AppButton>
+      </Link>
+      <Link to={numericCookbookId ? `/cookbook/${numericCookbookId}` : "/cookbooks"}>
+        <AppButton>Back to Cookbooks</AppButton>
+      </Link>
+    </>
+  );
+
+  if (!user) {
+    return <p>Please log in to create a recipe.</p>;
+  }
+
+  if (cookbookId && numericCookbookId === undefined) {
+    return (
+      <div className="space-y-6 py-6">
+        <PageHeader
+          eyebrow="Create"
+          title="New Recipe"
+          description="Recipe creation needs a valid cookbook destination."
+        />
+        <EmptyState
+          title="That cookbook link is not valid."
+          description="Head back to your library and start a new recipe from a cookbook that you can edit."
+          actions={blockedActions}
+        />
+      </div>
+    );
+  }
+
+  const persistQueuedCookbookDestination = (queuedJobId: string) => {
+    if (isGlobalCreate && selectedCookbookId > 0) {
+      writeSessionNumber(`${JOB_COOKBOOK_KEY_PREFIX}${queuedJobId}`, selectedCookbookId);
+    }
+  };
+
+  const queueImageImport = async (file: File, resetInput: () => void) => {
+    if (isGlobalCreate && selectedCookbookId === 0) {
+      alert("Choose a cookbook before queueing an image import.");
+      return;
+    }
 
     setIsProcessing(true);
     setDraftError(null);
@@ -147,6 +341,7 @@ export default function RecipeNew() {
 
     try {
       const queuedJob = await enqueueImageJob(file, imageImportValue);
+      persistQueuedCookbookDestination(queuedJob.job_id);
       setQueueNotice({ jobId: queuedJob.job_id, source: "image" });
       setImageImportValue("");
     } catch (error) {
@@ -154,12 +349,25 @@ export default function RecipeNew() {
       alert("Failed to queue image import.");
     } finally {
       setIsProcessing(false);
-      event.target.value = "";
+      resetInput();
     }
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await queueImageImport(file, () => {
+      event.target.value = "";
+    });
   };
 
   const handleTextImport = async () => {
     if (!textImportValue.trim()) {
+      return;
+    }
+
+    if (isGlobalCreate && selectedCookbookId === 0) {
+      alert("Choose a cookbook before queueing a text import.");
       return;
     }
 
@@ -169,9 +377,10 @@ export default function RecipeNew() {
 
     try {
       const queuedJob = await enqueueTextJob(textImportValue);
+      persistQueuedCookbookDestination(queuedJob.job_id);
       setQueueNotice({ jobId: queuedJob.job_id, source: "text" });
-      setIsTextImportOpen(false);
       setTextImportValue("");
+      setCreateMode("manual");
     } catch (error) {
       console.error("Text import enqueue error:", error);
       alert("Failed to queue recipe text.");
@@ -180,12 +389,8 @@ export default function RecipeNew() {
     }
   };
 
-  if (!user) {
-    return <p>Please log in to create a recipe.</p>;
-  }
-
   const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
-    const cookbookChoice = numericCookbookId ?? recipeInput.cookbook_id;
+    const cookbookChoice = numericCookbookId ?? selectedCookbookId;
     if (!cookbookChoice) {
       alert("Please choose a cookbook before creating the recipe.");
       return;
@@ -201,11 +406,39 @@ export default function RecipeNew() {
         imageFile,
       );
 
+      if (jobId) {
+        removeSessionKey(`${JOB_COOKBOOK_KEY_PREFIX}${jobId}`);
+      }
+
       navigate(`/recipe/${result.recipe.id}`);
     } catch (error) {
       console.error("Failed to create recipe", error);
       alert("Failed to create recipe");
     }
+  };
+
+  const renderModeButton = (
+    mode: CreateMode,
+    title: string,
+    description: string,
+  ) => {
+    const isActive = createMode === mode;
+
+    return (
+      <button
+        key={mode}
+        type="button"
+        onClick={() => setCreateMode(mode)}
+        className={`flex min-w-0 flex-1 flex-col items-start rounded-[1.25rem] px-4 py-3 text-left transition ${
+          isActive
+            ? "border border-[var(--interactive-border)] bg-[var(--interactive-soft)] text-[var(--text-primary)] shadow-sm"
+            : "border border-transparent text-[var(--text-secondary)] hover:border-[var(--border-muted)] hover:bg-[var(--surface)]"
+        }`}
+      >
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="mt-1 text-xs leading-5">{description}</span>
+      </button>
+    );
   };
 
   return (
@@ -215,180 +448,271 @@ export default function RecipeNew() {
         title="New Recipe"
         description={
           numericCookbookId
-            ? `Adding to ${cookbook ? cookbook.name : "this cookbook"} with the new mobile-friendly recipe editor.`
-            : "Create a recipe from scratch or queue an import from text or image."
+            ? `Adding to ${cookbook ? cookbook.name : "this cookbook"} with a polished recipe flow for manual entry or quick imports.`
+            : "Start from scratch, import from an image, or paste recipe text into a draft that feels good on phone and desktop."
         }
         actions={
-          <>
-            <AppButton
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing || isDraftLoading}
-              variant="primary"
-            >
-              {isProcessing ? "Queueing..." : "Import from Image"}
-            </AppButton>
-            <AppButton
-              onClick={() => setIsTextImportOpen((prev) => !prev)}
-              disabled={isProcessing || isDraftLoading}
-            >
-              Import from Text
-            </AppButton>
-            <Link to={numericCookbookId ? `/cookbook/${numericCookbookId}` : "/cookbooks"}>
-              <AppButton variant="ghost">Cancel</AppButton>
-            </Link>
-          </>
+          <Link to={numericCookbookId ? `/cookbook/${numericCookbookId}` : "/cookbooks"}>
+            <AppButton variant="ghost">Cancel</AppButton>
+          </Link>
         }
+      />
+
+      <input
+        type="file"
+        ref={cameraInputRef}
+        onChange={(event) => void handleImageUpload(event)}
+        className="hidden"
+        accept="image/*"
+        capture="environment"
       />
       <input
         type="file"
-        ref={fileInputRef}
-        onChange={handleImageUpload}
+        ref={imagePickerRef}
+        onChange={(event) => void handleImageUpload(event)}
         className="hidden"
         accept="image/*"
       />
 
-      <div className="mx-auto w-full max-w-5xl">
-        <div>
-          {numericCookbookId ? (
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Adding to: {cookbook ? cookbook.name : "Loading..."}
-            </p>
-          ) : (
-            <p className="mt-1 text-sm text-[var(--text-secondary)]">
-              Choose a cookbook after you review the draft.
-            </p>
-          )}
-        </div>
-      </div>
-
-      {queueNotice ? (
-        <div className="mx-auto max-w-5xl">
-        <StatusBanner tone="success" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="font-semibold">
-              {queueNotice.source === "image" ? "Image import queued." : "Text import queued."}
-            </p>
-            <p className="mt-1">
-              The request finished quickly and the background worker is processing your recipe now.
-            </p>
-          </div>
-          <Link to="/jobs">
-            <AppButton variant="secondary">View Jobs</AppButton>
-          </Link>
-        </StatusBanner>
-        </div>
-      ) : null}
-
-      {draftError ? (
-        <div className="mx-auto max-w-5xl">
-          <StatusBanner tone="danger">{draftError}</StatusBanner>
-        </div>
-      ) : null}
-
-      <div className="mx-auto max-w-5xl">
-      <SectionCard title="Optional import notes" description="These notes help the image importer when the photo or scan needs extra context.">
-        <label className="app-label">
-          Optional image import notes
-        </label>
-        <textarea
-          value={imageImportValue}
-          onChange={(event) => setImageImportValue(event.target.value)}
-          placeholder="Add a missing title, clarify handwriting, or tell the importer anything the image does not show clearly..."
-          className="app-textarea"
-        />
-        <p className="mt-2 text-xs text-[var(--text-muted)]">
-          These notes are sent only during image extraction and are preserved in the job metadata for debugging.
+      {isPageLoading ? (
+        <p className="mx-auto max-w-5xl text-sm text-[var(--text-secondary)]">
+          Loading recipe creation options...
         </p>
-      </SectionCard>
-      </div>
-
-      {isTextImportOpen ? (
-        <div className="mx-auto max-w-5xl">
-        <SectionCard title="Paste recipe text" description="Queue a text import from a blog excerpt, transcription, or copied recipe card.">
-          <label className="app-label">
-            Paste recipe text
-          </label>
-          <textarea
-            value={textImportValue}
-            onChange={(event) => setTextImportValue(event.target.value)}
-            placeholder="Paste a recipe, blog excerpt, or handwritten transcription here..."
-            className="app-textarea min-h-48"
-          />
-          <div className="mt-3 flex gap-3">
-            <AppButton
-              onClick={handleTextImport}
-              disabled={isProcessing || !textImportValue.trim()}
-              variant="primary"
-            >
-              {isProcessing ? "Queueing..." : "Queue Text Import"}
-            </AppButton>
-            <AppButton
-              onClick={() => {
-                setIsTextImportOpen(false);
-                setTextImportValue("");
-              }}
-              disabled={isProcessing}
-            >
-              Cancel
-            </AppButton>
-          </div>
-        </SectionCard>
-        </div>
       ) : null}
 
-      {!numericCookbookId ? (
-        <div className="mx-auto max-w-5xl">
-        <SectionCard title="Save destination" description="Pick the cookbook that should own this new recipe.">
-          <label className="app-label">
-            Save to cookbook
-          </label>
-          <select
-            value={recipeData.cookbook_id ?? 0}
-            onChange={(event) =>
-              setRecipeData((prev) => ({
-                ...prev,
-                cookbook_id: Number(event.target.value),
-              }))
+      {!isPageLoading && !canCreateInCurrentCookbook ? (
+        <div className="mx-auto w-full max-w-5xl">
+          <EmptyState
+            title="Recipe creation is not available yet."
+            description={
+              accessError ??
+              "You need owner or contributor access to at least one cookbook before starting a new recipe."
             }
-            className="app-select"
-          >
-            <option value={0}>Select a cookbook</option>
-            {availableCookbooks.map((book) => (
-              <option key={book.id} value={book.id}>
-                {book.name}
-              </option>
-            ))}
-          </select>
-        </SectionCard>
+            actions={blockedActions}
+          />
         </div>
-      ) : null}
+      ) : (
+        <>
+          {isGlobalCreate ? (
+            <div className="mx-auto max-w-5xl">
+              <SectionCard
+                title="Save destination"
+                description="Choose the cookbook that should own this recipe. Imports and manual saves stay tied to this choice for the current session."
+              >
+                <label className="app-label">Save to cookbook</label>
+                <select
+                  value={selectedCookbookId}
+                  onChange={(event) => setSelectedCookbookId(Number(event.target.value))}
+                  className="app-select"
+                >
+                  <option value={0}>{globalCookbookPlaceholder}</option>
+                  {writableCookbooks.map((book) => (
+                    <option key={book.id} value={book.id}>
+                      {book.name}
+                    </option>
+                  ))}
+                </select>
+                {needsGlobalCookbookSelection ? (
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+                    Pick a cookbook before you queue an import or save a new recipe so nothing gets stranded at the end.
+                  </p>
+                ) : null}
+              </SectionCard>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-5xl">
+              <p className="text-sm text-[var(--text-secondary)]">
+                Adding to: {cookbook ? cookbook.name : "Loading cookbook..."}
+              </p>
+            </div>
+          )}
 
-      {importedRawText ? (
-        <div className="mx-auto max-w-5xl">
-        <SectionCard title="Imported recipe text" description="Use the original extracted text to compare against the generated draft.">
-          <details>
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
-              View imported recipe text
-            </summary>
-            <pre className="mt-4 max-h-80 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-4 text-xs whitespace-pre-wrap text-[var(--text-secondary)]">
-              {importedRawText}
-            </pre>
-          </details>
-        </SectionCard>
-        </div>
-      ) : null}
+          <div className="mx-auto max-w-5xl">
+            <SectionCard
+              title="How do you want to start?"
+              description="Switch between manual entry, image import, and text import without cluttering the form."
+            >
+              <div className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-1">
+                <div className="grid gap-1 sm:grid-cols-3">
+                  {renderModeButton(
+                    "manual",
+                    "Manual",
+                    "Type everything in yourself and attach an image later if you want.",
+                  )}
+                  {renderModeButton(
+                    "image",
+                    "Image",
+                    "Queue a photo, screenshot, or scan using quick browser-native image picking.",
+                  )}
+                  {renderModeButton(
+                    "text",
+                    "Text",
+                    "Paste copied text from a website, note, or message and let the parser draft it.",
+                  )}
+                </div>
+              </div>
 
-      {isDraftLoading ? (
-        <p className="mx-auto max-w-5xl text-sm text-[var(--text-secondary)]">Loading completed job draft...</p>
-      ) : null}
+              {createMode === "manual" ? (
+                <div className="mt-5 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] px-5 py-5">
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">
+                    Manual entry is ready.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                    The full recipe form is just below. Add an image later from the editor if you want to include a cover photo.
+                  </p>
+                </div>
+              ) : null}
 
-      <RecipeForm
-        key={`${recipeData.name}-${recipeData.cookbook_id ?? 0}`}
-        initialData={recipeData}
-        onSubmit={handleCreate}
-        submitLabel="Create Recipe"
-        categories={cookbook?.categories}
-      />
+              {createMode === "image" ? (
+                <div className="mt-5 space-y-4 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] px-5 py-5">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      Import from a recipe photo, screenshot, or scan.
+                    </p>
+                    <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                      Use a quick camera capture on mobile or choose an existing image from your device. The importer will queue in the background and show up in Jobs.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <AppButton
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isProcessing || needsGlobalCookbookSelection}
+                      variant="primary"
+                    >
+                      {isProcessing ? "Queueing..." : "Take Photo"}
+                    </AppButton>
+                    <AppButton
+                      onClick={() => imagePickerRef.current?.click()}
+                      disabled={isProcessing || needsGlobalCookbookSelection}
+                    >
+                      Choose Image
+                    </AppButton>
+                  </div>
+
+                  <details className="rounded-[1.25rem] border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
+                      Optional import notes
+                    </summary>
+                    <div className="mt-4">
+                      <label className="app-label">Optional image import notes</label>
+                      <textarea
+                        value={imageImportValue}
+                        onChange={(event) => setImageImportValue(event.target.value)}
+                        placeholder="Add a missing title, clarify handwriting, or explain anything the image does not show clearly..."
+                        className="app-textarea"
+                      />
+                      <p className="mt-2 text-xs text-[var(--text-muted)]">
+                        These notes are sent only during image extraction and are kept with the queued job for debugging.
+                      </p>
+                    </div>
+                  </details>
+                </div>
+              ) : null}
+
+              {createMode === "text" ? (
+                <div className="mt-5 space-y-4 rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] px-5 py-5">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">
+                      Paste recipe text into a draft.
+                    </p>
+                    <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                      Great for blog excerpts, family texts, copied recipe cards, or quick OCR cleanup before you review the generated draft.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="app-label">Paste recipe text</label>
+                    <textarea
+                      value={textImportValue}
+                      onChange={(event) => setTextImportValue(event.target.value)}
+                      placeholder="Paste a recipe, blog excerpt, or handwritten transcription here..."
+                      className="app-textarea min-h-48"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <AppButton
+                      onClick={() => void handleTextImport()}
+                      disabled={isProcessing || !textImportValue.trim() || needsGlobalCookbookSelection}
+                      variant="primary"
+                    >
+                      {isProcessing ? "Queueing..." : "Queue Text Import"}
+                    </AppButton>
+                    <AppButton
+                      onClick={() => setTextImportValue("")}
+                      disabled={isProcessing || !textImportValue}
+                    >
+                      Clear Text
+                    </AppButton>
+                  </div>
+                </div>
+              ) : null}
+            </SectionCard>
+          </div>
+
+          {queueNotice ? (
+            <div className="mx-auto max-w-5xl">
+              <StatusBanner tone="success" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">
+                    {queueNotice.source === "image" ? "Image import queued." : "Text import queued."}
+                  </p>
+                  <p className="mt-1">
+                    The background worker is processing your recipe now. You can keep editing manually or head to Jobs to watch it finish.
+                  </p>
+                </div>
+                <Link to="/jobs">
+                  <AppButton variant="secondary">View Jobs</AppButton>
+                </Link>
+              </StatusBanner>
+            </div>
+          ) : null}
+
+          {draftError ? (
+            <div className="mx-auto max-w-5xl">
+              <StatusBanner tone="danger">{draftError}</StatusBanner>
+            </div>
+          ) : null}
+
+          {importedRawText ? (
+            <div className="mx-auto max-w-5xl">
+              <SectionCard
+                title="Imported recipe text"
+                description="Use the original extracted text to compare against the generated draft."
+              >
+                <details>
+                  <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
+                    View imported recipe text
+                  </summary>
+                  <pre className="mt-4 max-h-80 overflow-auto rounded-2xl bg-[var(--surface-soft)] p-4 text-xs whitespace-pre-wrap text-[var(--text-secondary)]">
+                    {importedRawText}
+                  </pre>
+                </details>
+              </SectionCard>
+            </div>
+          ) : null}
+
+          {isDraftLoading ? (
+            <p className="mx-auto max-w-5xl text-sm text-[var(--text-secondary)]">
+              Loading completed job draft...
+            </p>
+          ) : null}
+
+          <RecipeForm
+            initialData={recipeData}
+            onSubmit={handleCreate}
+            submitLabel="Create Recipe"
+            submitDisabled={needsGlobalCookbookSelection}
+            submitHint={
+              needsGlobalCookbookSelection
+                ? "Choose a cookbook above before saving this recipe."
+                : undefined
+            }
+            categories={cookbook?.categories}
+          />
+        </>
+      )}
     </div>
   );
 }

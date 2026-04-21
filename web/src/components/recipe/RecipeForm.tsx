@@ -9,13 +9,17 @@ interface RecipeFormProps {
   onSubmit: (recipe: RecipeInput, imageFile?: File) => void;
   categories: string[] | undefined;
   submitLabel?: string;
+  submitDisabled?: boolean;
+  submitHint?: string;
 }
 
 export default function RecipeForm({
   initialData,
   onSubmit,
   submitLabel = "Save",
-  categories
+  categories,
+  submitDisabled = false,
+  submitHint,
 }: RecipeFormProps) {
   const [recipe, setRecipe] = useState<RecipeInput>(initialData);
   const [selectedImageFile, setSelectedImageFile] = useState<File>();
@@ -342,9 +346,12 @@ export default function RecipeForm({
         </SectionCard>
 
         <div className="pt-2">
-          <AppButton type="button" onClick={handleSubmit} variant="primary">
+          <AppButton type="button" onClick={handleSubmit} variant="primary" disabled={submitDisabled}>
             {submitLabel}
           </AppButton>
+          {submitHint ? (
+            <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">{submitHint}</p>
+          ) : null}
         </div>
       </div>
     </div>

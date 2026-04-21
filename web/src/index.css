@@ -228,6 +228,13 @@ button:disabled {
     border-color: color-mix(in srgb, #e11d48 26%, transparent);
   }
 
+  .app-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+    box-shadow: none;
+    transform: none;
+  }
+
   :root[data-theme="dark"] .app-button-danger {
     color: #fecdd3;
   }

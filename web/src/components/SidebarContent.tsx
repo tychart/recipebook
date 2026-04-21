@@ -1,6 +1,9 @@
 import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { listCookbooks } from "../api/cookbooks";
 import { useAuth } from "../context/AuthContext";
+import { getWritableCookbooks } from "../lib/cookbookAccess";
 import Logo from "./Logo";
 import PwaInstallPrompt from "./PwaInstallPrompt";
 
@@ -14,6 +17,40 @@ export function SidebarContent({ onNavigate, onClose }: SidebarContentProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [hasWritableCookbooks, setHasWritableCookbooks] = useState(false);
+  const [isCookbookAccessLoading, setIsCookbookAccessLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) {
+      setHasWritableCookbooks(false);
+      setIsCookbookAccessLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    setIsCookbookAccessLoading(true);
+    listCookbooks(user.id)
+      .then((cookbooks) => {
+        if (!active) return;
+        setHasWritableCookbooks(getWritableCookbooks(cookbooks).length > 0);
+      })
+      .catch((error) => {
+        console.error("Failed to load cookbook access for sidebar", error);
+        if (active) {
+          setHasWritableCookbooks(false);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsCookbookAccessLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   if (!user) return null;
 
@@ -78,6 +115,25 @@ export function SidebarContent({ onNavigate, onClose }: SidebarContentProps) {
 
       <div className="flex flex-col gap-2">
         {navItem("/cookbooks/new", "Create a Cookbook")}
+        {hasWritableCookbooks ? (
+          navItem("/recipe/new", "Create a Recipe")
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="app-button app-button-ghost justify-start border-[var(--border-muted)] opacity-60"
+            >
+              Create a Recipe
+            </button>
+            {!isCookbookAccessLoading ? (
+              <p className="px-1 text-sm leading-6 text-[var(--text-secondary)]">
+                Create a cookbook or get contributor access before starting a new recipe.
+              </p>
+            ) : null}
+          </>
+        )}
         {navItem("/account", "Account Details")}
 
         <button

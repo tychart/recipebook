@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CookbookCard } from "../../components/cards/CookbookCard";
 import { listCookbooks } from "../../api/cookbooks";
@@ -8,13 +8,10 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { AppButton } from "../../components/ui/AppButton";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SectionCard } from "../../components/ui/SectionCard";
+import { getWritableCookbooks } from "../../lib/cookbookAccess";
 
 export default function Cookbooks() {
-  const [ownerCookbooks, setOwnerCookbooks] = useState<Cookbook[]>([]);
-  const [contributorCookbooks, setContributorCookbooks] = useState<Cookbook[]>(
-    [],
-  );
-  const [viewerCookbooks, setViewerCookbooks] = useState<Cookbook[]>([]);
+  const [cookbooks, setCookbooks] = useState<Cookbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,38 +24,24 @@ export default function Cookbooks() {
     }
 
     listCookbooks(user.id)
-      .then((cookbooks) => {
-        setOwnerCookbooks([]);
-        setContributorCookbooks([]);
-        setViewerCookbooks([]);
-        return sortCookbooks(cookbooks);
-      })
+      .then(setCookbooks)
       .catch(() => setError("Failed to load cookbooks"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
-  const sortCookbooks = async (cookbooks: Cookbook[]) => {
-    for (const cookbook of cookbooks) {
-      switch (cookbook.current_user_role) {
-        case "owner":
-          setOwnerCookbooks((prev) => [...prev, cookbook]);
-          break;
-        case "contributor":
-          setContributorCookbooks((prev) => [...prev, cookbook]);
-          break;
-        case "viewer":
-          setViewerCookbooks((prev) => [...prev, cookbook]);
-          break;
-        default:
-          console.warn("Unexpected cookbook role; defaulting to viewer", {
-            cookbookId: cookbook.id,
-            current_user_role: cookbook.current_user_role,
-          });
-          setViewerCookbooks((prev) => [...prev, cookbook]);
-          break;
-      }
-    }
-  };
+  const ownerCookbooks = useMemo(
+    () => cookbooks.filter((cookbook) => cookbook.current_user_role === "owner"),
+    [cookbooks],
+  );
+  const contributorCookbooks = useMemo(
+    () => cookbooks.filter((cookbook) => cookbook.current_user_role === "contributor"),
+    [cookbooks],
+  );
+  const viewerCookbooks = useMemo(
+    () => cookbooks.filter((cookbook) => cookbook.current_user_role === "viewer"),
+    [cookbooks],
+  );
+  const writableCookbooks = useMemo(() => getWritableCookbooks(cookbooks), [cookbooks]);
 
   //Replace this with actual user ID
   if (!user) {
@@ -80,9 +63,27 @@ export default function Cookbooks() {
         title="My Cookbooks"
         description="Browse the cookbooks you own, contribute to, or can view. The layout stays roomy on phones and scales cleanly up to desktop."
         actions={
-          <Link to="/cookbooks/new">
-            <AppButton variant="primary">New Cookbook</AppButton>
-          </Link>
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex flex-wrap gap-3">
+              <Link to="/cookbooks/new">
+                <AppButton variant="primary">New Cookbook</AppButton>
+              </Link>
+              {writableCookbooks.length > 0 ? (
+                <Link to="/recipe/new">
+                  <AppButton>New Recipe</AppButton>
+                </Link>
+              ) : (
+                <AppButton disabled aria-disabled="true">
+                  New Recipe
+                </AppButton>
+              )}
+            </div>
+            {writableCookbooks.length === 0 ? (
+              <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                Create a cookbook or get contributor access before starting a new recipe.
+              </p>
+            ) : null}
+          </div>
         }
       />
 
