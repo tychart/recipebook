@@ -99,6 +99,9 @@ export default function RecipeNew() {
   const [draftError, setDraftError] = useState<string | null>(null);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [importedRawText, setImportedRawText] = useState("");
+  const [manualTagInput, setManualTagInput] = useState("");
+  const [manualSelectedImageFile, setManualSelectedImageFile] = useState<File>();
+  const [manualOriginalImageUrl, setManualOriginalImageUrl] = useState("");
   const [selectedCookbookId, setSelectedCookbookId] = useState<number>(
     numericCookbookId ?? 0,
   );
@@ -116,6 +119,12 @@ export default function RecipeNew() {
       cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
     }));
   }, [numericCookbookId, user?.id]);
+
+  useEffect(() => {
+    setManualTagInput(recipeData.tags?.join(", ") ?? "");
+    setManualSelectedImageFile(undefined);
+    setManualOriginalImageUrl(recipeData.image_url ?? "");
+  }, []);
 
   useEffect(() => {
     if (!numericCookbookId) {
@@ -249,15 +258,23 @@ export default function RecipeNew() {
         }
 
         const result = job.result;
+        const nextRecipeCookbookId = numericCookbookId ?? 0;
+        const nextRecipeData = {
+          ...result.draft,
+          creator_id: user.id,
+          cookbook_id: nextRecipeCookbookId,
+        };
 
         setImportedRawText(result.raw_text);
         setCreateMode("manual");
         setRecipeData((prev) => ({
           ...prev,
-          ...result.draft,
-          creator_id: user.id,
+          ...nextRecipeData,
           cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
         }));
+        setManualTagInput(nextRecipeData.tags?.join(", ") ?? "");
+        setManualSelectedImageFile(undefined);
+        setManualOriginalImageUrl("");
       })
       .catch((error) => {
         console.error("Failed to load draft job", error);
@@ -380,7 +397,6 @@ export default function RecipeNew() {
       persistQueuedCookbookDestination(queuedJob.job_id);
       setQueueNotice({ jobId: queuedJob.job_id, source: "text" });
       setTextImportValue("");
-      setCreateMode("manual");
     } catch (error) {
       console.error("Text import enqueue error:", error);
       alert("Failed to queue recipe text.");
@@ -699,18 +715,26 @@ export default function RecipeNew() {
             </p>
           ) : null}
 
-          <RecipeForm
-            initialData={recipeData}
-            onSubmit={handleCreate}
-            submitLabel="Create Recipe"
-            submitDisabled={needsGlobalCookbookSelection}
-            submitHint={
-              needsGlobalCookbookSelection
-                ? "Choose a cookbook above before saving this recipe."
-                : undefined
-            }
-            categories={cookbook?.categories}
-          />
+          {createMode === "manual" ? (
+            <RecipeForm
+              recipe={recipeData}
+              onRecipeChange={setRecipeData}
+              tagInput={manualTagInput}
+              onTagInputChange={setManualTagInput}
+              selectedImageFile={manualSelectedImageFile}
+              onSelectedImageFileChange={setManualSelectedImageFile}
+              originalImageUrl={manualOriginalImageUrl}
+              onSubmit={handleCreate}
+              submitLabel="Create Recipe"
+              submitDisabled={needsGlobalCookbookSelection}
+              submitHint={
+                needsGlobalCookbookSelection
+                  ? "Choose a cookbook above before saving this recipe."
+                  : undefined
+              }
+              categories={cookbook?.categories}
+            />
+          ) : null}
         </>
       )}
     </div>

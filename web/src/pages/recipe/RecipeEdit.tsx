@@ -11,6 +11,10 @@ export default function RecipeEdit() {
   const navigate = useNavigate();
 
   const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const [recipeDraft, setRecipeDraft] = useState<RecipeInput | null>(null);
+  const [tagInput, setTagInput] = useState("");
+  const [selectedImageFile, setSelectedImageFile] = useState<File>();
+  const [originalImageUrl, setOriginalImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +69,13 @@ export default function RecipeEdit() {
     tags: recipe.tags,
   };
 
+  useEffect(() => {
+    setRecipeDraft(recipeInput);
+    setTagInput(recipeInput.tags?.join(", ") ?? "");
+    setSelectedImageFile(undefined);
+    setOriginalImageUrl(recipeInput.image_url ?? "");
+  }, [recipe.id]);
+
   const handleUpdate = async (
     updated: RecipeInput,
     imageFile?: File,
@@ -91,12 +102,20 @@ export default function RecipeEdit() {
         }
       />
 
-      <RecipeForm
-        initialData={recipeInput}
-        onSubmit={handleUpdate}
-        submitLabel="Save Changes"
-        categories={undefined}
-      />
+      {recipeDraft ? (
+        <RecipeForm
+          recipe={recipeDraft}
+          onRecipeChange={setRecipeDraft}
+          tagInput={tagInput}
+          onTagInputChange={setTagInput}
+          selectedImageFile={selectedImageFile}
+          onSelectedImageFileChange={setSelectedImageFile}
+          originalImageUrl={originalImageUrl}
+          onSubmit={handleUpdate}
+          submitLabel="Save Changes"
+          categories={undefined}
+        />
+      ) : null}
     </div>
   );
 }
