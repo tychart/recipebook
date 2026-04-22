@@ -3,6 +3,9 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { searchRecipes } from "../api/search";
 import type { SemanticSearchResult } from "../../types/types";
+import { AppButton } from "../components/ui/AppButton";
+import { PageHeader } from "../components/ui/PageHeader";
+import { SectionCard } from "../components/ui/SectionCard";
 import { StatusBanner } from "../components/ui/StatusBanner";
 
 const DEFAULT_LIMIT = 10;
@@ -62,22 +65,15 @@ export default function Search() {
   }
 
   return (
-    <div className="py-6">
-      <section className="relative overflow-hidden rounded-[2rem] border border-[var(--border-muted)] bg-[var(--panel)] p-6 shadow-[var(--shadow-soft)] sm:p-8">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_top,var(--interactive-soft),transparent_60%)]" />
-        <div className="relative max-w-4xl">
-          <p className="app-eyebrow mb-3">
-            Semantic recipe search
-          </p>
-          <h1 className="mb-4 text-4xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-5xl">
-            Search recipes
-          </h1>
-          <p className="max-w-2xl text-base leading-7 text-[var(--text-secondary)] sm:text-lg">
-            Search by recipe name, ingredients, or instructions using natural language and surface the closest matches across your accessible cookbooks.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-6xl space-y-6 py-6">
+      <PageHeader
+        eyebrow="Semantic recipe search"
+        title="Search recipes"
+        description="Search by recipe name, ingredients, or instructions using natural language and surface the closest matches across your accessible cookbooks."
+      />
 
-        <form className="relative mt-8 space-y-4" onSubmit={handleSubmit}>
+      <SectionCard>
+        <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block" htmlFor="semantic-search-query">
             <span className="sr-only">Search recipes</span>
             <textarea
@@ -115,16 +111,17 @@ export default function Search() {
               />
             </label>
 
-            <button
+            <AppButton
               type="submit"
+              variant="primary"
               disabled={loading || !query.trim()}
-              className="app-button app-button-primary w-full sm:w-auto"
+              className="w-full sm:w-auto"
             >
               {loading ? "Searching..." : "Search"}
-            </button>
+            </AppButton>
           </div>
         </form>
-      </section>
+      </SectionCard>
 
       {error ? (
         <StatusBanner tone="danger" className="mt-6 shadow-[var(--shadow-card)]" role="alert">
