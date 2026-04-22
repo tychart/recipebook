@@ -1,4 +1,5 @@
 import type { Ingredient } from "../../../types/types";
+import { FormattedIngredientAmount } from "./FormattedIngredientAmount";
 
 interface IngredientListProps {
   ingredients: Ingredient[];
@@ -16,9 +17,8 @@ export default function IngredientList({ ingredients }: IngredientListProps) {
             key={ing.ingredient_id}
             className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-3 text-sm text-[var(--text-secondary)]"
           >
-            <span className="font-semibold text-[var(--text-primary)]">
-              {Math.max(0, ing.amount)} {ing.unit ? `${ing.unit} ` : ""}
-            </span>
+            <FormattedIngredientAmount amount={ing.amount} unit={ing.unit} />
+            {" "}
             {ing.name}
           </li>
         ))}

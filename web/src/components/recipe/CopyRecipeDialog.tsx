@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import type { Cookbook } from "../../../types/types";
 import { AppButton } from "../ui/AppButton";
 import { AppModal } from "../ui/AppModal";
+import { AppSelect } from "../ui/AppSelect";
 import { StatusBanner } from "../ui/StatusBanner";
 import { getWritableCookbooks } from "../../lib/cookbookAccess";
 
@@ -25,6 +26,10 @@ export default function CopyRecipeDialog({
   const [cookbooksLoading, setCookbooksLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const titleId = "copy-recipe-dialog-title";
+  const cookbookOptions = availableCookbooks.map((cookbook) => ({
+    value: String(cookbook.id),
+    label: cookbook.name,
+  }));
 
   useEffect(() => {
     if (!isOpen) return;
@@ -95,29 +100,14 @@ export default function CopyRecipeDialog({
           <label className="app-label">
             Destination Cookbook
           </label>
-          <select
+          <AppSelect
             value={selectedCookbookId}
-            onChange={(e) => setSelectedCookbookId(e.target.value)}
+            onValueChange={setSelectedCookbookId}
             disabled={cookbooksLoading || loading}
-            className="app-select cursor-pointer appearance-none disabled:opacity-50"
-            style={{
-              backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E")',
-              backgroundRepeat: "no-repeat",
-              backgroundPosition: "right 0.75rem center",
-              backgroundSize: "1rem",
-            }}
-          >
-            <option value="">{cookbooksLoading ? "Loading cookbooks..." : "Choose a cookbook..."}</option>
-            {cookbooksLoading ? (
-              <option disabled>Loading cookbooks...</option>
-            ) : (
-              availableCookbooks.map((cookbook) => (
-                <option key={cookbook.id} value={cookbook.id}>
-                  {cookbook.name}
-                </option>
-              ))
-            )}
-          </select>
+            options={cookbookOptions}
+            placeholder={cookbooksLoading ? "Loading cookbooks..." : "Choose a cookbook..."}
+            ariaLabel="Destination cookbook"
+          />
           {!cookbooksLoading && availableCookbooks.length === 0 ? (
             <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
               You need owner or contributor access to another cookbook before you can copy this recipe.

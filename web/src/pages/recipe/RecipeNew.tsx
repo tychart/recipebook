@@ -8,6 +8,7 @@ import RecipeForm from "../../components/recipe/RecipeForm";
 import { useAuth } from "../../context/AuthContext";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { AppButton } from "../../components/ui/AppButton";
+import { AppSelect } from "../../components/ui/AppSelect";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBanner } from "../../components/ui/StatusBanner";
@@ -302,6 +303,11 @@ export default function RecipeNew() {
 
     return "Select a cookbook";
   }, [writableCookbooks]);
+  const showGlobalCookbookPlaceholder = writableCookbooks.length !== 1;
+  const cookbookOptions = useMemo(
+    () => writableCookbooks.map((book) => ({ value: String(book.id), label: book.name })),
+    [writableCookbooks],
+  );
 
   const blockedActions = (
     <>
@@ -514,18 +520,13 @@ export default function RecipeNew() {
                 description="Choose the cookbook that should own this recipe. Imports and manual saves stay tied to this choice for the current session."
               >
                 <label className="app-label">Save to cookbook</label>
-                <select
-                  value={selectedCookbookId}
-                  onChange={(event) => setSelectedCookbookId(Number(event.target.value))}
-                  className="app-select"
-                >
-                  <option value={0}>{globalCookbookPlaceholder}</option>
-                  {writableCookbooks.map((book) => (
-                    <option key={book.id} value={book.id}>
-                      {book.name}
-                    </option>
-                  ))}
-                </select>
+                <AppSelect
+                  value={selectedCookbookId > 0 ? String(selectedCookbookId) : ""}
+                  onValueChange={(nextValue) => setSelectedCookbookId(Number(nextValue))}
+                  options={cookbookOptions}
+                  placeholder={showGlobalCookbookPlaceholder ? globalCookbookPlaceholder : undefined}
+                  ariaLabel="Save to cookbook"
+                />
                 {needsGlobalCookbookSelection ? (
                   <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
                     Pick a cookbook before you queue an import or save a new recipe so nothing gets stranded at the end.

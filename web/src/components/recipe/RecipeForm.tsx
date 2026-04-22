@@ -1,6 +1,7 @@
 import type { Ingredient, RecipeInput } from "../../../types/types";
 import RecipeImage from "./RecipeImage";
 import { AppButton } from "../ui/AppButton";
+import { AppSelect } from "../ui/AppSelect";
 import { SectionCard } from "../ui/SectionCard";
 
 interface RecipeFormProps {
@@ -111,6 +112,9 @@ export default function RecipeForm({
     categories === undefined
       ? ["Main", "Dessert", "Snacks", "Breakfast", ""]
       : categories;
+  const categoryOptions = resolvedCategories
+    .filter((category) => category.trim() !== "")
+    .map((category) => ({ value: category, label: category }));
 
   return (
     <div className="mx-auto max-w-5xl py-6">
@@ -174,21 +178,18 @@ export default function RecipeForm({
 
             <div>
               <label className="app-label">Category</label>
-              <select
-                name="category"
+              <AppSelect
                 value={recipe.category || ""}
-                onChange={handleChange}
-                className="app-select"
-              >
-                <option value="" disabled>
-                  Select a category
-                </option>
-                {resolvedCategories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                onValueChange={(nextValue) =>
+                  onRecipeChange({
+                    ...recipe,
+                    category: nextValue,
+                  })
+                }
+                options={categoryOptions}
+                placeholder="Select a category"
+                ariaLabel="Category"
+              />
             </div>
 
             <div>

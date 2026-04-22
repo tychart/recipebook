@@ -2,7 +2,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useBorderTheme } from "../../context/BorderThemeContext";
+import { useIngredientAmountDisplay } from "../../context/IngredientAmountDisplayContext";
+import { FormattedIngredientAmount } from "../../components/recipe/FormattedIngredientAmount";
 import { ThemeSelector } from "../../components/ui/ThemeSelector";
+import { AppButton } from "../../components/ui/AppButton";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -14,6 +17,11 @@ import {
   BORDER_THEME_LABELS,
   themePreviewSurface,
 } from "../../theme/borderTheme";
+import {
+  DEFAULT_INGREDIENT_AMOUNT_DISPLAY_PREFERENCES,
+  type IngredientAmountDensity,
+  type IngredientAmountStyle,
+} from "../../lib/ingredientAmountDisplay";
 
 function fieldBox(label: string, children: ReactNode) {
   return (
@@ -39,9 +47,55 @@ function statBox(label: string, display: string | number) {
   );
 }
 
+const fractionStyleOptions: Array<{
+  value: IngredientAmountStyle;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "unicode",
+    label: "Unicode fractions",
+    description: "Cleaner display using fraction glyphs like 1 1/2 -> 1 1/2 style characters.",
+  },
+  {
+    value: "ascii",
+    label: "ASCII fractions",
+    description: "Plain text fractions like 1 1/2 that can be easier to read from farther away.",
+  },
+];
+
+const fractionDensityOptions: Array<{
+  value: IngredientAmountDensity;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "compact",
+    label: "Compact",
+    description: "Tighter ingredient amount display for denser recipe lists.",
+  },
+  {
+    value: "normal",
+    label: "Normal",
+    description: "Balanced display size for everyday browsing.",
+  },
+  {
+    value: "large",
+    label: "Large",
+    description: "Bigger ingredient amount text for easier reading at a distance.",
+  },
+];
+
 export default function Account() {
   const { user, isInitializing } = useAuth();
   const { borderTheme, setBorderTheme } = useBorderTheme();
+  const {
+    preferences: ingredientAmountPreferences,
+    setEnabled: setIngredientAmountEnabled,
+    setStyle: setIngredientAmountStyle,
+    setDisplayDensity: setIngredientAmountDensity,
+    resetPreferences: resetIngredientAmountPreferences,
+  } = useIngredientAmountDisplay();
   const [stats, setStats] = useState<{
     contributorCookbooks: number;
     viewerCookbooks: number;
@@ -104,6 +158,11 @@ export default function Account() {
     );
   }
 
+  const hasCustomizedIngredientAmountPreferences =
+    ingredientAmountPreferences.enabled !== DEFAULT_INGREDIENT_AMOUNT_DISPLAY_PREFERENCES.enabled ||
+    ingredientAmountPreferences.style !== DEFAULT_INGREDIENT_AMOUNT_DISPLAY_PREFERENCES.style ||
+    ingredientAmountPreferences.displayDensity !== DEFAULT_INGREDIENT_AMOUNT_DISPLAY_PREFERENCES.displayDensity;
+
   return (
     <div className="space-y-6 py-6 w-full max-w-6xl">
       <PageHeader
@@ -154,6 +213,148 @@ export default function Account() {
                   </span>
                 </button>
               ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Ingredient amount display"
+            description="Show familiar cooking fractions when an ingredient amount is close to a common kitchen measurement, or fall back to decimals when it is not."
+          >
+            <div className="space-y-5">
+              <button
+                type="button"
+                onClick={() => setIngredientAmountEnabled(!ingredientAmountPreferences.enabled)}
+                className={`flex w-full items-start justify-between gap-4 rounded-[1.5rem] border p-4 text-left transition ${
+                  ingredientAmountPreferences.enabled
+                    ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-[var(--shadow-soft)]"
+                    : "border-[var(--border-muted)] bg-[var(--surface-soft)] hover:border-[var(--border-strong)]"
+                }`}
+                aria-pressed={ingredientAmountPreferences.enabled}
+              >
+                <div>
+                  <p className="text-sm font-semibold text-[var(--text-primary)]">
+                    Display common cooking fractions
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                    Examples like 0.25 or 0.333 render as familiar fractions, while awkward values stay as their normal decimals.
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex min-h-9 min-w-20 items-center justify-center rounded-full border px-3 text-xs font-semibold uppercase tracking-[0.2em] ${
+                    ingredientAmountPreferences.enabled
+                      ? "border-[var(--interactive-border)] bg-[var(--surface)] text-[var(--text-primary)]"
+                      : "border-[var(--border-muted)] bg-[var(--surface)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {ingredientAmountPreferences.enabled ? "On" : "Off"}
+                </span>
+              </button>
+
+              <div className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                  Preview
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {[
+                    { amount: 0.25, unit: "cup", name: "milk" },
+                    { amount: 0.333, unit: "tsp", name: "salt" },
+                    { amount: 1.5, unit: "tbsp", name: "olive oil" },
+                    { amount: 0.41, unit: "cup", name: "broth" },
+                  ].map((sample) => (
+                    <div
+                      key={`${sample.amount}-${sample.unit}-${sample.name}`}
+                      className="rounded-[1.25rem] border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text-secondary)]"
+                    >
+                      <FormattedIngredientAmount amount={sample.amount} unit={sample.unit} />
+                      {" "}
+                      {sample.name}
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-4 text-sm leading-6 text-[var(--text-secondary)]">
+                  Values that are not close to a familiar kitchen fraction keep their normal decimal display.
+                </p>
+              </div>
+
+              <details className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4">
+                <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text-primary)]">
+                  Advanced fraction display settings
+                </summary>
+                <div className="mt-5 space-y-6">
+                  <div>
+                    <p className="app-label">Fraction style</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {fractionStyleOptions.map((option) => {
+                        const isActive = ingredientAmountPreferences.style === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setIngredientAmountStyle(option.value)}
+                            className={`flex min-h-28 flex-col items-start rounded-[1.5rem] border p-4 text-left transition ${
+                              isActive
+                                ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-[var(--shadow-soft)]"
+                                : "border-[var(--border-muted)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
+                            }`}
+                          >
+                            <span className="text-sm font-semibold text-[var(--text-primary)]">
+                              {option.label}
+                            </span>
+                            <span className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                              {option.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="app-label">Fraction size</p>
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      {fractionDensityOptions.map((option) => {
+                        const isActive = ingredientAmountPreferences.displayDensity === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setIngredientAmountDensity(option.value)}
+                            className={`flex min-h-28 flex-col items-start rounded-[1.5rem] border p-4 text-left transition ${
+                              isActive
+                                ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-[var(--shadow-soft)]"
+                                : "border-[var(--border-muted)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
+                            }`}
+                          >
+                            <span className="text-sm font-semibold text-[var(--text-primary)]">
+                              {option.label}
+                            </span>
+                            <span className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                              {option.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.25rem] border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-4 text-sm text-[var(--text-secondary)]">
+                    <p className="font-semibold text-[var(--text-primary)]">
+                      Fraction matching behavior
+                    </p>
+                    <p className="mt-2 leading-6">
+                      RecipeBook only converts amounts that are very close to familiar cooking fractions. Values that do not map cleanly stay as normal decimals.
+                    </p>
+                  </div>
+
+                  {hasCustomizedIngredientAmountPreferences ? (
+                    <div className="flex flex-wrap gap-3">
+                      <AppButton onClick={resetIngredientAmountPreferences}>
+                        Reset fraction settings
+                      </AppButton>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
             </div>
           </SectionCard>
         </div>

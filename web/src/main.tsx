@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.tsx";
 import { BorderThemeProvider } from "./context/BorderThemeContext";
+import { IngredientAmountDisplayProvider } from "./context/IngredientAmountDisplayContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
@@ -14,9 +15,11 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
-      <BorderThemeProvider>
-        <App />
-      </BorderThemeProvider>
+      <IngredientAmountDisplayProvider>
+        <BorderThemeProvider>
+          <App />
+        </BorderThemeProvider>
+      </IngredientAmountDisplayProvider>
     </ThemeProvider>
   </StrictMode>,
 );
