@@ -1,8 +1,30 @@
-import type { Ingredient, RecipeInput } from "../../../types/types";
+import { useEffect, useState } from "react";
+import type { RecipeInput } from "../../../types/types";
 import RecipeImage from "./RecipeImage";
 import { AppButton } from "../ui/AppButton";
 import { AppSelect } from "../ui/AppSelect";
 import { SectionCard } from "../ui/SectionCard";
+
+type RecipeIngredientInput = RecipeInput["ingredients"][number];
+
+const INGREDIENT_AMOUNT_PATTERN = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
+
+function formatIngredientAmountForInput(amount: number): string {
+  return amount > 0 ? String(amount) : "";
+}
+
+function isValidIngredientAmountDraft(value: string): boolean {
+  return value === "" || INGREDIENT_AMOUNT_PATTERN.test(value);
+}
+
+function normalizeIngredientAmount(value: string): number {
+  if (!value.trim()) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
 
 interface RecipeFormProps {
   recipe: RecipeInput;
@@ -33,6 +55,28 @@ export default function RecipeForm({
   submitDisabled = false,
   submitHint,
 }: RecipeFormProps) {
+  const [ingredientAmountDrafts, setIngredientAmountDrafts] = useState<string[]>(() =>
+    recipe.ingredients.map((ingredient) => formatIngredientAmountForInput(ingredient.amount)),
+  );
+  const [focusedIngredientAmountIndex, setFocusedIngredientAmountIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    setIngredientAmountDrafts((currentDrafts) =>
+      recipe.ingredients.map((ingredient, index) =>
+        focusedIngredientAmountIndex === index
+          ? currentDrafts[index] ?? formatIngredientAmountForInput(ingredient.amount)
+          : formatIngredientAmountForInput(ingredient.amount),
+      ),
+    );
+
+    if (
+      focusedIngredientAmountIndex !== null &&
+      focusedIngredientAmountIndex >= recipe.ingredients.length
+    ) {
+      setFocusedIngredientAmountIndex(null);
+    }
+  }, [focusedIngredientAmountIndex, recipe.ingredients]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
   ) => {
@@ -46,7 +90,7 @@ export default function RecipeForm({
 
   const handleIngredientChange = (
     index: number,
-    field: keyof Ingredient,
+    field: keyof RecipeIngredientInput,
     value: string | number,
   ) => {
     const updated = [...recipe.ingredients];
@@ -56,6 +100,20 @@ export default function RecipeForm({
     };
 
     onRecipeChange({ ...recipe, ingredients: updated });
+  };
+
+  const handleIngredientAmountInputChange = (index: number, value: string) => {
+    if (!isValidIngredientAmountDraft(value)) {
+      return;
+    }
+
+    setIngredientAmountDrafts((currentDrafts) => {
+      const nextDrafts = [...currentDrafts];
+      nextDrafts[index] = value;
+      return nextDrafts;
+    });
+
+    handleIngredientChange(index, "amount", normalizeIngredientAmount(value));
   };
 
   const handleAddIngredient = () => {
@@ -235,12 +293,35 @@ export default function RecipeForm({
                 <input
                   type="number"
                   min="0"
-                  value={ingredient.amount}
+                  inputMode="decimal"
+                  value={ingredientAmountDrafts[index] ?? ""}
+                  onFocus={() => setFocusedIngredientAmountIndex(index)}
+                  onBlur={() => setFocusedIngredientAmountIndex((currentIndex) => (currentIndex === index ? null : currentIndex))}
+                  onKeyDown={(event) => {
+                    if (event.key === "-" || event.key === "e" || event.key === "E" || event.key === "+") {
+                      event.preventDefault();
+                      return;
+                    }
+
+                    if ((ingredientAmountDrafts[index] ?? "") !== "") {
+                      return;
+                    }
+
+                    if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      handleIngredientAmountInputChange(index, "1");
+                    }
+
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                    }
+                  }}
                   onChange={(event) =>
-                    handleIngredientChange(index, "amount", Number(event.target.value))
+                    handleIngredientAmountInputChange(index, event.target.value)
                   }
-                  placeholder="Amount"
-                  className="app-input"
+                  placeholder="0"
+                  aria-label={`Ingredient ${index + 1} amount`}
+                  className="app-input focus:placeholder:text-transparent"
                 />
 
                 <input
