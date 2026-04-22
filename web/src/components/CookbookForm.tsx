@@ -38,6 +38,7 @@ export default function CookbookForm({
           name="name"
           value={formData.name || ""}
           onChange={handleChange}
+          placeholder="e.g. Smith Family Cookbook"
           className="app-input"
         />
       </div>
@@ -56,6 +57,7 @@ export default function CookbookForm({
               categories: e.target.value.split(",").map((c) => c.trim()),
             }))
           }
+          placeholder="e.g. Breakfast, Lunch, Dinner, Dessert, Meal Prep"
           className="app-input"
         />
       </div>
