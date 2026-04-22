@@ -8,6 +8,7 @@ import RecipeForm from "../../components/recipe/RecipeForm";
 import { useAuth } from "../../context/AuthContext";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { AppButton } from "../../components/ui/AppButton";
+import { ExpandableSection } from "../../components/ui/ExpandableSection";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
@@ -605,11 +606,12 @@ export default function RecipeNew() {
                     </AppButton>
                   </div>
 
-                  <details className="rounded-[1.25rem] border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-3">
-                    <summary className="cursor-pointer text-sm font-semibold text-[var(--text-primary)]">
-                      Optional import notes
-                    </summary>
-                    <div className="mt-4">
+                  <ExpandableSection
+                    title="Optional import notes"
+                    className="rounded-[1.25rem] bg-[var(--surface)] px-4 py-3"
+                    contentClassName="mt-4 border-t-0 pt-0"
+                  >
+                    <div>
                       <label className="app-label">Optional image import notes</label>
                       <textarea
                         value={imageImportValue}
@@ -621,7 +623,7 @@ export default function RecipeNew() {
                         These notes are sent only during image extraction and are kept with the queued job for debugging.
                       </p>
                     </div>
-                  </details>
+                  </ExpandableSection>
                 </div>
               ) : null}
 

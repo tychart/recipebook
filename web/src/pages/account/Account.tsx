@@ -6,6 +6,7 @@ import { useIngredientAmountDisplay } from "../../context/IngredientAmountDispla
 import { FormattedIngredientAmount } from "../../components/recipe/FormattedIngredientAmount";
 import { ThemeSelector } from "../../components/ui/ThemeSelector";
 import { AppButton } from "../../components/ui/AppButton";
+import { ExpandableSection } from "../../components/ui/ExpandableSection";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -55,7 +56,7 @@ const fractionStyleOptions: Array<{
   {
     value: "unicode",
     label: "Unicode fractions",
-    description: "Cleaner display using fraction glyphs like 1 1/2 -> 1 1/2 style characters.",
+    description: "Cleaner display using fraction glyphs like 1 1/2 -> 1 ½ style characters.",
   },
   {
     value: "ascii",
@@ -276,11 +277,11 @@ export default function Account() {
                 </p>
               </div>
 
-              <details className="rounded-[1.5rem] border border-[var(--border-muted)] bg-[var(--surface-soft)] p-4">
-                <summary className="cursor-pointer list-none text-sm font-semibold text-[var(--text-primary)]">
-                  Advanced fraction display settings
-                </summary>
-                <div className="mt-5 space-y-6">
+              <ExpandableSection
+                title="Advanced fraction display settings"
+                description="Tune the look of rendered fractions without changing how ingredient amounts are stored."
+              >
+                <div className="space-y-6">
                   <div>
                     <p className="app-label">Fraction style</p>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -337,12 +338,10 @@ export default function Account() {
                     </div>
                   </div>
 
-                  <div className="rounded-[1.25rem] border border-[var(--border-muted)] bg-[var(--surface)] px-4 py-4 text-sm text-[var(--text-secondary)]">
-                    <p className="font-semibold text-[var(--text-primary)]">
-                      Fraction matching behavior
-                    </p>
-                    <p className="mt-2 leading-6">
-                      RecipeBook only converts amounts that are very close to familiar cooking fractions. Values that do not map cleanly stay as normal decimals.
+                  <div>
+                    <p className="app-label">Fallback behavior</p>
+                    <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                      RecipeBook only converts amounts that are very close to familiar cooking fractions. Values that do not map cleanly stay as their normal decimals.
                     </p>
                   </div>
 
@@ -354,7 +353,7 @@ export default function Account() {
                     </div>
                   ) : null}
                 </div>
-              </details>
+              </ExpandableSection>
             </div>
           </SectionCard>
         </div>
