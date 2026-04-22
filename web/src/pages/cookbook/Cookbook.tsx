@@ -19,19 +19,11 @@ export default function Cookbook() {
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cookbookId = id ? Number(id) : undefined;
+  const hasInvalidCookbookId = id !== undefined && (cookbookId === undefined || Number.isNaN(cookbookId));
 
   useEffect(() => {
-    if (!id || !user) {
-      setLoadingCookbook(false);
-      setLoadingRecipes(false);
-      return;
-    }
-
-    const cookbookId = Number(id);
-    if (isNaN(cookbookId)) {
-      setError("Invalid cookbook ID");
-      setLoadingCookbook(false);
-      setLoadingRecipes(false);
+    if (!id || !user || cookbookId === undefined || Number.isNaN(cookbookId)) {
       return;
     }
 
@@ -49,7 +41,7 @@ export default function Cookbook() {
       .then((data) => setRecipes(data))
       .catch((err) => setError("Failed to load recipes: " + err.message))
       .finally(() => setLoadingRecipes(false));
-  }, [id, user]);
+  }, [cookbookId, id, user]);
 
   if (!user) {
     return (
@@ -60,8 +52,12 @@ export default function Cookbook() {
     );
   }
 
+  if (hasInvalidCookbookId) {
+    return <p className="app-text-danger py-6 text-sm">Invalid cookbook ID</p>;
+  }
+
   if (loadingCookbook || loadingRecipes) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading cookbook...</p>;
-  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
   if (!cookbook) return <p className="py-6 text-sm text-[var(--text-secondary)]">Cookbook not found</p>;
 
   return (

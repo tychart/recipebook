@@ -1,10 +1,11 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Recipe, RecipeInput } from "../../../types/types";
 import RecipeForm from "../../components/recipe/RecipeForm";
 import { getRecipe, updateRecipe } from "../../api/recipes";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { AppButton } from "../../components/ui/AppButton";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 
 export default function RecipeEdit() {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ export default function RecipeEdit() {
   const [originalImageUrl, setOriginalImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -25,7 +27,7 @@ export default function RecipeEdit() {
       try {
         const data = await getRecipe(Number(id));
         setRecipe(data);
-      } catch (err) {
+      } catch {
         setError("Failed to load recipe");
       } finally {
         setLoading(false);
@@ -34,58 +36,66 @@ export default function RecipeEdit() {
 
     fetchRecipe();
   }, [id]);
+  const recipeInput = useMemo<RecipeInput | null>(() => {
+    if (!recipe) {
+      return null;
+    }
 
+    const instructionsArr = Array.isArray(recipe.instructions)
+      ? (recipe.instructions as { instruction_text?: string }[]).map(
+          (instruction) => instruction.instruction_text ?? "",
+        )
+      : String(recipe.instructions ?? "")
+          .split("\n")
+          .map((step) => step.trim())
+          .filter(Boolean);
 
-
-  if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading recipe...</p>;
-  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
-  if (!recipe) return <p className="py-6 text-sm text-[var(--text-secondary)]">Recipe not found</p>;
-
-  // Backend returns instructions as array of { instruction_number, instruction_text }; form expects string[]
-  const instructionsArr = Array.isArray(recipe.instructions)
-    ? (recipe.instructions as { instruction_text?: string }[]).map(
-        (i) => i.instruction_text ?? ""
-      )
-    : String(recipe.instructions ?? "")
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-
-  const recipeInput: RecipeInput = {
-    name: recipe.name,
-    description: recipe.description,
-    servings: recipe.servings,
-    instructions: instructionsArr,
-    notes: recipe.notes,
-    image_url: recipe.image_url,
-    ingredients: recipe.ingredients.map((ing) => ({
-      amount: ing.amount,
-      unit: ing.unit,
-      name: ing.name,
-    })),
-    cookbook_id: recipe.cookbook_id,
-    creator_id: recipe.creator_id,
-    category: recipe.category,
-    tags: recipe.tags,
-  };
+    return {
+      name: recipe.name,
+      description: recipe.description,
+      servings: recipe.servings,
+      instructions: instructionsArr,
+      notes: recipe.notes,
+      image_url: recipe.image_url,
+      ingredients: recipe.ingredients.map((ingredient) => ({
+        amount: ingredient.amount,
+        unit: ingredient.unit,
+        name: ingredient.name,
+      })),
+      cookbook_id: recipe.cookbook_id,
+      creator_id: recipe.creator_id,
+      category: recipe.category,
+      tags: recipe.tags,
+    };
+  }, [recipe]);
 
   useEffect(() => {
+    if (!recipe || !recipeInput) {
+      return;
+    }
+
     setRecipeDraft(recipeInput);
     setTagInput(recipeInput.tags?.join(", ") ?? "");
     setSelectedImageFile(undefined);
     setOriginalImageUrl(recipeInput.image_url ?? "");
-  }, [recipe.id]);
+  }, [recipe, recipeInput]);
+
+  if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading recipe...</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
+  if (!recipe) return <p className="py-6 text-sm text-[var(--text-secondary)]">Recipe not found</p>;
 
   const handleUpdate = async (
     updated: RecipeInput,
     imageFile?: File,
   ) => {
+    setSubmitError(null);
+
     try {
       await updateRecipe(recipe.id, updated, imageFile);
       navigate(`/recipe/${recipe.id}`);
     } catch (err) {
       console.error(err);
-      alert("Failed to update recipe");
+      setSubmitError("Failed to update recipe.");
     }
   };
 
@@ -101,6 +111,12 @@ export default function RecipeEdit() {
           </Link>
         }
       />
+
+      {submitError ? (
+        <StatusBanner tone="danger" role="alert">
+          {submitError}
+        </StatusBanner>
+      ) : null}
 
       {recipeDraft ? (
         <RecipeForm

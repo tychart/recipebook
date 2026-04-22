@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { getJob, listJobs, retryJob } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import type { JobDetail, JobSource, JobStatus, JobSummary } from "../../types/types";
+import { AppButton } from "../components/ui/AppButton";
+import { EmptyState } from "../components/ui/EmptyState";
+import { StatusBanner } from "../components/ui/StatusBanner";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -14,10 +17,10 @@ function formatTimestamp(value?: string | null): string {
 }
 
 function statusClasses(status: JobStatus): string {
-  if (status === "succeeded") return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (status === "failed") return "bg-red-100 text-red-800 border-red-200";
-  if (status === "running") return "bg-amber-100 text-amber-800 border-amber-200";
-  return "bg-stone-100 text-stone-700 border-stone-200";
+  if (status === "succeeded") return "app-status-surface app-status-success";
+  if (status === "failed") return "app-status-surface app-status-danger";
+  if (status === "running") return "app-status-surface app-status-warning";
+  return "border-[var(--border-muted)] bg-[var(--surface-soft)] text-[var(--text-secondary)]";
 }
 
 function sourceLabel(source: JobSource): string {
@@ -133,9 +136,20 @@ export default function Jobs() {
     }
   }
 
-  if (isInitializing) return <p>Loading jobs...</p>;
-  if (!user) return <p>Please log in to view your jobs.</p>;
-  if (loading) return <p>Loading jobs...</p>;
+  if (isInitializing || loading) {
+    return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading jobs...</p>;
+  }
+
+  if (!user) {
+    return (
+      <div className="py-6">
+        <EmptyState
+          title="Please log in to view your jobs."
+          description="Image and text imports run in the background here after you sign in."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
@@ -151,16 +165,13 @@ export default function Jobs() {
             </p>
           </div>
 
-          {error ? (
-            <div className="mb-4 rounded-xl border border-rose-300/70 bg-rose-500/10 px-4 py-3 text-sm text-rose-800 dark:text-rose-200">
-              {error}
-            </div>
-          ) : null}
+          {error ? <StatusBanner tone="danger" className="mb-4">{error}</StatusBanner> : null}
 
           {jobs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-8 text-center text-sm text-[var(--text-secondary)]">
-              No jobs yet. Start an import from the new recipe page.
-            </div>
+            <EmptyState
+              title="No jobs yet."
+              description="Start an import from the new recipe page and its progress will show up here."
+            />
           ) : (
             <div className="space-y-3">
               {jobs.map((job) => (
@@ -186,7 +197,7 @@ export default function Jobs() {
                     </span>
                   </div>
                   {job.error ? (
-                    <p className="mt-3 text-sm text-red-700 line-clamp-2">{job.error}</p>
+                    <p className="app-text-danger mt-3 text-sm line-clamp-2">{job.error}</p>
                   ) : null}
                 </button>
               ))}
@@ -235,55 +246,52 @@ export default function Jobs() {
                 </div>
               </div>
 
-              {actionError ? (
-                <div className="mt-6 rounded-xl border border-rose-300/70 bg-rose-500/10 px-4 py-3 text-sm text-rose-800 dark:text-rose-200">
-                  {actionError}
-                </div>
-              ) : null}
+              {actionError ? <StatusBanner tone="danger" className="mt-6">{actionError}</StatusBanner> : null}
 
               {detailLoading ? (
                 <p className="mt-6 text-sm text-[var(--text-secondary)]">Loading job details...</p>
               ) : null}
 
               {selectedJob?.error ? (
-                <div className="mt-6 rounded-2xl border border-rose-300/70 bg-rose-500/10 px-5 py-4">
-                  <p className="text-sm font-semibold text-red-800">Failure</p>
-                  <p className="mt-2 text-sm text-rose-700 dark:text-rose-200">{selectedJob.error}</p>
-                </div>
+                <StatusBanner tone="danger" className="mt-6">
+                  <p className="text-sm font-semibold">Failure</p>
+                  <p className="mt-2 text-sm">{selectedJob.error}</p>
+                </StatusBanner>
               ) : null}
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {selectedSummary.status === "failed" ? (
-                  <button
-                    type="button"
+                  <AppButton
                     onClick={() => void handleRetry(selectedSummary.job_id)}
                     disabled={retryingJobId === selectedSummary.job_id}
-                    className="inline-flex w-auto items-center justify-center rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+                    variant="danger"
                   >
                     {retryingJobId === selectedSummary.job_id ? "Retrying..." : "Retry Job"}
-                  </button>
+                  </AppButton>
                 ) : null}
 
                 {selectedSummary.status === "succeeded" ? (
                   <Link
                     to={`/recipe/new?job=${selectedSummary.job_id}`}
-                    className="inline-flex items-center justify-center rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
                   >
-                    Open Draft
+                    <AppButton variant="secondary">Open Draft</AppButton>
                   </Link>
                 ) : null}
               </div>
 
               {selectedJob ? (
                 <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                  <div className="rounded-2xl border border-stone-200 bg-white px-5 py-5">
-                    <h3 className="text-lg font-semibold text-stone-900">Logs</h3>
+                  <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-5 py-5 shadow-[var(--shadow-card)]">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Logs</h3>
                     {selectedJob.logs.length === 0 ? (
-                      <p className="mt-3 text-sm text-stone-500">No logs yet.</p>
+                      <p className="mt-3 text-sm text-[var(--text-secondary)]">No logs yet.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {selectedJob.logs.map((log, index) => (
-                          <p key={`${selectedJob.job_id}-${index}`} className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-700">
+                          <p
+                            key={`${selectedJob.job_id}-${index}`}
+                            className="rounded-xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text-secondary)]"
+                          >
                             {log}
                           </p>
                         ))}
@@ -291,22 +299,22 @@ export default function Jobs() {
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-stone-200 bg-white px-5 py-5">
-                    <h3 className="text-lg font-semibold text-stone-900">Result</h3>
+                  <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-5 py-5 shadow-[var(--shadow-card)]">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Result</h3>
                     {selectedJob.result ? (
-                      <div className="mt-3 space-y-3 text-sm text-stone-600">
+                      <div className="mt-3 space-y-3 text-sm text-[var(--text-secondary)]">
                         <p>
-                          Draft name: <span className="font-medium text-stone-900">{selectedJob.result.draft.name || "Untitled"}</span>
+                          Draft name: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.name || "Untitled"}</span>
                         </p>
                         <p>
-                          Ingredients: <span className="font-medium text-stone-900">{selectedJob.result.draft.ingredients.length}</span>
+                          Ingredients: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.ingredients.length}</span>
                         </p>
                         <p>
-                          Instructions: <span className="font-medium text-stone-900">{selectedJob.result.draft.instructions.length}</span>
+                          Instructions: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.instructions.length}</span>
                         </p>
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-stone-500">
+                      <p className="mt-3 text-sm text-[var(--text-secondary)]">
                         The full parsed result becomes available here when the job succeeds.
                       </p>
                     )}

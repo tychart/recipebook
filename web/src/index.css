@@ -14,6 +14,16 @@
   --text-primary: #1d1713;
   --text-secondary: #5e4e41;
   --text-muted: #8d7a6b;
+  --text-inverse: #fffdfa;
+  --danger-surface: color-mix(in srgb, #e11d48 10%, transparent);
+  --danger-border: color-mix(in srgb, #e11d48 26%, transparent);
+  --danger-text: #b42344;
+  --success-surface: color-mix(in srgb, #10b981 12%, transparent);
+  --success-border: color-mix(in srgb, #10b981 28%, transparent);
+  --success-text: #0f766e;
+  --warning-surface: color-mix(in srgb, #f59e0b 12%, transparent);
+  --warning-border: color-mix(in srgb, #f59e0b 28%, transparent);
+  --warning-text: #9a6700;
   --shadow-soft: 0 26px 72px rgba(49, 33, 20, 0.12);
   --shadow-card: 0 14px 34px rgba(49, 33, 20, 0.08);
   --accent-50: #fff1ea;
@@ -75,6 +85,16 @@
   --text-primary: #f4f7fb;
   --text-secondary: #b6c3d5;
   --text-muted: #8293aa;
+  --text-inverse: #f8fbff;
+  --danger-surface: color-mix(in srgb, #fb7185 14%, transparent);
+  --danger-border: color-mix(in srgb, #fb7185 30%, transparent);
+  --danger-text: #fecdd3;
+  --success-surface: color-mix(in srgb, #34d399 16%, transparent);
+  --success-border: color-mix(in srgb, #34d399 30%, transparent);
+  --success-text: #d1fae5;
+  --warning-surface: color-mix(in srgb, #fbbf24 16%, transparent);
+  --warning-border: color-mix(in srgb, #fbbf24 30%, transparent);
+  --warning-text: #fef3c7;
   --shadow-soft: 0 28px 84px rgba(3, 8, 14, 0.52);
   --shadow-card: 0 16px 40px rgba(3, 8, 14, 0.36);
   --interactive-accent-400: var(--dark-interactive-accent-400);
@@ -151,7 +171,75 @@ button:disabled {
   min-height: 100dvh;
 }
 
+@keyframes panTilt {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-9deg);
+  }
+}
+
+@keyframes toss {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-38px) scale(1);
+  }
+  85% {
+    transform: translateY(-2px) scale(1.08, 0.92);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
 @layer components {
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0.9rem;
+  }
+
+  .routes-root {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    border-radius: 2rem;
+    overflow: clip;
+  }
+
   .app-shell-surface {
     background:
       linear-gradient(180deg, color-mix(in srgb, var(--panel) 100%, transparent), color-mix(in srgb, var(--surface) 100%, transparent)),
@@ -223,9 +311,9 @@ button:disabled {
   }
 
   .app-button-danger {
-    background: color-mix(in srgb, #e11d48 14%, var(--surface));
-    color: #be123c;
-    border-color: color-mix(in srgb, #e11d48 26%, transparent);
+    background: var(--danger-surface);
+    color: var(--danger-text);
+    border-color: var(--danger-border);
   }
 
   .app-button:disabled {
@@ -233,10 +321,6 @@ button:disabled {
     opacity: 0.58;
     box-shadow: none;
     transform: none;
-  }
-
-  :root[data-theme="dark"] .app-button-danger {
-    color: #fecdd3;
   }
 
   .app-input,
@@ -291,6 +375,52 @@ button:disabled {
     color: var(--link-hover);
   }
 
+  .app-status-surface {
+    @apply rounded-2xl border px-5 py-4 text-sm;
+  }
+
+  .app-status-info {
+    border-color: color-mix(in srgb, var(--border-strong) 82%, transparent);
+    background: var(--surface-muted);
+    color: var(--text-secondary);
+  }
+
+  .app-status-success {
+    border-color: var(--success-border);
+    background: var(--success-surface);
+    color: var(--success-text);
+  }
+
+  .app-status-warning {
+    border-color: var(--warning-border);
+    background: var(--warning-surface);
+    color: var(--warning-text);
+  }
+
+  .app-status-danger {
+    border-color: var(--danger-border);
+    background: var(--danger-surface);
+    color: var(--danger-text);
+  }
+
+  .app-text-danger {
+    color: var(--danger-text);
+  }
+
+  .app-text-success {
+    color: var(--success-text);
+  }
+
+  .app-text-warning {
+    color: var(--warning-text);
+  }
+
+  .app-card-subtle {
+    @apply rounded-2xl border px-4 py-4;
+    border-color: var(--border-muted);
+    background: var(--surface-soft);
+  }
+
   .app-pattern {
     background-image:
       linear-gradient(135deg, color-mix(in srgb, var(--accent-300) 8%, transparent) 25%, transparent 25%),
@@ -334,9 +464,74 @@ button:disabled {
   }
 }
 
+@media (min-width: 640px) {
+  .app-shell {
+    padding: 1.25rem;
+  }
+}
+
 @media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
   body {
     background: white !important;
     color: black !important;
+    font-family: serif;
+  }
+
+  .print-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  .grid {
+    display: block !important;
+  }
+
+  h1 {
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    margin-top: 20px;
+    page-break-after: avoid;
+  }
+
+  h1 {
+    page-break-after: avoid;
+  }
+
+  p {
+    font-size: 14px;
+  }
+
+  ul,
+  ol {
+    padding-left: 20px;
+    page-break-inside: avoid;
+  }
+
+  img {
+    max-height: 300px;
+    object-fit: contain;
+  }
+
+  @page {
+    margin: 1in;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-animate-in,
+  .toast-animate-out {
+    animation: none !important;
   }
 }

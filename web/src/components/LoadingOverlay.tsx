@@ -90,7 +90,7 @@ export default function LoadingOverlay({
         </svg>
       </div>
 
-      <span className="max-w-[320px] text-center text-sm text-stone-50">
+      <span className="max-w-[320px] text-center text-sm text-[var(--text-inverse)]">
         {message || "Hang tight while we cook up something delicious!"}
       </span>
     </div>

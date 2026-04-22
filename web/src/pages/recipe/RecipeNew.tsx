@@ -98,6 +98,7 @@ export default function RecipeNew() {
   const [queueNotice, setQueueNotice] = useState<QueueNotice | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [importedRawText, setImportedRawText] = useState("");
   const [manualTagInput, setManualTagInput] = useState("");
   const [manualSelectedImageFile, setManualSelectedImageFile] = useState<File>();
@@ -119,12 +120,6 @@ export default function RecipeNew() {
       cookbook_id: numericCookbookId ?? prev.cookbook_id ?? 0,
     }));
   }, [numericCookbookId, user?.id]);
-
-  useEffect(() => {
-    setManualTagInput(recipeData.tags?.join(", ") ?? "");
-    setManualSelectedImageFile(undefined);
-    setManualOriginalImageUrl(recipeData.image_url ?? "");
-  }, []);
 
   useEffect(() => {
     if (!numericCookbookId) {
@@ -348,11 +343,12 @@ export default function RecipeNew() {
 
   const queueImageImport = async (file: File, resetInput: () => void) => {
     if (isGlobalCreate && selectedCookbookId === 0) {
-      alert("Choose a cookbook before queueing an image import.");
+      setActionError("Choose a cookbook before queueing an image import.");
       return;
     }
 
     setIsProcessing(true);
+    setActionError(null);
     setDraftError(null);
     setQueueNotice(null);
 
@@ -363,7 +359,7 @@ export default function RecipeNew() {
       setImageImportValue("");
     } catch (error) {
       console.error("Image enqueue error:", error);
-      alert("Failed to queue image import.");
+      setActionError("Failed to queue image import.");
     } finally {
       setIsProcessing(false);
       resetInput();
@@ -384,11 +380,12 @@ export default function RecipeNew() {
     }
 
     if (isGlobalCreate && selectedCookbookId === 0) {
-      alert("Choose a cookbook before queueing a text import.");
+      setActionError("Choose a cookbook before queueing a text import.");
       return;
     }
 
     setIsProcessing(true);
+    setActionError(null);
     setDraftError(null);
     setQueueNotice(null);
 
@@ -399,7 +396,7 @@ export default function RecipeNew() {
       setTextImportValue("");
     } catch (error) {
       console.error("Text import enqueue error:", error);
-      alert("Failed to queue recipe text.");
+      setActionError("Failed to queue recipe text.");
     } finally {
       setIsProcessing(false);
     }
@@ -408,11 +405,12 @@ export default function RecipeNew() {
   const handleCreate = async (recipeInput: RecipeInput, imageFile?: File) => {
     const cookbookChoice = numericCookbookId ?? selectedCookbookId;
     if (!cookbookChoice) {
-      alert("Please choose a cookbook before creating the recipe.");
+      setActionError("Please choose a cookbook before creating the recipe.");
       return;
     }
 
     try {
+      setActionError(null);
       const result = await createRecipeWithImage(
         {
           ...recipeInput,
@@ -429,7 +427,7 @@ export default function RecipeNew() {
       navigate(`/recipe/${result.recipe.id}`);
     } catch (error) {
       console.error("Failed to create recipe", error);
-      alert("Failed to create recipe");
+      setActionError("Failed to create recipe.");
     }
   };
 
@@ -688,6 +686,12 @@ export default function RecipeNew() {
           {draftError ? (
             <div className="mx-auto max-w-5xl">
               <StatusBanner tone="danger">{draftError}</StatusBanner>
+            </div>
+          ) : null}
+
+          {actionError ? (
+            <div className="mx-auto max-w-5xl">
+              <StatusBanner tone="danger">{actionError}</StatusBanner>
             </div>
           ) : null}
 

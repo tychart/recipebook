@@ -19,7 +19,6 @@ export default function Cookbooks() {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
       return;
     }
 
@@ -54,7 +53,7 @@ export default function Cookbooks() {
   }
 
   if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading your cookbooks...</p>;
-  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6 py-6">

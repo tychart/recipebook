@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { searchRecipes } from "../api/search";
 import type { SemanticSearchResult } from "../../types/types";
+import { StatusBanner } from "../components/ui/StatusBanner";
 
 const DEFAULT_LIMIT = 10;
 const MIN_LIMIT = 1;
@@ -126,12 +127,9 @@ export default function Search() {
       </section>
 
       {error ? (
-        <div
-          role="alert"
-          className="mt-6 rounded-2xl border border-rose-300/70 bg-rose-500/10 px-5 py-4 text-sm text-rose-800 shadow-sm dark:text-rose-200"
-        >
+        <StatusBanner tone="danger" className="mt-6 shadow-[var(--shadow-card)]" role="alert">
           {error}
-        </div>
+        </StatusBanner>
       ) : null}
 
       {!hasSearched ? (
@@ -144,7 +142,7 @@ export default function Search() {
       ) : null}
 
       {hasSearched && !loading && !error && results.length === 0 ? (
-        <div className="mt-8 rounded-[1.75rem] border border-amber-300/70 bg-amber-500/10 px-6 py-10 text-center shadow-[var(--shadow-card)]">
+        <div className="app-status-surface app-status-warning mt-8 rounded-[1.75rem] px-6 py-10 text-center shadow-[var(--shadow-card)]">
           <p className="text-lg font-medium text-[var(--text-primary)]">No recipes matched that search.</p>
           <p className="mt-2 text-sm text-[var(--text-secondary)]">
             Try a broader description, fewer ingredients, or a different cuisine cue.

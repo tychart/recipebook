@@ -1,29 +1,29 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
-type StatusBannerProps = {
+type StatusBannerProps = HTMLAttributes<HTMLDivElement> & {
   tone?: "info" | "success" | "warning" | "danger";
   children: ReactNode;
-  className?: string;
 };
 
 const toneClasses: Record<NonNullable<StatusBannerProps["tone"]>, string> = {
-  info: "border-[color:rgba(90,95,108,0.22)] bg-[var(--surface-muted)] text-[var(--text-secondary)]",
-  success:
-    "border-emerald-300/70 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
-  warning:
-    "border-amber-300/70 bg-amber-500/10 text-amber-900 dark:text-amber-100",
-  danger:
-    "border-rose-300/70 bg-rose-500/10 text-rose-800 dark:text-rose-200",
+  info: "app-status-info",
+  success: "app-status-success",
+  warning: "app-status-warning",
+  danger: "app-status-danger",
 };
 
 export function StatusBanner({
   tone = "info",
   children,
   className,
+  ...props
 }: StatusBannerProps) {
   return (
-    <div className={cn("rounded-2xl border px-5 py-4 text-sm", toneClasses[tone], className)}>
+    <div
+      className={cn("app-status-surface", toneClasses[tone], className)}
+      {...props}
+    >
       {children}
     </div>
   );

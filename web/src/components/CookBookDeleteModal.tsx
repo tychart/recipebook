@@ -33,7 +33,7 @@ export default function CookBookDeleteModal({
     >
       <h2
         id={titleId}
-        className="mb-4 text-center font-[var(--font-display)] text-2xl font-semibold text-rose-600 dark:text-rose-200"
+        className="app-text-danger mb-4 text-center font-[var(--font-display)] text-2xl font-semibold"
       >
         Are you sure you want to delete this cookbook?
       </h2>

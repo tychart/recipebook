@@ -4,9 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import type { Cookbook } from "../../../types/types";
 import { AppButton } from "../ui/AppButton";
 import { AppModal } from "../ui/AppModal";
+import { StatusBanner } from "../ui/StatusBanner";
+import { getWritableCookbooks } from "../../lib/cookbookAccess";
 
 interface CopyRecipeDialogProps {
-  recipeId: number;
   isOpen: boolean;
   onClose: () => void;
   onCopy: (cookbookId: number) => Promise<void>;
@@ -22,6 +23,7 @@ export default function CopyRecipeDialog({
   const [selectedCookbookId, setSelectedCookbookId] = useState("");
   const [loading, setLoading] = useState(false);
   const [cookbooksLoading, setCookbooksLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const titleId = "copy-recipe-dialog-title";
 
   useEffect(() => {
@@ -31,9 +33,11 @@ export default function CopyRecipeDialog({
       try {
         setCookbooksLoading(true);
         const cookbooks = await listCookbooks(user?.id ?? 0);
-        setAvailableCookbooks(cookbooks);
+        setAvailableCookbooks(getWritableCookbooks(cookbooks));
+        setError(null);
       } catch (err) {
         console.error("Failed to load cookbooks:", err);
+        setError("Failed to load cookbook destinations.");
       } finally {
         setCookbooksLoading(false);
       }
@@ -48,11 +52,12 @@ export default function CopyRecipeDialog({
 
     try {
       setLoading(true);
+      setError(null);
       await onCopy(targetCookbookId);
       onClose();
     } catch (err) {
       console.error("Failed to copy recipe:", err);
-      alert("Failed to copy recipe.");
+      setError("Failed to copy recipe.");
     } finally {
       setLoading(false);
     }
@@ -80,6 +85,12 @@ export default function CopyRecipeDialog({
           Select a cookbook to copy this recipe to:
         </p>
 
+        {error ? (
+          <StatusBanner tone="danger" role="alert">
+            {error}
+          </StatusBanner>
+        ) : null}
+
         <div>
           <label className="app-label">
             Destination Cookbook
@@ -96,7 +107,7 @@ export default function CopyRecipeDialog({
               backgroundSize: "1rem",
             }}
           >
-            <option value="">Choose a cookbook...</option>
+            <option value="">{cookbooksLoading ? "Loading cookbooks..." : "Choose a cookbook..."}</option>
             {cookbooksLoading ? (
               <option disabled>Loading cookbooks...</option>
             ) : (
@@ -107,6 +118,11 @@ export default function CopyRecipeDialog({
               ))
             )}
           </select>
+          {!cookbooksLoading && availableCookbooks.length === 0 ? (
+            <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
+              You need owner or contributor access to another cookbook before you can copy this recipe.
+            </p>
+          ) : null}
         </div>
 
         <div className="flex gap-3 pt-2">

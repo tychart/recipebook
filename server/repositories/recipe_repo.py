@@ -35,6 +35,12 @@ def _embedding_to_vector(embedding: list[float] | None) -> str | None:
     return f"[{','.join(values)}]"
 
 
+def _normalize_optional_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    return value.strip()
+
+
 def _row_to_ingredient(row: asyncpg.Record) -> Ingredient:
     data = dict(row)
     return Ingredient(
@@ -106,9 +112,9 @@ class RecipeRepository:
         cookbook_id: int,
     ) -> RecipeMetadata:
         name = name.strip()
-        description = description.strip()
-        notes = notes.strip()
-        image_url = image_url.strip()
+        description = _normalize_optional_text(description)
+        notes = _normalize_optional_text(notes)
+        image_url = _normalize_optional_text(image_url)
         category = category.strip()
         row = await self.conn.fetchrow(
             """
@@ -147,9 +153,9 @@ class RecipeRepository:
         cookbook_id: int,
     ) -> RecipeMetadata | None:
         name = name.strip()
-        description = description.strip()
-        notes = notes.strip()
-        image_url = image_url.strip()
+        description = _normalize_optional_text(description)
+        notes = _normalize_optional_text(notes)
+        image_url = _normalize_optional_text(image_url)
         category = category.strip()
         row = await self.conn.fetchrow(
             """

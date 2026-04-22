@@ -6,6 +6,7 @@ import AuthForm from "../../components/AuthForm";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import Logo from "../../components/Logo";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 
 const AUTH_OVERLAY_DELAY_MS = 280;
 
@@ -41,8 +42,6 @@ const Register = () => {
   }, [submitting]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    console.log("Submitting registration...");
-
     event.preventDefault();
 
     if (!passwordsMatch) return;
@@ -144,15 +143,15 @@ const Register = () => {
         />
 
         {showPasswordError && (
-          <div className="rounded-2xl border border-rose-300/70 bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-200" role="alert">
+          <StatusBanner tone="danger" role="alert">
             Passwords do not match
-          </div>
+          </StatusBanner>
         )}
 
         {confirmPassword.length > 0 && passwordsMatch && (
-          <div className="rounded-2xl border border-emerald-300/70 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-200">
+          <StatusBanner tone="success">
             Passwords match
-          </div>
+          </StatusBanner>
         )}
       </AuthForm>
       </div>

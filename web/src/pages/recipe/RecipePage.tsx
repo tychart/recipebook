@@ -13,6 +13,7 @@ import { Trash2 } from "lucide-react";
 import CopyRecipeDialog from "../../components/recipe/CopyRecipeDialog";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { AppButton } from "../../components/ui/AppButton";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ export default function RecipePage() {
   const [showShare, setShowShare] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -64,6 +66,7 @@ export default function RecipePage() {
 
     try {
       setDeleting(true);
+      setActionError(null);
       await deleteRecipe(recipe.id);
 
       if (parentCookbook) {
@@ -73,7 +76,7 @@ export default function RecipePage() {
       }
     } catch (err) {
       console.error("Failed to delete recipe:", err);
-      alert("Failed to delete recipe.");
+      setActionError("Failed to delete recipe.");
     } finally {
       setDeleting(false);
     }
@@ -83,17 +86,19 @@ export default function RecipePage() {
     if (!recipe) return;
 
     try {
+      setActionError(null);
       const copiedRecipe = await copyRecipe(recipe.id, targetCookbookId);
       setShowCopyDialog(false);
       navigate(`/recipe/${copiedRecipe.id}`);
     } catch (err) {
       console.error("Failed to copy recipe:", err);
+      setActionError("Failed to copy recipe.");
       throw err;
     }
   };
 
   if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading recipe...</p>;
-  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
   if (!recipe) return <p className="py-6 text-sm text-[var(--text-secondary)]">Recipe not found</p>;
 
   return (
@@ -133,6 +138,12 @@ export default function RecipePage() {
         </p>
       )}
 
+      {actionError ? (
+        <StatusBanner tone="danger" role="alert">
+          {actionError}
+        </StatusBanner>
+      ) : null}
+
       <h1 className="hidden print:block text-3xl text-center mb-4">
         {recipe.name}
       </h1>
@@ -166,7 +177,6 @@ export default function RecipePage() {
       )}
 
       <CopyRecipeDialog
-        recipeId={recipe.id}
         isOpen={showCopyDialog}
         onClose={() => setShowCopyDialog(false)}
         onCopy={handleCopyRecipe}

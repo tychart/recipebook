@@ -6,6 +6,7 @@ import { ThemeSelector } from "../../components/ui/ThemeSelector";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 import { listCookbooks } from "../../api/cookbooks";
 import { listRecipes } from "../../api/recipes";
 import {
@@ -159,7 +160,7 @@ export default function Account() {
 
         <aside className="w-full shrink-0 flex flex-col gap-3">
           {statsError ? (
-            <p className="text-sm text-rose-600 dark:text-rose-200">{statsError}</p>
+            <StatusBanner tone="danger">{statsError}</StatusBanner>
           ) : null}
           {statBox(
             "Contributor cookbooks",

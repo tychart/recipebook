@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 interface RecipeImageProps {
   imageUrl?: string;
   editable?: boolean;
@@ -15,11 +13,7 @@ export default function RecipeImage({
   onEditClick,
   onRemoveClick,
 }: RecipeImageProps) {
-  const [preview, setPreview] = useState(imageUrl || "");
-
-  useEffect(() => {
-    setPreview(imageUrl || "");
-  }, [imageUrl]);
+  const preview = imageUrl || "";
 
   return (
     <div className="space-y-4 mb-6">

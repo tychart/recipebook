@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
@@ -61,26 +62,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(() =>
     typeof window === "undefined" ? "system" : readStoredThemeMode(),
   );
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
-    resolveTheme(typeof window === "undefined" ? "system" : readStoredThemeMode()),
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() =>
+    typeof window === "undefined" ? "light" : getSystemTheme(),
   );
+  const resolvedTheme = resolveTheme(themeMode === "system" ? systemTheme : themeMode);
 
   useLayoutEffect(() => {
-    applyTheme(themeMode, resolveTheme(themeMode));
-  }, []);
+    applyTheme(themeMode, resolvedTheme);
+  }, [resolvedTheme, themeMode]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const updateResolved = () => {
-      const nextResolved = resolveTheme(themeMode);
-      setResolvedTheme(nextResolved);
-      applyTheme(themeMode, nextResolved);
+      setSystemTheme(getSystemTheme());
     };
 
     updateResolved();
     media.addEventListener("change", updateResolved);
     return () => media.removeEventListener("change", updateResolved);
-  }, [themeMode]);
+  }, []);
 
   const setThemeMode = (mode: ThemeMode) => {
     setThemeModeState(mode);

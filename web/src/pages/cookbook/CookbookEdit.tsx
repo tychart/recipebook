@@ -5,6 +5,7 @@ import type { Cookbook } from "../../../types/types";
 import CookbookForm from "../../components/CookbookForm";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { AppButton } from "../../components/ui/AppButton";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 
 export default function CookbookEdit() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ export default function CookbookEdit() {
   const [cookbook, setCookbook] = useState<Cookbook | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -33,26 +35,27 @@ export default function CookbookEdit() {
   }, [id]);
 
   const handleUpdate = async (updated: Partial<Cookbook>) => {
-  if (!id || !cookbook) return;
+    if (!id || !cookbook) return;
 
-  try {
-    const fullCookbook: Cookbook = {
-      ...cookbook,     
-      ...updated,       
-      id: Number(id),  
-    };
+    setSubmitError(null);
 
-    const result = await editCookbook(fullCookbook);
-    console.log("Updated cookbook:", result);
-    navigate(`/cookbook/${id}`);
-  } catch (err) {
-    console.error("Failed to update cookbook", err);
-    alert("Failed to update cookbook");
-  }
-};
+    try {
+      const fullCookbook: Cookbook = {
+        ...cookbook,
+        ...updated,
+        id: Number(id),
+      };
+
+      await editCookbook(fullCookbook);
+      navigate(`/cookbook/${id}`);
+    } catch (err) {
+      console.error("Failed to update cookbook", err);
+      setSubmitError("Failed to update cookbook.");
+    }
+  };
 
   if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading cookbook...</p>;
-  if (error) return <p className="py-6 text-sm text-rose-600 dark:text-rose-200">{error}</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
   if (!cookbook) return <p className="py-6 text-sm text-[var(--text-secondary)]">Cookbook not found</p>;
 
   return (
@@ -67,6 +70,12 @@ export default function CookbookEdit() {
           </Link>
         }
       />
+
+      {submitError ? (
+        <StatusBanner tone="danger" role="alert">
+          {submitError}
+        </StatusBanner>
+      ) : null}
 
       <CookbookForm
         initialData={cookbook}

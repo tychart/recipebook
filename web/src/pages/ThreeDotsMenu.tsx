@@ -65,7 +65,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
                 {userRole === "owner" && (
                     <button
                         onClick={() => setShowDelete(true)}
-                        className="flex w-full items-center gap-2 rounded-b-2xl px-4 py-3 text-left text-sm font-medium text-rose-600 transition hover:bg-[var(--surface-soft)] dark:text-rose-200"
+                        className="app-text-danger flex w-full items-center gap-2 rounded-b-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--surface-soft)]"
                     >
                         Delete
                     </button>
@@ -90,4 +90,3 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
         </div>
     );
 }
-

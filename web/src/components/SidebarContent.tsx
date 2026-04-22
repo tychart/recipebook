@@ -18,18 +18,16 @@ export function SidebarContent({ onNavigate, onClose }: SidebarContentProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [hasWritableCookbooks, setHasWritableCookbooks] = useState(false);
-  const [isCookbookAccessLoading, setIsCookbookAccessLoading] = useState(true);
+  const [isCookbookAccessLoading, setIsCookbookAccessLoading] = useState(
+    () => Boolean(user),
+  );
 
   useEffect(() => {
     if (!user) {
-      setHasWritableCookbooks(false);
-      setIsCookbookAccessLoading(false);
       return;
     }
 
     let active = true;
-
-    setIsCookbookAccessLoading(true);
     listCookbooks(user.id)
       .then((cookbooks) => {
         if (!active) return;

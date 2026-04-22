@@ -7,6 +7,7 @@ import {
 import type { Cookbook as CookbookType } from "../../types/types";
 import { AppButton } from "./ui/AppButton";
 import { AppModal } from "./ui/AppModal";
+import { StatusBanner } from "./ui/StatusBanner";
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -23,7 +24,8 @@ export default function CookbookShareModal({
   const [contributorsInput, setContributorsInput] = useState("");
   const [viewersInput, setViewersInput] = useState("");
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
-  const [, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const titleId = "cookbook-share-modal-title";
 
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
@@ -33,10 +35,12 @@ export default function CookbookShareModal({
       try {
         const data = await getCookbook(Number(cookbookId));
         setCookbook(data);
-        setAddedContributors(data.contributors?.map((c: any) => c.email) || []);
-        setAddedViewers(data.viewers?.map((v: any) => v.email) || []);
+        setAddedContributors(data.contributors?.map((contributor) => contributor.email) || []);
+        setAddedViewers(data.viewers?.map((viewer) => viewer.email) || []);
+        setError(null);
       } catch (err) {
         console.error("Failed to load cookbook sharing data:", err);
+        setError("Failed to load cookbook access details.");
       } finally {
         setLoading(false);
       }
@@ -57,6 +61,7 @@ export default function CookbookShareModal({
     }
 
     try {
+      setError(null);
       await shareCookbook({
         book_id: Number(cookbookId),
         email: contributorsInput.trim(),
@@ -67,7 +72,7 @@ export default function CookbookShareModal({
       setContributorsInput("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add contributor");
+      setError("Failed to add contributor.");
     }
   };
 
@@ -77,6 +82,7 @@ export default function CookbookShareModal({
     }
 
     try {
+      setError(null);
       await shareCookbook({
         book_id: Number(cookbookId),
         email: viewersInput.trim(),
@@ -87,7 +93,7 @@ export default function CookbookShareModal({
       setViewersInput("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add viewer");
+      setError("Failed to add viewer.");
     }
   };
 
@@ -103,6 +109,7 @@ export default function CookbookShareModal({
     if (!contributor) return;
 
     try {
+      setError(null);
       await removeCookbookUser({
         book_id: Number(cookbookId),
         user_id: contributor.user_id,
@@ -111,7 +118,7 @@ export default function CookbookShareModal({
       setAddedContributors((prev) => prev.filter((entry) => entry !== email));
     } catch (err) {
       console.error("Failed to remove contributor:", err);
-      alert("Failed to remove contributor");
+      setError("Failed to remove contributor.");
     }
   };
 
@@ -122,6 +129,7 @@ export default function CookbookShareModal({
     if (!viewer) return;
 
     try {
+      setError(null);
       await removeCookbookUser({
         book_id: Number(cookbookId),
         user_id: viewer.user_id,
@@ -130,7 +138,7 @@ export default function CookbookShareModal({
       setAddedViewers((prev) => prev.filter((entry) => entry !== email));
     } catch (err) {
       console.error("Failed to remove viewer:", err);
-      alert("Failed to remove viewer");
+      setError("Failed to remove viewer.");
     }
   };
 
@@ -148,6 +156,12 @@ export default function CookbookShareModal({
       </h2>
 
       <div className="flex flex-col items-center">
+        {error ? (
+          <StatusBanner tone="danger" className="mb-6 w-full" role="alert">
+            {error}
+          </StatusBanner>
+        ) : null}
+
         <div
           id="link-sharing"
           className="mb-6 flex w-full flex-row items-center justify-center space-x-4"
@@ -156,9 +170,10 @@ export default function CookbookShareModal({
             readOnly
             value={shareUrl}
             className="app-input flex-1"
+            disabled={loading}
           />
 
-          <AppButton onClick={copyLink} variant="primary">
+          <AppButton onClick={copyLink} variant="primary" disabled={loading}>
             {linkCopied ? "Link Copied!" : "Copy Link"}
           </AppButton>
         </div>
@@ -179,7 +194,7 @@ export default function CookbookShareModal({
                 <span className="text-sm">{email}</span>
                 <button
                   onClick={() => removeContributor(email)}
-                  className="w-auto text-sm font-bold uppercase text-rose-600 transition-colors hover:text-rose-700 dark:text-rose-200"
+                  className="app-text-danger w-auto text-sm font-bold uppercase transition-opacity hover:opacity-80"
                 >
                   Remove
                 </button>
@@ -194,12 +209,14 @@ export default function CookbookShareModal({
               value={contributorsInput}
               onChange={(e) => setContributorsInput(e.target.value)}
               className="app-input flex-1"
+              disabled={loading}
             />
 
             <AppButton
               onClick={addContributor}
               variant="primary"
               disabled={
+                loading ||
                 !contributorsInput ||
                 addedContributors.includes(contributorsInput) ||
                 !validateEmail(contributorsInput)
@@ -226,7 +243,7 @@ export default function CookbookShareModal({
                 <span className="text-sm">{email}</span>
                 <button
                   onClick={() => removeViewer(email)}
-                  className="w-auto text-sm font-bold uppercase text-rose-600 transition-colors hover:text-rose-700 dark:text-rose-200"
+                  className="app-text-danger w-auto text-sm font-bold uppercase transition-opacity hover:opacity-80"
                 >
                   Remove
                 </button>
@@ -241,12 +258,14 @@ export default function CookbookShareModal({
               value={viewersInput}
               onChange={(e) => setViewersInput(e.target.value)}
               className="app-input flex-1"
+              disabled={loading}
             />
 
             <AppButton
               onClick={addViewer}
               variant="primary"
               disabled={
+                loading ||
                 !viewersInput ||
                 addedViewers.includes(viewersInput) ||
                 !validateEmail(viewersInput)
@@ -257,7 +276,7 @@ export default function CookbookShareModal({
           </div>
         </div>
 
-        <AppButton onClick={onClose} className="mt-4 w-full justify-center">
+        <AppButton onClick={onClose} className="mt-4 w-full justify-center" disabled={loading}>
           Close
         </AppButton>
       </div>
