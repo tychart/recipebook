@@ -90,7 +90,7 @@ export default function Search() {
               placeholder="Try “spicy chicken tacos with lime crema” or paste a full dish idea..."
               rows={2}
               aria-label="Search recipes"
-              className="min-h-[4.5rem] w-full resize-none overflow-hidden rounded-[1.75rem] border border-[var(--border-muted)] bg-[var(--surface)] px-5 py-4 text-base leading-7 text-[var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.6)] outline-none ring-0 placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)] focus:shadow-[0_0_0_4px_color-mix(in_srgb,var(--accent-500)_12%,transparent)] sm:px-6 sm:py-5 sm:text-lg"
+              className="app-textarea min-h-[4.5rem] resize-none overflow-hidden text-base leading-7 sm:px-6 sm:py-5 sm:text-lg"
             />
           </label>
 
