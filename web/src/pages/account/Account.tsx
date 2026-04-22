@@ -175,8 +175,10 @@ export default function Account() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="space-y-6">
           <SectionCard title="Profile">
-          {fieldBox("Username", user.username)}
-          {fieldBox("Email", user.email)}
+            <div className="space-y-4">
+              {fieldBox("Username", user.username)}
+              {fieldBox("Email", user.email)}
+            </div>
           </SectionCard>
 
           <SectionCard
