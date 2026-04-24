@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   login as apiLogin,
   logout as apiLogout,
@@ -6,7 +14,6 @@ import {
   getCurrentUser,
 } from "../api/auth";
 import type { User } from "../../types/types";
-
 
 interface AuthContextType {
   user: User | null;
@@ -23,24 +30,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("authToken"));
-const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-useEffect(() => {
-  const initializeAuth = async () => {
-    if (token) {
-      try {
-        await refreshUser();
-      } catch {
-        localStorage.removeItem("authToken");
-        setToken(null);
-        setUser(null);
+  const refreshUser = useCallback(async () => {
+    if (!token) return;
+    const response = await getCurrentUser(token);
+    setUser(response.user);
+  }, [token]);
+
+  useEffect(() => {
+    let active = true;
+
+    const initializeAuth = async () => {
+      if (token) {
+        try {
+          await refreshUser();
+        } catch {
+          localStorage.removeItem("authToken");
+          if (active) {
+            setToken(null);
+            setUser(null);
+          }
+        }
       }
-    }
-    setIsInitializing(false);
-  };
 
-  initializeAuth();
-}, []);
+      if (active) {
+        setIsInitializing(false);
+      }
+    };
+
+    void initializeAuth();
+
+    return () => {
+      active = false;
+    };
+  }, [refreshUser, token]);
 
   const login = async (username: string, password: string) => {
     const response = await apiLogin({ username, password });
@@ -70,24 +94,19 @@ useEffect(() => {
     setToken(null);
   };
 
-  const refreshUser = async () => {
-    if (!token) return;
-    const response = await getCurrentUser(token);
-    setUser(response.user);
-  };
-
   return (
-<AuthContext.Provider
-  value={{
-    user,
-    token,
-    isInitializing,
-    login,
-    register,
-    logout,
-    refreshUser
-  }}
->      {children}
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isInitializing,
+        login,
+        register,
+        logout,
+        refreshUser,
+      }}
+    >
+      {children}
     </AuthContext.Provider>
   );
 };

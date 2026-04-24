@@ -1,47 +1,49 @@
-import type { CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import type { Cookbook } from "../../../types/types";
-import { useBorderTheme } from "../../context/BorderThemeContext";
-import type { BorderThemeId } from "../../theme/borderTheme";
-import "./CookbookCard.css";
 
 interface CookbookCardProps {
   cookbook: Cookbook;
 }
 
-/** Light cover tint per page-border theme (no external cover art). */
-const BOOK_FACE: Record<BorderThemeId, string> = {
-  red: "#fecdd3",
-  blue: "#bfdbfe",
-  green: "#bbf7d0",
-  yellow: "#fef08a",
-  purple: "#e9d5ff",
-  pink: "#fbcfe8",
-};
-
-/** Dark text on pastel covers */
-function coverTitleClass(): string {
-  return "text-stone-800 [text-shadow:0_1px_0_rgba(255,255,255,0.35)]";
-}
-
 export const CookbookCard = ({ cookbook }: CookbookCardProps) => {
-  const { borderTheme } = useBorderTheme();
-
-  const bookStyle = {
-    "--book-face": BOOK_FACE[borderTheme],
-  } as CSSProperties;
-
   return (
     <Link
       to={`/cookbook/${cookbook.id}`}
-      className="book group mx-auto w-full max-w-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-black/30 focus-visible:ring-offset-2"
-      style={bookStyle}
+      className="app-card group flex min-h-56 flex-col justify-between overflow-hidden border-[var(--border-muted)] bg-[var(--surface)] p-6 hover:-translate-y-0.5 hover:border-[var(--interactive-border)] hover:shadow-[var(--shadow-soft)] focus:outline-none"
     >
-      <div className="book-pages" aria-hidden />
-      <div className="book-cover">
-        <div className="book-spine-effect" aria-hidden />
-        <div className="book-light" aria-hidden />
-        <h2 className={`book-cover__title ${coverTitleClass()}`}>{cookbook.name}</h2>
+      <div
+        className="mb-6 h-1.5 w-14 rounded-full"
+        aria-hidden
+        style={{
+          background:
+            "linear-gradient(90deg, color-mix(in srgb, var(--interactive-accent-400) 74%, white 26%), color-mix(in srgb, var(--interactive-accent-500) 82%, white 18%))",
+        }}
+      />
+
+      <div className="flex-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
+          Cookbook
+        </p>
+        <h2 className="mt-4 font-[var(--font-display)] text-[2rem] font-semibold leading-tight text-[var(--text-primary)]">
+          {cookbook.name}
+        </h2>
+      </div>
+
+      <div className="mt-8 flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-[var(--text-secondary)]">
+          {cookbook.categories?.length ?? 0} categories
+        </span>
+        <span
+          className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-[var(--text-secondary)]"
+          style={{
+            background:
+              "color-mix(in srgb, var(--interactive-accent-400) 6%, transparent)",
+            borderColor:
+              "color-mix(in srgb, var(--interactive-accent-500) 12%, transparent)",
+          }}
+        >
+          {cookbook.current_user_role ?? "shared"}
+        </span>
       </div>
     </Link>
   );

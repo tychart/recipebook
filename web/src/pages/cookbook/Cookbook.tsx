@@ -6,6 +6,9 @@ import { RecipeCard } from "../../components/cards/RecipeCard";
 import { listRecipes } from "../../api/recipes";
 import { useAuth } from "../../context/AuthContext";
 import ThreeDotsMenu from "../ThreeDotsMenu";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { AppButton } from "../../components/ui/AppButton";
+import { EmptyState } from "../../components/ui/EmptyState";
 
 export default function Cookbook() {
   const { id } = useParams<{ id: string }>();
@@ -16,19 +19,11 @@ export default function Cookbook() {
   const [loadingCookbook, setLoadingCookbook] = useState(true);
   const [loadingRecipes, setLoadingRecipes] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cookbookId = id ? Number(id) : undefined;
+  const hasInvalidCookbookId = id !== undefined && (cookbookId === undefined || Number.isNaN(cookbookId));
 
   useEffect(() => {
-    if (!id || !user) {
-      setLoadingCookbook(false);
-      setLoadingRecipes(false);
-      return;
-    }
-
-    const cookbookId = Number(id);
-    if (isNaN(cookbookId)) {
-      setError("Invalid cookbook ID");
-      setLoadingCookbook(false);
-      setLoadingRecipes(false);
+    if (!id || !user || cookbookId === undefined || Number.isNaN(cookbookId)) {
       return;
     }
 
@@ -46,52 +41,61 @@ export default function Cookbook() {
       .then((data) => setRecipes(data))
       .catch((err) => setError("Failed to load recipes: " + err.message))
       .finally(() => setLoadingRecipes(false));
-  }, [id, user]);
+  }, [cookbookId, id, user]);
 
   if (!user) {
-    return <p>Please log in to view this cookbook.</p>;
+    return (
+      <EmptyState
+        title="Please log in to view this cookbook."
+        description="You’ll be able to browse recipes and cookbook details after signing in."
+      />
+    );
   }
 
-  if (loadingCookbook || loadingRecipes) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
-  if (!cookbook) return <p>Cookbook not found</p>;
+  if (hasInvalidCookbookId) {
+    return <p className="app-text-danger py-6 text-sm">Invalid cookbook ID</p>;
+  }
+
+  if (loadingCookbook || loadingRecipes) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading cookbook...</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
+  if (!cookbook) return <p className="py-6 text-sm text-[var(--text-secondary)]">Cookbook not found</p>;
 
   return (
-    <div className="mx-auto w-full max-w-7xl py-6">
-      {/* Title + Add Recipe button */}
-      <div className="flex flex-col lg:flex-row sm:items-center justify-between mb-6 gap-2">
-        <h1 className="text-2xl font-semibold">{cookbook.name}</h1>
-        <div className="flex items-center gap-10">
-          {(userRole === "contributor" || userRole === "owner") && (
+    <div className="mx-auto w-full max-w-7xl space-y-6 py-6">
+      <PageHeader
+        eyebrow="Cookbook"
+        title={cookbook.name}
+        description="Browse every recipe in this cookbook, then jump into adding or managing entries without losing context on smaller screens."
+        actions={
+          <>
+            {(userRole === "contributor" || userRole === "owner") && (
             <Link
               to={`/cookbook/${id}/recipe/new`}
-              className="block w-40 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100 cursor-pointer no-underline text-center"
             >
-              Add recipe
+              <AppButton variant="primary">Add Recipe</AppButton>
             </Link>
           )}
-          <ThreeDotsMenu userRole={userRole} id={id}/>
-        </div>
-      </div>
+            <ThreeDotsMenu userRole={userRole} id={id}/>
+          </>
+        }
+      />
 
-      <Link
-        to="/cookbooks"
-        className="inline-block mb-4 text-sm hover:underline"
-      >
+      <Link to="/cookbooks" className="app-link inline-flex text-sm font-semibold">
         &larr; Back to Cookbooks
       </Link>
 
-      {/* Recipes list */}
       {recipes.length === 0 ? (
-        <p className="text-gray-500">No recipes yet.</p>
+        <EmptyState
+          title="No recipes yet."
+          description="Start this cookbook with its first recipe, then keep building a collection that stays easy to scan."
+        />
       ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
           {recipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}
         </div>
       )}
-
     </div>
   );
 }

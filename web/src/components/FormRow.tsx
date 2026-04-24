@@ -8,6 +8,7 @@ interface FormRowProps {
   type?: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  autoComplete?: string;
 }
 
 export default function FormRow({
@@ -17,16 +18,21 @@ export default function FormRow({
   type = "text",
   value,
   onChange,
+  autoComplete,
 }: FormRowProps) {
   return (
-    <div className="form-row">
-      <label htmlFor={id}>{label}</label>
+    <div>
+      <label className="app-label" htmlFor={id}>
+        {label}
+      </label>
       <input
+        className="app-input"
         type={type}
         id={id}
         name={name ?? id}
         value={value}
         onChange={onChange}
+        autoComplete={autoComplete}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import type { Cookbook } from "../../../types/types";
 import { createCookbook } from "../../api/cookbooks";
 import CookbookForm from "../../components/CookbookForm";
+import { PageHeader } from "../../components/ui/PageHeader";
 
 export default function CookbookNew() {
   const { user } = useAuth();
@@ -22,9 +23,13 @@ export default function CookbookNew() {
   };
 
   return (
-    <>
-      <h1 className="text-2xl font-semibold">New Cookbook</h1>
+    <div className="mx-auto w-full max-w-4xl space-y-6 py-6">
+      <PageHeader
+        eyebrow="Create"
+        title="New Cookbook"
+        description="Start a new collection with a clear name and a few broad categories so recipes stay easy to sort later."
+      />
       <CookbookForm initialData={{}} onSubmit={handleCreate} submitLabel="Create Cookbook" />
-    </>
+    </div>
   );
 }

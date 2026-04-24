@@ -1,0 +1,18 @@
+{
+  "name": "RecipeBook",
+  "short_name": "RecipeBook",
+  "description": "A self-hosted recipe manager for organizing, sharing, and cooking from your favorite recipes.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f2e8",
+  "theme_color": "#f8f2e8",
+  "icons": [
+    {
+      "src": "/pancake.png",
+      "sizes": "360x360",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

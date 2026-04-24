@@ -11,6 +11,9 @@ import { getRecipe, deleteRecipe, copyRecipe } from "../../api/recipes";
 import RecipeShareModal from "../../components/RecipeShareModal";
 import { Trash2 } from "lucide-react";
 import CopyRecipeDialog from "../../components/recipe/CopyRecipeDialog";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { AppButton } from "../../components/ui/AppButton";
+import { StatusBanner } from "../../components/ui/StatusBanner";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +26,7 @@ export default function RecipePage() {
   const [showShare, setShowShare] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -50,7 +54,7 @@ export default function RecipePage() {
     fetchRecipe();
   }, [id]);
 
-  if (!id) return <p>Invalid recipe</p>;
+  if (!id) return <p className="py-6 text-sm text-[var(--text-secondary)]">Invalid recipe</p>;
 
   const handleDelete = async () => {
     if (!recipe || deleting) return;
@@ -62,6 +66,7 @@ export default function RecipePage() {
 
     try {
       setDeleting(true);
+      setActionError(null);
       await deleteRecipe(recipe.id);
 
       if (parentCookbook) {
@@ -71,7 +76,7 @@ export default function RecipePage() {
       }
     } catch (err) {
       console.error("Failed to delete recipe:", err);
-      alert("Failed to delete recipe.");
+      setActionError("Failed to delete recipe.");
     } finally {
       setDeleting(false);
     }
@@ -81,72 +86,63 @@ export default function RecipePage() {
     if (!recipe) return;
 
     try {
+      setActionError(null);
       const copiedRecipe = await copyRecipe(recipe.id, targetCookbookId);
       setShowCopyDialog(false);
       navigate(`/recipe/${copiedRecipe.id}`);
     } catch (err) {
       console.error("Failed to copy recipe:", err);
+      setActionError("Failed to copy recipe.");
       throw err;
     }
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
-  if (!recipe) return <p>Recipe not found</p>;
+  if (loading) return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading recipe...</p>;
+  if (error) return <p className="app-text-danger py-6 text-sm">{error}</p>;
+  if (!recipe) return <p className="py-6 text-sm text-[var(--text-secondary)]">Recipe not found</p>;
 
   return (
-    <div className="print-container py-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-4 no-print">
-        <h1 className="text-3xl font-semibold">{recipe.name}</h1>
-
-        <div className="flex items-center gap-3 flex-wrap justify-end">
-          <Link
-            to={`/recipe/${id}/edit`}
-            className="block w-20 px-4 py-2 rounded-md text-sm font-medium border bg-white text-black border-black hover:bg-stone-100 text-center"
-          >
-            Edit
-          </Link>
-
-          <button
-            onClick={() => setShowShare(true)}
-            className="w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100"
-          >
-            Share
-          </button>
-
-          <button
-            onClick={() => window.print()}
-            className="w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100"
-          >
-            Print
-          </button>
-
-          <button
-            onClick={() => setShowCopyDialog(true)}
-            className="w-20 px-4 py-2 rounded-md text-sm font-medium transition border bg-white text-black border-black hover:bg-stone-100"
-          >
-            Copy
-          </button>
-
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            aria-label="Delete recipe"
-            title="Delete recipe"
-            className="w-11 h-10 flex items-center justify-center rounded-md text-sm font-medium transition border border-red-300 bg-white text-red-600 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <Trash2 size={18} aria-hidden="true" />
-          </button>
-        </div>
+    <div className="print-container py-6 max-w-5xl mx-auto space-y-6">
+      <div className="no-print">
+        <PageHeader
+          eyebrow={recipe.category || "Recipe"}
+          title={recipe.name}
+          description={recipe.description || "A kitchen-ready view with larger controls, clear sections, and a calmer reading rhythm."}
+          actions={
+            <>
+              <Link to={`/recipe/${id}/edit`}>
+                <AppButton>Edit</AppButton>
+              </Link>
+              <AppButton onClick={() => setShowShare(true)}>Share</AppButton>
+              <AppButton onClick={() => window.print()}>Print</AppButton>
+              <AppButton onClick={() => setShowCopyDialog(true)}>Copy</AppButton>
+              <AppButton
+                variant="danger"
+                onClick={handleDelete}
+                disabled={deleting}
+                aria-label="Delete recipe"
+                title="Delete recipe"
+              >
+                <Trash2 size={18} aria-hidden="true" />
+              </AppButton>
+            </>
+          }
+        />
       </div>
 
       {parentCookbook && (
-        <p className="text-sm text-gray-600 dark:text-black-300 mb-5">
-          <Link to={`/cookbook/${parentCookbook.id}`} className="font-medium">
+        <p className="text-sm text-[var(--text-secondary)] mb-5">
+          <Link to={`/cookbook/${parentCookbook.id}`} className="app-link font-semibold">
             ← {parentCookbook.name}
           </Link>
         </p>
       )}
+
+      {actionError ? (
+        <StatusBanner tone="danger" role="alert">
+          {actionError}
+        </StatusBanner>
+      ) : null}
 
       <h1 className="hidden print:block text-3xl text-center mb-4">
         {recipe.name}
@@ -154,31 +150,22 @@ export default function RecipePage() {
 
       <RecipeImage imageUrl={recipe.image_url} alt={recipe.name} />
 
-      {recipe.description && (
-        <p className="mb-4 text-gray-600 dark:text-black-300 text-center whitespace-pre-wrap">
-          {recipe.description}
-        </p>
-      )}
-
       {recipe.tags && recipe.tags.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-6 no-print">
           {recipe.tags.map((tag: string) => (
-            <span
-              key={tag}
-              className="px-3 py-1 text-sm bg-gray-200 rounded-full"
-            >
+            <span key={tag} className="app-tag">
               #{tag}
             </span>
           ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white border border-amber-200 rounded-[10px] p-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
+        <div className="app-panel">
           <IngredientList ingredients={recipe.ingredients} />
         </div>
 
-        <div className="bg-white border border-amber-200 rounded-[10px] p-4">
+        <div className="app-panel">
           <Instructions instructions={recipe.instructions} />
         </div>
       </div>
@@ -186,21 +173,18 @@ export default function RecipePage() {
       {recipe.notes && <Notes notes={recipe.notes} />}
 
       {showShare && id && (
-        <div className="no-print">
-          <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
-        </div>
+        <RecipeShareModal recipeId={id} onClose={() => setShowShare(false)} />
       )}
 
       <CopyRecipeDialog
-        recipeId={recipe.id}
         isOpen={showCopyDialog}
         onClose={() => setShowCopyDialog(false)}
         onCopy={handleCopyRecipe}
       />
 
-      <div className="mt-6 text-sm text-gray-600 dark:text-black-300 space-y-1 text-center">
-        <div className="flex items-center justify-center gap-2">
-          <label htmlFor="servings">Serves:</label>
+      <div className="app-panel mt-6 text-sm text-[var(--text-secondary)] space-y-3 text-center">
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <label htmlFor="servings" className="font-semibold text-[var(--text-primary)]">Serves</label>
           <input
             id="servings"
             type="number"
@@ -213,7 +197,7 @@ export default function RecipePage() {
                 servings: isNaN(newValue) || newValue < 1 ? 1 : newValue,
               });
             }}
-            className="w-16 border border-gray-300 rounded px-2 py-1 text-center"
+            className="app-input w-24 text-center"
           />
         </div>
 

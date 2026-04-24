@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import {
   getCookbook,
-  shareCookbook,
   removeCookbookUser,
+  shareCookbook,
 } from "../api/cookbooks";
 import type { Cookbook as CookbookType } from "../../types/types";
-import { useBorderTheme } from "../context/BorderThemeContext";
-import { sidebarActiveNavClasses } from "../theme/borderTheme";
-
+import { AppButton } from "./ui/AppButton";
+import { AppModal } from "./ui/AppModal";
+import { StatusBanner } from "./ui/StatusBanner";
 
 type CookbookShareModalProps = {
   cookbookId: string;
@@ -24,10 +24,9 @@ export default function CookbookShareModal({
   const [contributorsInput, setContributorsInput] = useState("");
   const [viewersInput, setViewersInput] = useState("");
   const [cookbook, setCookbook] = useState<CookbookType | null>(null);
-  const [, setLoading] = useState(true);
-
-  const { borderTheme } = useBorderTheme();
-  const primaryButtonClass = sidebarActiveNavClasses[borderTheme];
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const titleId = "cookbook-share-modal-title";
 
   const shareUrl = `${window.location.origin}/cookbook/${cookbookId}`;
 
@@ -36,10 +35,12 @@ export default function CookbookShareModal({
       try {
         const data = await getCookbook(Number(cookbookId));
         setCookbook(data);
-        setAddedContributors(data.contributors?.map((c: any) => c.email) || []);
-        setAddedViewers(data.viewers?.map((v: any) => v.email) || []);
+        setAddedContributors(data.contributors?.map((contributor) => contributor.email) || []);
+        setAddedViewers(data.viewers?.map((viewer) => viewer.email) || []);
+        setError(null);
       } catch (err) {
         console.error("Failed to load cookbook sharing data:", err);
+        setError("Failed to load cookbook access details.");
       } finally {
         setLoading(false);
       }
@@ -55,10 +56,12 @@ export default function CookbookShareModal({
   };
 
   const addContributor = async () => {
-    if (!contributorsInput || addedContributors.includes(contributorsInput))
+    if (!contributorsInput || addedContributors.includes(contributorsInput)) {
       return;
+    }
 
     try {
+      setError(null);
       await shareCookbook({
         book_id: Number(cookbookId),
         email: contributorsInput.trim(),
@@ -69,14 +72,17 @@ export default function CookbookShareModal({
       setContributorsInput("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add contributor");
+      setError("Failed to add contributor.");
     }
   };
 
   const addViewer = async () => {
-    if (!viewersInput || addedViewers.includes(viewersInput)) return;
+    if (!viewersInput || addedViewers.includes(viewersInput)) {
+      return;
+    }
 
     try {
+      setError(null);
       await shareCookbook({
         book_id: Number(cookbookId),
         email: viewersInput.trim(),
@@ -87,7 +93,7 @@ export default function CookbookShareModal({
       setViewersInput("");
     } catch (err) {
       console.error(err);
-      alert("Failed to add viewer");
+      setError("Failed to add viewer.");
     }
   };
 
@@ -103,15 +109,16 @@ export default function CookbookShareModal({
     if (!contributor) return;
 
     try {
+      setError(null);
       await removeCookbookUser({
         book_id: Number(cookbookId),
         user_id: contributor.user_id,
       });
 
-      setAddedContributors((prev) => prev.filter((e) => e !== email));
+      setAddedContributors((prev) => prev.filter((entry) => entry !== email));
     } catch (err) {
       console.error("Failed to remove contributor:", err);
-      alert("Failed to remove contributor");
+      setError("Failed to remove contributor.");
     }
   };
 
@@ -122,150 +129,157 @@ export default function CookbookShareModal({
     if (!viewer) return;
 
     try {
+      setError(null);
       await removeCookbookUser({
         book_id: Number(cookbookId),
         user_id: viewer.user_id,
       });
 
-      setAddedViewers((prev) => prev.filter((e) => e !== email));
+      setAddedViewers((prev) => prev.filter((entry) => entry !== email));
     } catch (err) {
       console.error("Failed to remove viewer:", err);
-      alert("Failed to remove viewer");
+      setError("Failed to remove viewer.");
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 backdrop-blur-sm"
-      onClick={onClose}
+    <AppModal
+      onClose={onClose}
+      labelledBy={titleId}
+      panelClassName="app-panel w-full max-w-xl"
     >
-      <div
-        className="bg-white border border-black rounded-xl p-6 w-full max-w-xl shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+      <h2
+        id={titleId}
+        className="mb-6 font-[var(--font-display)] text-2xl font-semibold text-[var(--text-primary)]"
       >
-        <h2 className="text-2xl font-semibold mb-6">Manage Cookbook Access</h2>
+        Manage Cookbook Access
+      </h2>
 
-        <div className="flex flex-col items-center">
-          <div
-            id="link-sharing"
-            className="mb-6 flex flex-row w-full items-center justify-center space-x-4"
-          >
+      <div className="flex flex-col items-center">
+        {error ? (
+          <StatusBanner tone="danger" className="mb-6 w-full" role="alert">
+            {error}
+          </StatusBanner>
+        ) : null}
+
+        <div
+          id="link-sharing"
+          className="mb-6 flex w-full flex-row items-center justify-center space-x-4"
+        >
+          <input
+            readOnly
+            value={shareUrl}
+            className="app-input flex-1"
+            disabled={loading}
+          />
+
+          <AppButton onClick={copyLink} variant="primary" disabled={loading}>
+            {linkCopied ? "Link Copied!" : "Copy Link"}
+          </AppButton>
+        </div>
+
+        <div
+          id="add-contributors-container"
+          className="mb-6 flex w-full flex-col space-x-0"
+        >
+          <div className="w-full">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              Users with Contributor Access:
+            </p>
+            {addedContributors.map((email) => (
+              <div
+                key={email}
+                className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] p-3"
+              >
+                <span className="text-sm">{email}</span>
+                <button
+                  onClick={() => removeContributor(email)}
+                  className="app-text-danger w-auto text-sm font-bold uppercase transition-opacity hover:opacity-80"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2 flex flex-row space-x-4">
             <input
-              readOnly
-              value={shareUrl}
-              className="flex-1 h-11 rounded-lg px-4 py-2 border border-black/10 bg-stone-50 focus:outline-none"
+              type="email"
+              placeholder="Add email addresses"
+              value={contributorsInput}
+              onChange={(e) => setContributorsInput(e.target.value)}
+              className="app-input flex-1"
+              disabled={loading}
             />
 
-            <button 
-              onClick={copyLink} 
-              className={`px-4 py-2 w-auto rounded-lg font-medium transition border shadow-sm ${primaryButtonClass}`}
+            <AppButton
+              onClick={addContributor}
+              variant="primary"
+              disabled={
+                loading ||
+                !contributorsInput ||
+                addedContributors.includes(contributorsInput) ||
+                !validateEmail(contributorsInput)
+              }
             >
-              {linkCopied ? "Link Copied!" : "Copy Link"}
-            </button>
+              Add User
+            </AppButton>
           </div>
-
-          <div
-            id="add-contributors-container"
-            className="flex flex-col space-x-0 w-full mb-6"
-          >
-            <div className="w-full">
-              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
-                Users with Contributor Access:
-              </p>
-              {addedContributors.map((email) => (
-                <div
-                  key={email}
-                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
-                >
-                  <span className="text-sm">{email}</span>
-                  <button
-                    onClick={() => removeContributor(email)}
-                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-row space-x-4 mt-2">
-              <input
-                type="email"
-                placeholder="Add email addresses"
-                value={contributorsInput}
-                onChange={(e) => setContributorsInput(e.target.value)}
-                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
-              />
-
-              <button
-                onClick={addContributor}
-                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
-                disabled={
-                  !contributorsInput ||
-                  addedContributors.includes(contributorsInput) ||
-                  !validateEmail(contributorsInput)
-                }
-              >
-                Add User
-              </button>
-            </div>
-          </div>
-
-          <div
-            id="add-viewers-container"
-            className="flex flex-col space-x-0 w-full mb-6"
-          >
-            <div className="w-full">
-              <p className="mb-2 text-xs uppercase tracking-wide font-bold text-stone-500">
-                Users with Viewer Access:
-              </p>
-              {addedViewers.map((email) => (
-                <div
-                  key={email}
-                  className="flex items-center justify-between p-3 bg-stone-50 mb-2 rounded-lg border border-black/10"
-                >
-                  <span className="text-sm">{email}</span>
-                  <button
-                    onClick={() => removeViewer(email)}
-                    className="text-red-600 text-sm font-bold uppercase hover:text-red-700 transition-colors w-auto"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="flex flex-row space-x-4 mt-2">
-              <input
-                type="email"
-                placeholder="Add email addresses"
-                value={viewersInput}
-                onChange={(e) => setViewersInput(e.target.value)}
-                className="flex-1 h-11 rounded-lg px-4 py-2 border border-black bg-white focus:outline-none"
-              />
-
-              <button
-                onClick={addViewer}
-                className={`px-4 py-2 w-auto rounded-lg font-medium border shadow-sm transition disabled:opacity-50 ${primaryButtonClass}`}
-                disabled={
-                  !viewersInput ||
-                  addedViewers.includes(viewersInput) ||
-                  !validateEmail(viewersInput)
-                }
-              >
-                Add User
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 border border-black rounded-lg mt-4 bg-white text-black hover:bg-stone-100 transition font-medium"
-          >
-            Close
-          </button>
         </div>
+
+        <div
+          id="add-viewers-container"
+          className="mb-6 flex w-full flex-col space-x-0"
+        >
+          <div className="w-full">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+              Users with Viewer Access:
+            </p>
+            {addedViewers.map((email) => (
+              <div
+                key={email}
+                className="mb-2 flex items-center justify-between rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] p-3"
+              >
+                <span className="text-sm">{email}</span>
+                <button
+                  onClick={() => removeViewer(email)}
+                  className="app-text-danger w-auto text-sm font-bold uppercase transition-opacity hover:opacity-80"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-2 flex flex-row space-x-4">
+            <input
+              type="email"
+              placeholder="Add email addresses"
+              value={viewersInput}
+              onChange={(e) => setViewersInput(e.target.value)}
+              className="app-input flex-1"
+              disabled={loading}
+            />
+
+            <AppButton
+              onClick={addViewer}
+              variant="primary"
+              disabled={
+                loading ||
+                !viewersInput ||
+                addedViewers.includes(viewersInput) ||
+                !validateEmail(viewersInput)
+              }
+            >
+              Add User
+            </AppButton>
+          </div>
+        </div>
+
+        <AppButton onClick={onClose} className="mt-4 w-full justify-center" disabled={loading}>
+          Close
+        </AppButton>
       </div>
-    </div>
+    </AppModal>
   );
 }

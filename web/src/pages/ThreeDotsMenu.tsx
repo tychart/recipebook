@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Ellipsis } from "lucide-react";
 import CookbookShareModal from "../components/CookbookShareModal";
 import CookBookDeleteModal from "../components/CookBookDeleteModal";
 
@@ -28,20 +29,17 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
 
     return (
         <div className="relative inline-block" ref={menuRef}>
-            {/* Three dots button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-2 rounded-full hover:bg-gray-200 transition-colors border-none bg-none hover:bg-transparent bg-transparent"
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
+                className="app-button app-button-ghost size-11 rounded-full p-0"
             >
-                {/* Vertical ellipsis */}
-                <span className="block w-1 h-1 bg-black rounded-full mb-1"></span>
-                <span className="block w-1 h-1 bg-black rounded-full mb-1"></span>
-                <span className="block w-1 h-1 bg-black rounded-full"></span>
+                <Ellipsis className="size-5" aria-hidden />
             </button>
 
-            {/* Dropdown */}
             <div
-                className={`absolute right-0 mt-2 w-48 bg-white/80 backdrop-blur-sm border border-gray-200/30 rounded-2xl shadow-md z-10 transform transition-all duration-150 ${isOpen
+                className={`absolute right-0 z-30 mt-2 w-48 transform rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] shadow-[var(--shadow-card)] backdrop-blur-sm transition-all duration-150 ${isOpen
                         ? "opacity-100 scale-100"
                         : "opacity-0 scale-95 pointer-events-none"
                     }`}
@@ -49,7 +47,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
                 {userRole === "owner" && (
                     <button
                         onClick={() => navigate(`/cookbook/${id}/edit`)}
-                        className="flex items-center gap-2 w-full text-left px-4 py-3 hover:bg-gray-100 rounded-b-xl transition border-none"
+                        className="flex w-full items-center gap-2 rounded-t-2xl px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]"
                     >
                         Edit
                     </button>
@@ -58,7 +56,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
                 {userRole === "owner" && (
                     <button
                         onClick={() => setShowShare(true)}
-                        className="flex items-center gap-2 w-full text-left px-4 py-3 hover:bg-gray-100 rounded-b-xl transition border-none"
+                        className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-soft)]"
                     >
                         Manage access
                     </button>
@@ -67,7 +65,7 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
                 {userRole === "owner" && (
                     <button
                         onClick={() => setShowDelete(true)}
-                        className="flex items-center gap-2 w-full text-left px-4 py-3 hover:bg-gray-100 rounded-b-xl transition border-none text-red-500"
+                        className="app-text-danger flex w-full items-center gap-2 rounded-b-2xl px-4 py-3 text-left text-sm font-medium transition hover:bg-[var(--surface-soft)]"
                     >
                         Delete
                     </button>
@@ -92,6 +90,3 @@ export default function ThreeDotsMenu({ userRole, id }: ThreeDotsMenuProps) {
         </div>
     );
 }
-
-
-

@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { Cookbook } from "../../types/types";
-
-const SUBMIT_BUTTON_CLASS =
-  "px-4 py-2 rounded-md bg-white text-black border border-black hover:bg-stone-100 font-medium transition-colors";
+import { AppButton } from "./ui/AppButton";
+import { SectionCard } from "./ui/SectionCard";
 
 interface CookbookFormProps {
   initialData: Partial<Cookbook>;
@@ -28,21 +27,24 @@ export default function CookbookForm({
         e.preventDefault();
         onSubmit(formData);
       }}
-      className="space-y-4"
+      className="space-y-6"
     >
-      <div>
-        <label className="block font-medium">Cookbook Name</label>
+      <SectionCard title="Cookbook details" description="Keep the name clear and the categories broad enough to stay useful over time.">
+        <div className="space-y-5">
+        <div>
+        <label className="app-label">Cookbook Name</label>
         <input
           type="text"
           name="name"
           value={formData.name || ""}
           onChange={handleChange}
-          className="w-full border rounded p-2"
+          placeholder="e.g. Smith Family Cookbook"
+          className="app-input"
         />
       </div>
 
       <div>
-        <label className="block font-medium">
+        <label className="app-label">
           Categories (comma separated)
         </label>
         <input
@@ -55,13 +57,16 @@ export default function CookbookForm({
               categories: e.target.value.split(",").map((c) => c.trim()),
             }))
           }
-          className="w-full border rounded p-2"
+          placeholder="e.g. Breakfast, Lunch, Dinner, Dessert, Meal Prep"
+          className="app-input"
         />
       </div>
+        </div>
+      </SectionCard>
 
-      <button type="submit" className={SUBMIT_BUTTON_CLASS}>
+      <AppButton type="submit" variant="primary">
         {submitLabel}
-      </button>
+      </AppButton>
     </form>
   );
 }

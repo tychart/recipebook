@@ -1,21 +1,54 @@
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { listCookbooks } from "../api/cookbooks";
 import { useAuth } from "../context/AuthContext";
-import { useBorderTheme } from "../context/BorderThemeContext";
-import {
-  sidebarActiveNavClasses,
-  sidebarTitleLinkClasses,
-} from "../theme/borderTheme";
+import { getWritableCookbooks } from "../lib/cookbookAccess";
+import Logo from "./Logo";
+import PwaInstallPrompt from "./PwaInstallPrompt";
 
 type SidebarContentProps = {
   /** Called when a nav link is followed or after logout (e.g. close mobile drawer). */
   onNavigate?: () => void;
+  onClose?: () => void;
 };
 
-export function SidebarContent({ onNavigate }: SidebarContentProps) {
+export function SidebarContent({ onNavigate, onClose }: SidebarContentProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { borderTheme } = useBorderTheme();
+  const [hasWritableCookbooks, setHasWritableCookbooks] = useState(false);
+  const [isCookbookAccessLoading, setIsCookbookAccessLoading] = useState(
+    () => Boolean(user),
+  );
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    let active = true;
+    listCookbooks(user.id)
+      .then((cookbooks) => {
+        if (!active) return;
+        setHasWritableCookbooks(getWritableCookbooks(cookbooks).length > 0);
+      })
+      .catch((error) => {
+        console.error("Failed to load cookbook access for sidebar", error);
+        if (active) {
+          setHasWritableCookbooks(false);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsCookbookAccessLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   if (!user) return null;
 
@@ -27,16 +60,16 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
 
   const navItem = (to: string, label: string) => {
     const isActive = location.pathname === to;
-    const activeClasses = sidebarActiveNavClasses[borderTheme];
-    const inactiveClasses =
-      "bg-white text-black border-black hover:bg-stone-100";
 
     return (
       <Link
         to={to}
         onClick={() => onNavigate?.()}
-        className={`block px-4 py-2 rounded-md text-sm font-medium transition border ${
-          isActive ? activeClasses : inactiveClasses
+        aria-current={isActive ? "page" : undefined}
+        className={`sidebar-nav-item ${
+          isActive
+            ? "sidebar-nav-item-active"
+            : ""
         }`}
       >
         {label}
@@ -45,41 +78,78 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
   };
 
   return (
-    <div className="flex h-full flex-col p-6 text-center">
-      <Link
-        to="/"
-        onClick={() => onNavigate?.()}
-        className={`mb-10 text-2xl font-semibold tracking-tight transition ${sidebarTitleLinkClasses[borderTheme]}`}
-      >
-        RecipeBook
-      </Link>
-
-      <div className="mb-8">
-        <p className="text-lg font-medium text-black">{user.username}</p>
+    <div className="flex h-full flex-col gap-8">
+      <div className="flex items-start justify-between gap-4">
+        <Link to="/" onClick={() => onNavigate?.()} className="inline-flex">
+          <Logo size="medium" />
+        </Link>
+        {onClose ? (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close navigation menu"
+            className="app-button app-button-ghost inline-flex size-11 shrink-0 rounded-2xl p-0 md:hidden"
+          >
+            <X className="size-5" aria-hidden />
+          </button>
+        ) : null}
       </div>
 
-      <div className="mb-8 flex flex-col gap-3">
+      <div className="sidebar-user-card rounded-[1.5rem] p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">
+          Signed in
+        </p>
+        <p className="mt-2 text-lg font-semibold text-[var(--text-primary)]">
+          {user.username}
+        </p>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{user.email}</p>
+      </div>
+
+      <nav className="flex flex-col gap-2" aria-label="Primary navigation">
         {navItem("/cookbooks", "My Cookbooks")}
         {navItem("/search", "Search")}
         {navItem("/jobs", "Jobs")}
-      </div>
+      </nav>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
         {navItem("/cookbooks/new", "Create a Cookbook")}
+        {hasWritableCookbooks ? (
+          navItem("/recipe/new", "Create a Recipe")
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled
+              aria-disabled="true"
+              className="app-button app-button-ghost justify-start border-[var(--border-muted)] opacity-60"
+            >
+              Create a Recipe
+            </button>
+            {!isCookbookAccessLoading ? (
+              <p className="px-1 text-sm leading-6 text-[var(--text-secondary)]">
+                Create a cookbook or get contributor access before starting a new recipe.
+              </p>
+            ) : null}
+          </>
+        )}
         {navItem("/account", "Account Details")}
 
         <button
           type="button"
           onClick={handleLogout}
-          className="block w-full cursor-pointer rounded-md border border-black bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-stone-100"
+          className="app-button app-button-ghost justify-start border-[var(--border-muted)]"
         >
           Logout
         </button>
       </div>
 
+      <PwaInstallPrompt />
+
       <div className="min-h-0 flex-grow" />
 
-      <p className="mt-6 text-xs text-stone-400">Cookbook App v1</p>
+      <p className="text-xs uppercase tracking-[0.22em] text-[var(--text-muted)]">
+        RecipeBook Web V2
+      </p>
     </div>
   );
 }

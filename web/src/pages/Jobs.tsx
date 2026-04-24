@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { getJob, listJobs, retryJob } from "../api/jobs";
 import { useAuth } from "../context/AuthContext";
 import type { JobDetail, JobSource, JobStatus, JobSummary } from "../../types/types";
+import { AppButton } from "../components/ui/AppButton";
+import { EmptyState } from "../components/ui/EmptyState";
+import { StatusBanner } from "../components/ui/StatusBanner";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -14,10 +17,10 @@ function formatTimestamp(value?: string | null): string {
 }
 
 function statusClasses(status: JobStatus): string {
-  if (status === "succeeded") return "bg-emerald-100 text-emerald-800 border-emerald-200";
-  if (status === "failed") return "bg-red-100 text-red-800 border-red-200";
-  if (status === "running") return "bg-amber-100 text-amber-800 border-amber-200";
-  return "bg-stone-100 text-stone-700 border-stone-200";
+  if (status === "succeeded") return "app-status-surface app-status-success";
+  if (status === "failed") return "app-status-surface app-status-danger";
+  if (status === "running") return "app-status-surface app-status-warning";
+  return "border-[var(--border-muted)] bg-[var(--surface-soft)] text-[var(--text-secondary)]";
 }
 
 function sourceLabel(source: JobSource): string {
@@ -133,34 +136,42 @@ export default function Jobs() {
     }
   }
 
-  if (isInitializing) return <p>Loading jobs...</p>;
-  if (!user) return <p>Please log in to view your jobs.</p>;
-  if (loading) return <p>Loading jobs...</p>;
+  if (isInitializing || loading) {
+    return <p className="py-6 text-sm text-[var(--text-secondary)]">Loading jobs...</p>;
+  }
+
+  if (!user) {
+    return (
+      <div className="py-6">
+        <EmptyState
+          title="Please log in to view your jobs."
+          description="Image and text imports run in the background here after you sign in."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[22rem_minmax(0,1fr)]">
-        <section className="rounded-[1.75rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+        <section className="app-panel">
           <div className="mb-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--text-muted)]">
               Queue
             </p>
-            <h1 className="mt-1 text-3xl font-semibold text-stone-900">Jobs</h1>
-            <p className="mt-2 text-sm text-stone-500">
+            <h1 className="mt-1 text-3xl font-semibold text-[var(--text-primary)]">Jobs</h1>
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Image and text imports run here in the background.
             </p>
           </div>
 
-          {error ? (
-            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </div>
-          ) : null}
+          {error ? <StatusBanner tone="danger" className="mb-4">{error}</StatusBanner> : null}
 
           {jobs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50 px-4 py-8 text-center text-sm text-stone-500">
-              No jobs yet. Start an import from the new recipe page.
-            </div>
+            <EmptyState
+              title="No jobs yet."
+              description="Start an import from the new recipe page and its progress will show up here."
+            />
           ) : (
             <div className="space-y-3">
               {jobs.map((job) => (
@@ -170,14 +181,14 @@ export default function Jobs() {
                   onClick={() => setSelectedJobId(job.job_id)}
                   className={`rounded-2xl border px-4 py-4 text-left transition ${
                     selectedJobId === job.job_id
-                      ? "border-red-300 bg-red-50 shadow-sm"
-                      : "border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50"
+                      ? "border-[var(--interactive-border)] bg-[var(--interactive-soft)] shadow-sm"
+                      : "border-[var(--border-muted)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-stone-900">{sourceLabel(job.source)}</p>
-                      <p className="mt-1 text-xs text-stone-500">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{sourceLabel(job.source)}</p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
                         Created {formatTimestamp(job.created_at)}
                       </p>
                     </div>
@@ -186,7 +197,7 @@ export default function Jobs() {
                     </span>
                   </div>
                   {job.error ? (
-                    <p className="mt-3 text-sm text-red-700 line-clamp-2">{job.error}</p>
+                    <p className="app-text-danger mt-3 text-sm line-clamp-2">{job.error}</p>
                   ) : null}
                 </button>
               ))}
@@ -194,22 +205,22 @@ export default function Jobs() {
           )}
         </section>
 
-        <section className="rounded-[1.75rem] border border-stone-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(255,247,237,0.96))] p-6 shadow-sm">
+        <section className="app-panel">
           {!selectedSummary ? (
-            <div className="rounded-2xl border border-dashed border-stone-200 bg-white/70 px-6 py-12 text-center text-stone-500">
+            <div className="rounded-2xl border border-dashed border-[var(--border-muted)] bg-[var(--surface)] px-6 py-12 text-center text-[var(--text-secondary)]">
               Select a job to see its details.
             </div>
           ) : (
             <>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-stone-500">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[var(--text-muted)]">
                     Job detail
                   </p>
-                  <h2 className="mt-2 text-3xl font-semibold text-stone-900">
+                  <h2 className="mt-2 text-3xl font-semibold text-[var(--text-primary)]">
                     {sourceLabel(selectedSummary.source)}
                   </h2>
-                  <p className="mt-2 text-sm text-stone-500">
+                  <p className="mt-2 text-sm text-[var(--text-secondary)]">
                     Job ID: <span className="font-mono text-xs">{selectedSummary.job_id}</span>
                   </p>
                 </div>
@@ -221,69 +232,66 @@ export default function Jobs() {
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Created</p>
-                  <p className="mt-2 text-sm font-medium text-stone-800">{formatTimestamp(selectedSummary.created_at)}</p>
+                <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Created</p>
+                  <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{formatTimestamp(selectedSummary.created_at)}</p>
                 </div>
-                <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Started</p>
-                  <p className="mt-2 text-sm font-medium text-stone-800">{formatTimestamp(selectedSummary.started_at)}</p>
+                <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Started</p>
+                  <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{formatTimestamp(selectedSummary.started_at)}</p>
                 </div>
-                <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-stone-500">Completed</p>
-                  <p className="mt-2 text-sm font-medium text-stone-800">{formatTimestamp(selectedSummary.completed_at)}</p>
+                <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-4 py-4">
+                  <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Completed</p>
+                  <p className="mt-2 text-sm font-medium text-[var(--text-primary)]">{formatTimestamp(selectedSummary.completed_at)}</p>
                 </div>
               </div>
 
-              {actionError ? (
-                <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {actionError}
-                </div>
-              ) : null}
+              {actionError ? <StatusBanner tone="danger" className="mt-6">{actionError}</StatusBanner> : null}
 
               {detailLoading ? (
-                <p className="mt-6 text-sm text-stone-500">Loading job details...</p>
+                <p className="mt-6 text-sm text-[var(--text-secondary)]">Loading job details...</p>
               ) : null}
 
               {selectedJob?.error ? (
-                <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-                  <p className="text-sm font-semibold text-red-800">Failure</p>
-                  <p className="mt-2 text-sm text-red-700">{selectedJob.error}</p>
-                </div>
+                <StatusBanner tone="danger" className="mt-6">
+                  <p className="text-sm font-semibold">Failure</p>
+                  <p className="mt-2 text-sm">{selectedJob.error}</p>
+                </StatusBanner>
               ) : null}
 
               <div className="mt-6 flex flex-wrap gap-3">
                 {selectedSummary.status === "failed" ? (
-                  <button
-                    type="button"
+                  <AppButton
                     onClick={() => void handleRetry(selectedSummary.job_id)}
                     disabled={retryingJobId === selectedSummary.job_id}
-                    className="inline-flex w-auto items-center justify-center rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 disabled:opacity-60"
+                    variant="danger"
                   >
                     {retryingJobId === selectedSummary.job_id ? "Retrying..." : "Retry Job"}
-                  </button>
+                  </AppButton>
                 ) : null}
 
                 {selectedSummary.status === "succeeded" ? (
                   <Link
                     to={`/recipe/new?job=${selectedSummary.job_id}`}
-                    className="inline-flex items-center justify-center rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
                   >
-                    Open Draft
+                    <AppButton variant="secondary">Open Draft</AppButton>
                   </Link>
                 ) : null}
               </div>
 
               {selectedJob ? (
                 <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                  <div className="rounded-2xl border border-stone-200 bg-white px-5 py-5">
-                    <h3 className="text-lg font-semibold text-stone-900">Logs</h3>
+                  <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-5 py-5 shadow-[var(--shadow-card)]">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Logs</h3>
                     {selectedJob.logs.length === 0 ? (
-                      <p className="mt-3 text-sm text-stone-500">No logs yet.</p>
+                      <p className="mt-3 text-sm text-[var(--text-secondary)]">No logs yet.</p>
                     ) : (
                       <div className="mt-3 space-y-2">
                         {selectedJob.logs.map((log, index) => (
-                          <p key={`${selectedJob.job_id}-${index}`} className="rounded-xl bg-stone-50 px-3 py-2 text-sm text-stone-700">
+                          <p
+                            key={`${selectedJob.job_id}-${index}`}
+                            className="rounded-xl border border-[var(--border-muted)] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--text-secondary)]"
+                          >
                             {log}
                           </p>
                         ))}
@@ -291,22 +299,22 @@ export default function Jobs() {
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-stone-200 bg-white px-5 py-5">
-                    <h3 className="text-lg font-semibold text-stone-900">Result</h3>
+                  <div className="rounded-2xl border border-[var(--border-muted)] bg-[var(--surface)] px-5 py-5 shadow-[var(--shadow-card)]">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">Result</h3>
                     {selectedJob.result ? (
-                      <div className="mt-3 space-y-3 text-sm text-stone-600">
+                      <div className="mt-3 space-y-3 text-sm text-[var(--text-secondary)]">
                         <p>
-                          Draft name: <span className="font-medium text-stone-900">{selectedJob.result.draft.name || "Untitled"}</span>
+                          Draft name: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.name || "Untitled"}</span>
                         </p>
                         <p>
-                          Ingredients: <span className="font-medium text-stone-900">{selectedJob.result.draft.ingredients.length}</span>
+                          Ingredients: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.ingredients.length}</span>
                         </p>
                         <p>
-                          Instructions: <span className="font-medium text-stone-900">{selectedJob.result.draft.instructions.length}</span>
+                          Instructions: <span className="font-medium text-[var(--text-primary)]">{selectedJob.result.draft.instructions.length}</span>
                         </p>
                       </div>
                     ) : (
-                      <p className="mt-3 text-sm text-stone-500">
+                      <p className="mt-3 text-sm text-[var(--text-secondary)]">
                         The full parsed result becomes available here when the job succeeds.
                       </p>
                     )}

@@ -15,18 +15,18 @@ export default function LoadingOverlay({
 }: LoadingOverlayProps) {
   return (
     <div
-      className={`loading-overlay${isLoading ? " loading-overlay--visible" : ""}`}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-4 bg-black/55 px-6 backdrop-blur-md transition ${isLoading ? "visible opacity-100" : "invisible opacity-0 pointer-events-none"}`}
       role="status"
       aria-live="polite"
       aria-label={message}
       aria-hidden={!isLoading}
     >
-      <div className="pan-loader" aria-hidden="true">
+      <div className="h-[130px] w-[180px]" aria-hidden="true">
         <svg width="240" height="170" viewBox="0 0 180 130">
           {/* Shift artwork left to visually center pan + handle */}
           <g transform="translate(-30, 0)">
             {/* Pan */}
-            <g className="pan">
+            <g className={isLoading ? "animate-[panTilt_1.6s_ease-in-out_infinite]" : ""}>
               <ellipse cx="90" cy="92" rx="52" ry="9" fill="#2B2622" />
               <ellipse
                 cx="90"
@@ -56,12 +56,12 @@ export default function LoadingOverlay({
             </g>
 
             {/* Veggies */}
-            <g className="food food1">
+            <g className={isLoading ? "animate-[toss_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite]" : ""}>
               <circle cx="75" cy="60" r="5" fill="#E07A2D" />
               <circle cx="74" cy="59" r="2" fill="#F4B27A" opacity="0.8" />
             </g>
 
-            <g className="food food2">
+            <g className={isLoading ? "animate-[toss_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite_0.2s]" : ""}>
               <circle cx="90" cy="54" r="5" fill="#5F8F3E" />
               <circle cx="95" cy="56" r="4" fill="#6FAE4F" />
               <rect
@@ -74,7 +74,7 @@ export default function LoadingOverlay({
               />
             </g>
 
-            <g className="food food3">
+            <g className={isLoading ? "animate-[toss_1.6s_cubic-bezier(0.4,0,0.2,1)_infinite_0.4s]" : ""}>
               <rect x="105" y="56" width="9" height="9" rx="2" fill="#EAC77D" />
               <rect
                 x="106"
@@ -90,7 +90,7 @@ export default function LoadingOverlay({
         </svg>
       </div>
 
-      <span className="loading-text">
+      <span className="max-w-[320px] text-center text-sm text-[var(--text-inverse)]">
         {message || "Hang tight while we cook up something delicious!"}
       </span>
     </div>
