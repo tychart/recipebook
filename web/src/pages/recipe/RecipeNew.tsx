@@ -294,7 +294,8 @@ export default function RecipeNew() {
   const canCreateInCurrentCookbook = numericCookbookId
     ? Boolean(cookbook && isWritableCookbookRole(cookbook.current_user_role))
     : hasWritableCookbooks;
-  const needsGlobalCookbookSelection = isGlobalCreate && selectedCookbookId === 0;
+  const needsGlobalCookbookSelectionForManualSave =
+    isGlobalCreate && selectedCookbookId === 0;
   const isPageLoading = isCookbookLoading || (isGlobalCreate && isCookbookOptionsLoading);
 
   const globalCookbookPlaceholder = useMemo(() => {
@@ -349,11 +350,6 @@ export default function RecipeNew() {
   };
 
   const queueImageImport = async (file: File, resetInput: () => void) => {
-    if (isGlobalCreate && selectedCookbookId === 0) {
-      setActionError("Choose a cookbook before queueing an image import.");
-      return;
-    }
-
     setIsProcessing(true);
     setActionError(null);
     setDraftError(null);
@@ -383,11 +379,6 @@ export default function RecipeNew() {
 
   const handleTextImport = async () => {
     if (!textImportValue.trim()) {
-      return;
-    }
-
-    if (isGlobalCreate && selectedCookbookId === 0) {
-      setActionError("Choose a cookbook before queueing a text import.");
       return;
     }
 
@@ -528,9 +519,9 @@ export default function RecipeNew() {
                   placeholder={showGlobalCookbookPlaceholder ? globalCookbookPlaceholder : undefined}
                   ariaLabel="Save to cookbook"
                 />
-                {needsGlobalCookbookSelection ? (
+                {selectedCookbookId === 0 ? (
                   <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
-                    Pick a cookbook before you queue an import or save a new recipe so nothing gets stranded at the end.
+                    You can queue image or text imports now and choose the cookbook later. Manual recipe saves still need a cookbook before you can finish.
                   </p>
                 ) : null}
               </SectionCard>
@@ -593,14 +584,14 @@ export default function RecipeNew() {
                   <div className="flex flex-wrap gap-3">
                     <AppButton
                       onClick={() => cameraInputRef.current?.click()}
-                      disabled={isProcessing || needsGlobalCookbookSelection}
+                      disabled={isProcessing}
                       variant="primary"
                     >
                       {isProcessing ? "Queueing..." : "Take Photo"}
                     </AppButton>
                     <AppButton
                       onClick={() => imagePickerRef.current?.click()}
-                      disabled={isProcessing || needsGlobalCookbookSelection}
+                      disabled={isProcessing}
                     >
                       Choose Image
                     </AppButton>
@@ -651,7 +642,7 @@ export default function RecipeNew() {
                   <div className="flex flex-wrap gap-3">
                     <AppButton
                       onClick={() => void handleTextImport()}
-                      disabled={isProcessing || !textImportValue.trim() || needsGlobalCookbookSelection}
+                      disabled={isProcessing || !textImportValue.trim()}
                       variant="primary"
                     >
                       {isProcessing ? "Queueing..." : "Queue Text Import"}
@@ -733,9 +724,9 @@ export default function RecipeNew() {
               originalImageUrl={manualOriginalImageUrl}
               onSubmit={handleCreate}
               submitLabel="Create Recipe"
-              submitDisabled={needsGlobalCookbookSelection}
+              submitDisabled={needsGlobalCookbookSelectionForManualSave}
               submitHint={
-                needsGlobalCookbookSelection
+                needsGlobalCookbookSelectionForManualSave
                   ? "Choose a cookbook above before saving this recipe."
                   : undefined
               }

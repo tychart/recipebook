@@ -120,9 +120,12 @@ export function AppSelect({
     }
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
       }
+
+      setOpen(false);
     };
 
     document.addEventListener("mousedown", handlePointerDown);
